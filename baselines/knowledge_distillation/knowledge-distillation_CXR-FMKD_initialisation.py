@@ -9,7 +9,7 @@ from argparse import ArgumentParser
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader, Dataset, random_split
 import torchvision
 import torchvision.transforms as T
 from torchvision import models
@@ -22,26 +22,29 @@ from pytorch_lightning.callbacks import ModelCheckpoint, TQDMProgressBar
 
 
 image_size = (224, 224)
-num_classes = 14
+CXRFM_embeds_size = 1376
 batch_size = 150
 learning_rate = 0.001
 epochs = 20
 num_workers = 4
 
-data_filepath = '/vol/biodata/data/chest_xray/CheXpert-v1.0/'
+cxrs_filepath = '/vol/biodata/data/chest_xray/CheXpert-v1.0/'
+embeddings_filepath = '/vol/biomedic3/bglocker/cxr-foundation/outputs/chexpert/cxr_numpy/'
 train_records_csv = '/vol/biodata/data/chest_xray/CheXpert-v1.0/meta/algorithmic_encoding/chexpert.sample.train.csv'
 val_records_csv = '/vol/biodata/data/chest_xray/CheXpert-v1.0/meta/algorithmic_encoding/chexpert.sample.val.csv'
-test_records_csv = '/vol/biodata/data/chest_xray/CheXpert-v1.0/meta/algorithmic_encoding/chexpert.sample.test.csv'
+# test_records_csv = '/vol/biodata/data/chest_xray/CheXpert-v1.0/meta/algorithmic_encoding/chexpert.sample.test.csv' --> should be reserved for downstream task fine-tuning
 main_dir_path = '/vol/biomedic3/bglocker/mscproj24/fz221/outputs/'
-out_dir_name = 'CheXpert-model_full-finetuning/'
+out_dir_name = 'CXR-FMKD_KD-initialisation/'
 
 
 
 class CheXpertDataset(Dataset):
-    def __init__(self, image_size: tuple, records_filepath: str, data_filepath: str, augmentation: bool = False, pseudo_rgb: bool = True):
+    def __init__(self, image_size: tuple, records_filepath: str, cxrs_filepath: str, embeddings_filepath: str, 
+                 augmentation: bool = False, pseudo_rgb: bool = True):
         self.image_size = image_size
         self.entries = pd.read_csv(records_filepath)
-        self.data_filepath = data_filepath
+        self.cxrs_filepath = cxrs_filepath
+        self.embeddings_filepath = embeddings_filepath
         self.do_augment = augmentation
         self.pseudo_rgb = pseudo_rgb
 
@@ -76,14 +79,24 @@ class CheXpertDataset(Dataset):
 
     def get_sample(self, item):
         record = self.records[item]
-        cxr_filepath = os.path.join(self.data_filepath, record['image_filepath'])   # e.g., '<data_filepath>/preproc_224x224/patient24428_study22_view1_frontal.jpg'
+        image_filepath = record['image_filepath']
+
+        # Get the Chest X-Rays (cxrs)
+        cxr_filepath = os.path.join(self.cxrs_filepath, image_filepath)   # e.g., '<cxrs_filepath>/preproc_224x224/patient24428_study22_view1_frontal.jpg'
         cxr = imread(cxr_filepath).astype(np.float32)   # cxr: Chest X-Ray
-        return {'cxr': cxr, 'label': record['label']}
+
+        # Get the corresponding CXR-FM embeddings
+        patient_filename = os.path.basename(image_filepath)   # e.g., 'patient24428_study22_view1_frontal.jpg'
+        embedding_filepath = os.path.join(self.embeddings_filepath, patient_filename.replace('.jpg', '.dat'))   # e.g., '<embeddings_filepath>/patient24428_study22_view1_frontal.dat'
+        embedding = np.fromfile(embedding_filepath, dtype=np.float32)
+
+        return {'cxr': cxr, 'embedding': embedding, 'label': record['label']}
 
     def __getitem__(self, item):
         sample = self.get_sample(item)
 
         cxr_tensor = torch.from_numpy(sample['cxr']).unsqueeze(0)
+        embedding_tensor = torch.from_numpy(sample['embedding'])
         label_tensor = torch.from_numpy(sample['label'])
 
         if self.do_augment:
@@ -92,34 +105,33 @@ class CheXpertDataset(Dataset):
         if self.pseudo_rgb:
             cxr_tensor = cxr_tensor.repeat(3, 1, 1)
 
-        return {'cxr': cxr_tensor, 'label': label_tensor}
+        return {'cxr': cxr_tensor, 'embedding': embedding_tensor, 'label': label_tensor}
 
     def __len__(self):
         return len(self.entries)
 
 
 class CheXpertDataModule(LightningDataModule):
-    def __init__(self, image_size: tuple, train_records: str, val_records: str, test_records: str, data_filepath: str, 
+    def __init__(self, image_size: tuple, train_records: str, val_records: str, cxrs_filepath: str, embeddings_filepath: str, 
                  pseudo_rgb: bool, batch_size: int, num_workers: int):
         super().__init__()
         self.image_size = image_size
 
         self.train_records = train_records
         self.val_records = val_records
-        self.test_records = test_records
 
-        self.data_filepath = data_filepath
+        self.cxrs_filepath = cxrs_filepath
+        self.embeddings_filepath = embeddings_filepath
         self.pseudo_rgb = pseudo_rgb
 
         self.batch_size = batch_size
         self.num_workers = num_workers
 
-        self.train_set = CheXpertDataset(image_size=self.image_size, records_filepath=self.train_records, data_filepath=self.data_filepath,
-                                         augmentation=True, pseudo_rgb=self.pseudo_rgb)
-        self.val_set = CheXpertDataset(image_size=self.image_size, records_filepath=self.val_records, data_filepath=self.data_filepath,
-                                       augmentation=False, pseudo_rgb=self.pseudo_rgb)
-        self.test_set = CheXpertDataset(image_size=self.image_size, records_filepath=self.test_records, data_filepath=self.data_filepath,
-                                        augmentation=False, pseudo_rgb=self.pseudo_rgb)
+        self.train_set = CheXpertDataset(image_size=self.image_size, records_filepath=self.train_records, cxrs_filepath=self.cxrs_filepath,
+                                         embeddings_filepath=self.embeddings_filepath, augmentation=True, pseudo_rgb=self.pseudo_rgb)
+        dev_set = CheXpertDataset(image_size=self.image_size, records_filepath=self.val_records, cxrs_filepath=self.cxrs_filepath,
+                                       embeddings_filepath=self.embeddings_filepath, augmentation=False, pseudo_rgb=self.pseudo_rgb)
+        self.val_set, self.test_set = random_split(dev_set, [0.7, 0.3])
 
         print('>> train_set size: ', len(self.train_set))
         print('>> val_set size:   ', len(self.val_set))
@@ -135,17 +147,17 @@ class CheXpertDataModule(LightningDataModule):
         return DataLoader(self.test_set, batch_size=self.batch_size, shuffle=False, num_workers=self.num_workers)
 
 
-class DenseNet(LightningModule):
-    def __init__(self, num_classes: int, learning_rate: float):
+class Pre_CXR_FMKD(LightningModule):
+    def __init__(self, learning_rate: float, embedding_size: int):
         super().__init__()
-        self.num_classes = num_classes
         self.learning_rate = learning_rate
+        self.embedding_size = embedding_size
         
-        # DenseNet-169: full finetuning
+        # KD from teacher (CXR-FM) to student (DenseNet-169)
         self.model = models.densenet169(pretrained=True)
         num_features = self.model.classifier.in_features   # in_features: 1664 | out_features: 1000 (ImageNet)
-        # Replace original classifier with new f.c. layer mapping the 1664 input features to 14 (disease classes):
-        self.model.classifier = nn.Linear(num_features, self.num_classes)  
+        # Replace original classifier with new f.c. layer mapping the 1664 input features to 1376 (to match CXR-FM's embeddings):
+        self.model.classifier = nn.Linear(num_features, embedding_size)  
 
     def remove_head(self): 
         num_features = self.model.classifier.in_features
@@ -163,13 +175,13 @@ class DenseNet(LightningModule):
         return optimizer
 
     def unpack_batch(self, batch):
-        return batch['cxr'], batch['label']
+        return batch['cxr'], batch['embedding']
 
     def process_batch(self, batch):
-        cxrs, labels = self.unpack_batch(batch)   # cxrs: Chest X-Rays
-        logits = self.forward(cxrs)
-        probs = torch.sigmoid(logits)
-        loss = F.binary_cross_entropy(probs, labels)
+        cxrs, target_embeds = self.unpack_batch(batch)   # cxrs: Chest X-Rays, embeds: embeddings
+        output_embeds = self.forward(cxrs)
+        # Calculate Mean Squared Error (MSE) Loss between output embeddings from DenseNet-169 and target embeddings from CXR-FM
+        loss = F.mse_loss(output_embeds, target_embeds)
         return loss
 
     def training_step(self, batch, batch_idx):
@@ -194,82 +206,41 @@ def freeze_model(model):
         param.requires_grad = False
 
 
-def evaluate(model, data_loader, device, num_classes):
+def evaluate(model, data_loader, device):
     model.eval()
-    logits_list = []
-    probs_list = []
-    targets_list = []
+    output_embeds_list = []
+    target_embeds_list = []
 
     with torch.no_grad():
         for _, batch in enumerate(tqdm(data_loader, desc='Evaluate Loop')):
-            cxrs, labels = batch['cxr'].to(device), batch['label'].to(device)
-            logits = model(cxrs)
-            probs = torch.sigmoid(logits)
-            logits_list.append(logits)
-            probs_list.append(probs)
-            targets_list.append(labels)
+            cxrs, target_embeds = batch['cxr'].to(device), batch['embedding'].to(device)
+            output_embeds = model(cxrs)
+            output_embeds_list.append(output_embeds)
+            target_embeds_list.append(target_embeds)
 
-        logits_array = torch.cat(logits_list, dim=0)
-        probs_array = torch.cat(probs_list, dim=0)
-        targets_array = torch.cat(targets_list, dim=0)
+        output_embeds_array = torch.cat(output_embeds_list, dim=0)
+        target_embeds_array = torch.cat(target_embeds_list, dim=0)
 
-        counts = []
-        for i in range(0, num_classes):
-            t = targets_list[:, i] == 1
-            c = torch.sum(t)
-            counts.append(c)
-        print(counts)
-
-    return probs_array.cpu().numpy(), targets_array.cpu().numpy(), logits_array.cpu().numpy()
+    return output_embeds_array.cpu().numpy(), target_embeds_array.cpu().numpy()
 
 
-def extract_embeddings(model, data_loader, device):
-    model.eval()
-    embeddings_list = []
-    targets_list = []
-
-    with torch.no_grad():
-        for _, batch in enumerate(tqdm(data_loader, desc='Extracting Embeddings Loop')):
-            cxrs, labels = batch['cxr'].to(device), batch['label'].to(device)
-            embeddings = model(cxrs)
-            embeddings_list.append(embeddings)
-            targets_list.append(labels)
-
-        embeddings_array = torch.cat(embeddings_list, dim=0)
-        targets_array = torch.cat(targets_list, dim=0)
-
-    return embeddings_array.cpu().numpy(), targets_array.cpu().numpy()
-
-
-def run_evaluation_phase(model, dataloader, device, num_classes, file_path, phase):
+def run_evaluation_phase(model, dataloader, device, file_path, phase):
     print(f'<<>> {phase.upper()} PHASE <<>>')
     if 'embeddings' in phase:
         model.remove_head()
-        embeddings, targets = extract_embeddings(model, dataloader, device)
-        save_embeddings_to_csv(embeddings, targets, num_classes, file_path)
+        pre_embeds, target_embeds = evaluate(model, dataloader, device)
+        save_embeddings_to_csv(pre_embeds, target_embeds, file_path)
     else:
-        probs, targets, logits = evaluate(model, dataloader, device, num_classes)
-        save_predictions_to_csv(probs, logits, targets, num_classes, file_path)
+        output_embeds, target_embeds = evaluate(model, dataloader, device)
+        save_embeddings_to_csv(output_embeds, target_embeds, file_path)
 
 
-def save_predictions_to_csv(probs, logits, targets, num_classes, file_path):
-    cols_names_probs = [f'prob_class_{i}' for i in range(num_classes)]
-    cols_names_logits = [f'logit_class_{i}' for i in range(num_classes)]
-    cols_names_targets = [f'target_class_{i}' for i in range(num_classes)]
+def save_embeddings_to_csv(embeds, target_embeds, file_path):
+    cols_names_embeds = [f'embed_{i}' for i in range(embeds.shape[1])]
+    cols_names_target_embeds = [f'target_embed_{i}' for i in range(target_embeds.shape[1])]
     
-    df_probs = pd.DataFrame(data=probs, columns=cols_names_probs)
-    df_logits = pd.DataFrame(data=logits, columns=cols_names_logits)
-    df_targets = pd.DataFrame(data=targets, columns=cols_names_targets)
-    df = pd.concat([df_probs, df_logits, df_targets], axis=1)
-    df.to_csv(file_path, index=False)
-
-
-def save_embeddings_to_csv(embeddings, targets, num_classes, file_path):
-    cols_names_embeddings = [f'embed_{i}' for i in range(embeddings.shape[1])]
-    cols_names_targets = [f'target_class_{i}' for i in range(num_classes)]
-    
-    df_embeddings = pd.DataFrame(data=embeddings, columns=cols_names_embeddings)
-    df_targets = pd.DataFrame(data=targets, columns=cols_names_targets)
+    df_embeddings = pd.DataFrame(data=embeds, columns=cols_names_embeds)
+    df_targets = pd.DataFrame(data=target_embeds, columns=cols_names_target_embeds)
     df = pd.concat([df_embeddings, df_targets], axis=1)
     df.to_csv(file_path, index=False)
 
@@ -283,15 +254,15 @@ def main(hparams):
     data = CheXpertDataModule(image_size=image_size,
                               train_records=train_records_csv,
                               val_records=val_records_csv,
-                              test_records=test_records_csv,
-                              data_filepath=data_filepath,
+                              cxrs_filepath=cxrs_filepath,
+                              embeddings_filepath=embeddings_filepath,
                               pseudo_rgb=True,
                               batch_size=batch_size,
                               num_workers=num_workers)
 
     # Model
-    model_type = DenseNet
-    model = model_type(num_classes=num_classes, learning_rate=learning_rate)
+    model_type = Pre_CXR_FMKD
+    model = model_type(learning_rate=learning_rate, embedding_size=CXRFM_embeds_size)
 
     # Create output directory
     out_dir_path = os.path.join(main_dir_path, out_dir_name)
@@ -318,16 +289,16 @@ def main(hparams):
     trainer.logger._default_hp_metric = False
     trainer.fit(model=model, datamodule=data)
 
-    model = model_type.load_from_checkpoint(trainer.checkpoint_callback.best_model_path, num_classes=num_classes)
+    model = model_type.load_from_checkpoint(trainer.checkpoint_callback.best_model_path)
     device = torch.device("cuda:" + str(hparams.dev) if torch.cuda.is_available() else "cpu")
     model.to(device)
 
     # Get Outputs
-    run_evaluation_phase(model, data.val_dataloader(), device, num_classes, os.path.join(out_dir_path, 'outputs.val.csv'), 'validation_outputs')
-    run_evaluation_phase(model, data.test_dataloader(), device, num_classes, os.path.join(out_dir_path, 'outputs.test.csv'), 'testing_outputs')
+    run_evaluation_phase(model, data.val_dataloader(), device, os.path.join(out_dir_path, 'outputs.val.csv'), 'validation_outputs')
+    run_evaluation_phase(model, data.test_dataloader(), device, os.path.join(out_dir_path, 'outputs.test.csv'), 'testing_outputs')
     # Extract Embeddings
-    run_evaluation_phase(model, data.val_dataloader(), device, num_classes, os.path.join(out_dir_path, 'embeddings.val.csv'), 'validation_embeddings')
-    run_evaluation_phase(model, data.test_dataloader(), device, num_classes, os.path.join(out_dir_path, 'embeddings.test.csv'), 'testing_embeddings')
+    run_evaluation_phase(model, data.val_dataloader(), device, os.path.join(out_dir_path, 'embeddings.val.csv'), 'validation_embeddings')
+    run_evaluation_phase(model, data.test_dataloader(), device, os.path.join(out_dir_path, 'embeddings.test.csv'), 'testing_embeddings')
 
 
 if __name__ == '__main__':
