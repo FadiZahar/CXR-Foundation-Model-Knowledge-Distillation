@@ -237,7 +237,7 @@ def main(hparams):
         max_epochs=epochs,
         accelerator='auto',
         devices=hparams.gpus,
-        logger=TensorBoardLogger(logs_dir_path, name=out_dir_name),
+        logger=TensorBoardLogger(logs_dir_path, name=out_dir_name.lower()),
     )
     trainer.logger._default_hp_metric = False
     trainer.fit(model=model, datamodule=data)
