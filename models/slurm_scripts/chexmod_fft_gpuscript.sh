@@ -3,7 +3,7 @@
 #SBATCH --gres=gpu:1             
 #SBATCH --output=/vol/biomedic3/bglocker/mscproj24/fz221/cxr-fmkd/baselines/slurm_scripts/chexmod_fft.%N.%j.log  
 #SBATCH --time=3-00:00:00
-#SBATCH --nodelist=monal03,monal04        
+#SBATCH --nodelist=monal03        
 
 #SBATCH --job-name=chexmod_fft
 
