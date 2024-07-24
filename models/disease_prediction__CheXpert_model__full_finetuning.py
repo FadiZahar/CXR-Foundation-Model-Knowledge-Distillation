@@ -1,7 +1,5 @@
 import os
 import numpy as np
-import pandas as pd
-from tqdm import tqdm
 from skimage.io import imsave
 from argparse import ArgumentParser
 
@@ -15,25 +13,16 @@ from pytorch_lightning import LightningModule, Trainer, seed_everything
 from pytorch_lightning.loggers import TensorBoardLogger, WandbLogger
 from pytorch_lightning.callbacks import ModelCheckpoint, TQDMProgressBar
 
+
 # Import custom modules
 from data_modules.chexpert_data_module import CheXpertDataModule
+from utils.output_utils.generate_and_save_outputs import run_evaluation_phase
 
+# Import global variables
+from config.config_chexpert import IMAGE_SIZE, NUM_CLASSES, EPOCHS, NUM_WORKERS, BATCH_SIZE, LEARNING_RATE
+from config.config_chexpert import CXRS_FILEPATH, EMBEDDINGS_FILEPATH, TRAIN_RECORDS_CSV, VAL_RECORDS_CSV, TEST_RECORDS_CSV, MAIN_DIR_PATH
 
-
-image_size = (224, 224)
-num_classes = 14
-batch_size = 150
-learning_rate = 0.001
-epochs = 20
-num_workers = 4
-
-cxrs_filepath = '/vol/biodata/data/chest_xray/CheXpert-v1.0/'
-embeddings_filepath = '/vol/biomedic3/bglocker/mscproj24/fz221/data/cxrfm_embeddings/chexpert/cxr_numpy'
-train_records_csv = '/vol/biodata/data/chest_xray/CheXpert-v1.0/meta/algorithmic_encoding/chexpert.sample.train.csv'
-val_records_csv = '/vol/biodata/data/chest_xray/CheXpert-v1.0/meta/algorithmic_encoding/chexpert.sample.val.csv'
-test_records_csv = '/vol/biodata/data/chest_xray/CheXpert-v1.0/meta/algorithmic_encoding/chexpert.sample.test.csv'
-main_dir_path = '/vol/biomedic3/bglocker/mscproj24/fz221/outputs/'
-out_dir_name = 'CheXpert-model_full-finetuning/'
+OUT_DIR_NAME = 'CheXpert-model_full-finetuning/'
 
 
 
@@ -96,108 +85,28 @@ def freeze_model(model):
         param.requires_grad = False
 
 
-def evaluate(model, data_loader, device, num_classes):
-    model.eval()
-    logits_list = []
-    probs_list = []
-    targets_list = []
-
-    with torch.no_grad():
-        for _, batch in enumerate(tqdm(data_loader, desc='Evaluate Loop')):
-            cxrs, labels = batch['cxr'].to(device), batch['label'].to(device)
-            logits = model(cxrs)
-            probs = torch.sigmoid(logits)
-            logits_list.append(logits)
-            probs_list.append(probs)
-            targets_list.append(labels)
-
-        logits_array = torch.cat(logits_list, dim=0)
-        probs_array = torch.cat(probs_list, dim=0)
-        targets_array = torch.cat(targets_list, dim=0)
-
-        counts = []
-        for i in range(0, num_classes):
-            t = targets_list[:, i] == 1
-            c = torch.sum(t)
-            counts.append(c)
-        print(counts)
-
-    return probs_array.cpu().numpy(), targets_array.cpu().numpy(), logits_array.cpu().numpy()
-
-
-def extract_embeddings(model, data_loader, device):
-    model.eval()
-    embeddings_list = []
-    targets_list = []
-
-    with torch.no_grad():
-        for _, batch in enumerate(tqdm(data_loader, desc='Extracting Embeddings Loop')):
-            cxrs, labels = batch['cxr'].to(device), batch['label'].to(device)
-            embeddings = model(cxrs)
-            embeddings_list.append(embeddings)
-            targets_list.append(labels)
-
-        embeddings_array = torch.cat(embeddings_list, dim=0)
-        targets_array = torch.cat(targets_list, dim=0)
-
-    return embeddings_array.cpu().numpy(), targets_array.cpu().numpy()
-
-
-def run_evaluation_phase(model, dataloader, device, num_classes, file_path, phase):
-    print(f'<<>> {phase.upper()} PHASE <<>>')
-    if 'embeddings' in phase:
-        model.remove_head()
-        embeddings, targets = extract_embeddings(model, dataloader, device)
-        save_embeddings_to_csv(embeddings, targets, num_classes, file_path)
-    else:
-        probs, targets, logits = evaluate(model, dataloader, device, num_classes)
-        save_predictions_to_csv(probs, logits, targets, num_classes, file_path)
-
-
-def save_predictions_to_csv(probs, logits, targets, num_classes, file_path):
-    cols_names_probs = [f'prob_class_{i}' for i in range(num_classes)]
-    cols_names_logits = [f'logit_class_{i}' for i in range(num_classes)]
-    cols_names_targets = [f'target_class_{i}' for i in range(num_classes)]
-    
-    df_probs = pd.DataFrame(data=probs, columns=cols_names_probs)
-    df_logits = pd.DataFrame(data=logits, columns=cols_names_logits)
-    df_targets = pd.DataFrame(data=targets, columns=cols_names_targets)
-    df = pd.concat([df_probs, df_logits, df_targets], axis=1)
-    df.to_csv(file_path, index=False)
-
-
-def save_embeddings_to_csv(embeddings, targets, num_classes, file_path):
-    cols_names_embeddings = [f'embed_{i}' for i in range(embeddings.shape[1])]
-    cols_names_targets = [f'target_class_{i}' for i in range(num_classes)]
-    
-    df_embeddings = pd.DataFrame(data=embeddings, columns=cols_names_embeddings)
-    df_targets = pd.DataFrame(data=targets, columns=cols_names_targets)
-    df = pd.concat([df_embeddings, df_targets], axis=1)
-    df.to_csv(file_path, index=False)
-
-
 def main(hparams):
 
     # Sets seeds for numpy, torch, python.random and PYTHONHASHSEED.
     seed_everything(42, workers=True)
 
     # Data
-    data = CheXpertDataModule(image_size=image_size,
-                              cxrs_filepath=cxrs_filepath,
-                              embeddings_filepath=embeddings_filepath,
+    data = CheXpertDataModule(image_size=IMAGE_SIZE,
+                              cxrs_filepath=CXRS_FILEPATH,
+                              embeddings_filepath=EMBEDDINGS_FILEPATH,
                               pseudo_rgb=True,
-                              batch_size=batch_size,
-                              num_workers=num_workers,
-                              train_records=train_records_csv,
-                              val_records=val_records_csv,
-                              test_records=test_records_csv)
+                              batch_size=BATCH_SIZE,
+                              num_workers=NUM_WORKERS,
+                              train_records=TRAIN_RECORDS_CSV,
+                              val_records=VAL_RECORDS_CSV,
+                              test_records=TEST_RECORDS_CSV)
 
     # Model
     model_type = DenseNet
-    model = model_type(num_classes=num_classes, learning_rate=learning_rate)
+    model = model_type(num_classes=NUM_CLASSES, learning_rate=LEARNING_RATE)
 
     # Create output directory
-    out_dir_path = os.path.join(main_dir_path, out_dir_name)
+    out_dir_path = os.path.join(MAIN_DIR_PATH, OUT_DIR_NAME)
     os.makedirs(out_dir_path, exist_ok=True)
     # Create TensorBoard logs directory
     logs_dir_path = os.path.join(out_dir_path, 'lightning_logs/')
@@ -218,24 +127,28 @@ def main(hparams):
         callbacks=[ModelCheckpoint(monitor='val_loss', mode='min', filename='best-checkpoint_CheXpert-model_fft_{epoch}-{val_loss:.2f}'), 
                    TQDMProgressBar(refresh_rate=10)],
         log_every_n_steps=5,
-        max_epochs=epochs,
+        max_epochs=EPOCHS,
         accelerator='auto',
         devices=hparams.gpus,
-        logger=TensorBoardLogger(logs_dir_path, name=out_dir_name.lower()),
+        logger=TensorBoardLogger(logs_dir_path, name=OUT_DIR_NAME.lower()),
     )
     trainer.logger._default_hp_metric = False
     trainer.fit(model=model, datamodule=data)
 
-    model = model_type.load_from_checkpoint(trainer.checkpoint_callback.best_model_path, num_classes=num_classes)
+    model = model_type.load_from_checkpoint(trainer.checkpoint_callback.best_model_path, num_classes=NUM_CLASSES)
     device = torch.device("cuda:" + str(hparams.dev) if torch.cuda.is_available() else "cpu")
     model.to(device)
 
-    # Get Outputs
-    run_evaluation_phase(model, data.val_dataloader(), device, num_classes, os.path.join(out_dir_path, 'outputs.val.csv'), 'validation_outputs')
-    run_evaluation_phase(model, data.test_dataloader(), device, num_classes, os.path.join(out_dir_path, 'outputs.test.csv'), 'testing_outputs')
-    # Extract Embeddings
-    run_evaluation_phase(model, data.val_dataloader(), device, num_classes, os.path.join(out_dir_path, 'embeddings.val.csv'), 'validation_embeddings')
-    run_evaluation_phase(model, data.test_dataloader(), device, num_classes, os.path.join(out_dir_path, 'embeddings.test.csv'), 'testing_embeddings')
+    # Generate and Save Outputs
+    run_evaluation_phase(model=model, dataloader=data.val_dataloader(), device=device, num_classes=NUM_CLASSES, 
+                         file_path=os.path.join(out_dir_path, 'outputs_val.csv'), phase='validation_outputs', input_type='cxr')
+    run_evaluation_phase(model=model, dataloader=data.test_dataloader(), device=device, num_classes=NUM_CLASSES, 
+                         file_path=os.path.join(out_dir_path, 'outputs_test.csv'), phase='testing_outputs', input_type='cxr')
+    # Extract and Save Embeddings
+    run_evaluation_phase(model=model, dataloader=data.val_dataloader(), device=device, num_classes=NUM_CLASSES, 
+                         file_path=os.path.join(out_dir_path, 'embeddings_val.csv'), phase='validation_embeddings', input_type='cxr')
+    run_evaluation_phase(model=model, dataloader=data.test_dataloader(), device=device, num_classes=NUM_CLASSES, 
+                         file_path=os.path.join(out_dir_path, 'embeddings_test.csv'), phase='testing_embeddings', input_type='cxr')
 
 
 if __name__ == '__main__':
