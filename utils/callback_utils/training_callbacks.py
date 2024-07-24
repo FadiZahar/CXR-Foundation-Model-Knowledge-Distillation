@@ -19,3 +19,7 @@ class MetricLoggingCallback(Callback):
         with open(self.filename, 'a', newline='') as file:
             writer = csv.writer(file)
             writer.writerow([epoch, batch_idx, val_loss])
+
+
+
+            
