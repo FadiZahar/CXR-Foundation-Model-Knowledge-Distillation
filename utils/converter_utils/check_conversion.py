@@ -50,7 +50,7 @@ def examine_dat_files(source_dir, num_files=10, output_dir=None):
         plt.show()
 
     
-def plot_combined_dat_files(source_dir, num_files=10):
+def plot_combined_dat_files(source_dir, num_files=10, output_dir=None):
     files = sorted([f for f in os.listdir(source_dir) if f.endswith('.dat')])[:num_files]
     plt.figure(figsize=(20, 12)) 
 
