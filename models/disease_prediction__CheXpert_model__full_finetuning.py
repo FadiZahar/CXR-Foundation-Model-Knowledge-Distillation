@@ -17,6 +17,7 @@ from pytorch_lightning.callbacks import ModelCheckpoint, TQDMProgressBar
 # Import custom modules
 from data_modules.chexpert_data_module import CheXpertDataModule
 from utils.output_utils.generate_and_save_outputs import run_evaluation_phase
+from utils.callback_utils.training_callbacks import MetricLoggingCallback
 
 # Import global variables
 from config.config_chexpert import IMAGE_SIZE, NUM_CLASSES, EPOCHS, NUM_WORKERS, BATCH_SIZE, LEARNING_RATE
@@ -66,14 +67,14 @@ class DenseNet(LightningModule):
     def training_step(self, batch, batch_idx):
         loss = self.process_batch(batch)
         self.log('train_loss', loss, prog_bar=True)
-        if batch_idx == 0:
-            grid = torchvision.utils.make_grid(batch['cxr'][0:4, ...], nrow=2, normalize=True)
-            self.logger.experiment.add_image('Chest X-Rays', grid, self.global_step)
+        grid = torchvision.utils.make_grid(batch['cxr'][0:4, ...], nrow=2, normalize=True)
+        self.logger.experiment.add_image('Chest X-Rays', grid, self.global_step)
         return loss
 
     def validation_step(self, batch, batch_idx):
         loss = self.process_batch(batch)
-        self.log('val_loss', loss, prog_bar=True)
+        self.log('val_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+        return {"val_loss": loss}
 
     def test_step(self, batch, batch_idx):
         loss = self.process_batch(batch)
@@ -117,15 +118,24 @@ def main(hparams):
     # Create a temp. directory
     temp_dir_path = os.path.join(out_dir_path, 'temp')
     os.makedirs(temp_dir_path, exist_ok=True)
+
+    # Save sample images
     for idx in range(5):
         sample = data.train_set.get_sample(idx)
         imsave(os.path.join(temp_dir_path, 'sample_' + str(idx) + '.jpg'), sample['cxr'].astype(np.uint8))
 
+    # Callback
+    metric_logger = MetricLoggingCallback(filename=os.path.join(logs_dir_path, 'metrics.csv'))
+
     # Train
     trainer = Trainer(
-        default_root_dir=out_dir_path,
-        callbacks=[ModelCheckpoint(monitor='val_loss', mode='min', filename='best-checkpoint_CheXpert-model_fft_{epoch}-{val_loss:.2f}'), 
-                   TQDMProgressBar(refresh_rate=10)],
+        default_root_dir=ckpt_dir_path,
+        callbacks=[ModelCheckpoint(monitor='val_loss', 
+                                   mode='min', 
+                                   filename='best-checkpoint_CheXpert-model_fft_{epoch}-{val_loss:.2f}',
+                                   dirpath=ckpt_dir_path), 
+                   TQDMProgressBar(refresh_rate=10),
+                   metric_logger],
         log_every_n_steps=5,
         max_epochs=EPOCHS,
         accelerator='auto',

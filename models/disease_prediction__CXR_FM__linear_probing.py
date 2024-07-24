@@ -69,7 +69,7 @@ class CXR_FM(LightningModule):
 
     def validation_step(self, batch, batch_idx):
         loss = self.process_batch(batch)
-        self.log('val_loss', loss, prog_bar=True)
+        self.log('val_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
 
     def test_step(self, batch, batch_idx):
         loss = self.process_batch(batch)
@@ -108,8 +108,11 @@ def main(hparams):
 
     # Train
     trainer = Trainer(
-        default_root_dir=out_dir_path,
-        callbacks=[ModelCheckpoint(monitor='val_loss', mode='min', filename='best-checkpoint_CXR_FM_lp_{epoch}-{val_loss:.2f}'), 
+        default_root_dir=ckpt_dir_path,
+        callbacks=[ModelCheckpoint(monitor='val_loss', 
+                                   mode='min', 
+                                   filename='best-checkpoint_CXR_FM_lp_{epoch}-{val_loss:.2f}',
+                                   dirpath=ckpt_dir_path), 
                    TQDMProgressBar(refresh_rate=10)],
         log_every_n_steps=5,
         max_epochs=EPOCHS,

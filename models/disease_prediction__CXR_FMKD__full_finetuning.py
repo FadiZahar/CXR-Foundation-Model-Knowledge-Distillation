@@ -81,14 +81,13 @@ class CXR_FMKD_FullFineTuning(LightningModule):
     def training_step(self, batch, batch_idx):
         loss = self.process_batch(batch)
         self.log('train_loss', loss, prog_bar=True)
-        if batch_idx == 0:
-            grid = torchvision.utils.make_grid(batch['cxr'][0:4, ...], nrow=2, normalize=True)
-            self.logger.experiment.add_image('Chest X-Rays', grid, self.global_step)
+        grid = torchvision.utils.make_grid(batch['cxr'][0:4, ...], nrow=2, normalize=True)
+        self.logger.experiment.add_image('Chest X-Rays', grid, self.global_step)
         return loss
 
     def validation_step(self, batch, batch_idx):
         loss = self.process_batch(batch)
-        self.log('val_loss', loss, prog_bar=True)
+        self.log('val_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
 
     def test_step(self, batch, batch_idx):
         loss = self.process_batch(batch)
@@ -134,6 +133,8 @@ def main(hparams):
     # Create a temp. directory
     temp_dir_path = os.path.join(out_dir_path, 'temp')
     os.makedirs(temp_dir_path, exist_ok=True)
+
+    # Save sample images
     for idx in range(5):
         sample = data.train_set.get_sample(idx)
         imsave(os.path.join(temp_dir_path, 'sample_' + str(idx) + '.jpg'), sample['cxr'].astype(np.uint8))
@@ -141,7 +142,10 @@ def main(hparams):
     # Train
     trainer = Trainer(
         default_root_dir=ckpt_dir_path,
-        callbacks=[ModelCheckpoint(monitor='val_loss', mode='min', filename='best-checkpoint_CXR-FMKD_fft_{epoch}-{val_loss:.2f}'), 
+        callbacks=[ModelCheckpoint(monitor='val_loss', 
+                                   mode='min', 
+                                   filename='best-checkpoint_CXR-FMKD_fft_{epoch}-{val_loss:.2f}',
+                                   dirpath=ckpt_dir_path), 
                     TQDMProgressBar(refresh_rate=10)],
         log_every_n_steps=5,
         max_epochs=EPOCHS,

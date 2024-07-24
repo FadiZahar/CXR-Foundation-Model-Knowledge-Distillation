@@ -70,14 +70,13 @@ class Pre_CXR_FMKD(LightningModule):
     def training_step(self, batch, batch_idx):
         loss = self.process_batch(batch)
         self.log('train_loss', loss, prog_bar=True)
-        if batch_idx == 0:
-            grid = torchvision.utils.make_grid(batch['cxr'][0:4, ...], nrow=2, normalize=True)
-            self.logger.experiment.add_image('Chest X-Rays', grid, self.global_step)
+        grid = torchvision.utils.make_grid(batch['cxr'][0:4, ...], nrow=2, normalize=True)
+        self.logger.experiment.add_image('Chest X-Rays', grid, self.global_step)
         return loss
 
     def validation_step(self, batch, batch_idx):
         loss = self.process_batch(batch)
-        self.log('val_loss', loss, prog_bar=True)
+        self.log('val_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
 
     def test_step(self, batch, batch_idx):
         loss = self.process_batch(batch)
@@ -121,6 +120,8 @@ def main(hparams):
     # Create a temp. directory
     temp_dir_path = os.path.join(out_dir_path, 'temp')
     os.makedirs(temp_dir_path, exist_ok=True)
+
+    # Save sample images
     for idx in range(5):
         sample = data.train_set.get_sample(idx)
         imsave(os.path.join(temp_dir_path, 'sample_' + str(idx) + '.jpg'), sample['cxr'].astype(np.uint8))
