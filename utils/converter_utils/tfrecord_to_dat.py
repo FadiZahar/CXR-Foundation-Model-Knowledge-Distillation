@@ -12,7 +12,7 @@ def parse_tfrecord_file(tfrecord_filepath):
     for raw_record in raw_dataset.take(1):   # Only take the first record
         example = tf.train.Example()
         example.ParseFromString(raw_record.numpy())
-        embedding = np.array(example.features.feature['embedding'].float_list.value)
+        embedding = np.array(example.features.feature['embedding'].float_list.value, dtype=np.float32)
         return embedding   # Return embedding after parsing the first record
     
 
