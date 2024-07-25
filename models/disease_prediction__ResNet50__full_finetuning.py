@@ -29,7 +29,7 @@ OUT_DIR_NAME = 'ResNet50_full-finetuning/'
 
 
 
-class DenseNet(LightningModule):
+class ResNet50(LightningModule):
     def __init__(self, num_classes: int, learning_rate: float):
         super().__init__()
         self.num_classes = num_classes
@@ -38,15 +38,15 @@ class DenseNet(LightningModule):
         # log hyperparameters
         self.save_hyperparameters()
         
-        # DenseNet-169: full finetuning
+        # ResNet-50: full finetuning
         self.model = models.resnet50(pretrained=True)
-        num_features = self.model.classifier.in_features   # in_features: 1664 | out_features: 1000 (ImageNet)
-        # Replace original classifier with new f.c. layer mapping the 1664 input features to 14 (disease classes):
-        self.model.classifier = nn.Linear(num_features, self.num_classes)  
+        num_features = self.model.fc.in_features   # in_features: 2048 | out_features: 1000 (ImageNet)
+        # Replace original f.c. layer with new f.c. layer mapping the 2048 input features to 14 (disease classes):
+        self.model.fc = nn.Linear(num_features, self.num_classes)  
 
     def remove_head(self): 
-        num_features = self.model.classifier.in_features
-        self.model.classifier = nn.Identity(num_features)
+        num_features = self.model.fc.in_features
+        self.model.fc = nn.Identity(num_features)
 
     def forward(self, x):
         return self.model.forward(x)
@@ -109,7 +109,7 @@ def main(hparams):
                               test_records=TEST_RECORDS_CSV)
 
     # Model
-    model_type = DenseNet
+    model_type = ResNet50
     model = model_type(num_classes=NUM_CLASSES, learning_rate=LEARNING_RATE)
 
     # Create output directory

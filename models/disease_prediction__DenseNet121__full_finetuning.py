@@ -29,7 +29,7 @@ OUT_DIR_NAME = 'DenseNet121_full-finetuning/'
 
 
 
-class DenseNet(LightningModule):
+class DenseNet121(LightningModule):
     def __init__(self, num_classes: int, learning_rate: float):
         super().__init__()
         self.num_classes = num_classes
@@ -38,10 +38,10 @@ class DenseNet(LightningModule):
         # log hyperparameters
         self.save_hyperparameters()
         
-        # DenseNet-169: full finetuning
+        # DenseNet-121: full finetuning
         self.model = models.densenet121(pretrained=True)
-        num_features = self.model.classifier.in_features   # in_features: 1664 | out_features: 1000 (ImageNet)
-        # Replace original classifier with new f.c. layer mapping the 1664 input features to 14 (disease classes):
+        num_features = self.model.classifier.in_features   # in_features: 1024 | out_features: 1000 (ImageNet)
+        # Replace original classifier with new f.c. layer mapping the 1024 input features to 14 (disease classes):
         self.model.classifier = nn.Linear(num_features, self.num_classes)  
 
     def remove_head(self): 
@@ -109,7 +109,7 @@ def main(hparams):
                               test_records=TEST_RECORDS_CSV)
 
     # Model
-    model_type = DenseNet
+    model_type = DenseNet121
     model = model_type(num_classes=NUM_CLASSES, learning_rate=LEARNING_RATE)
 
     # Create output directory
