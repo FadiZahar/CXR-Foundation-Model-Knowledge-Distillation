@@ -11,7 +11,7 @@ class MetricLoggingCallback(Callback):
             writer = csv.writer(file)
             writer.writerow(['Epoch', 'Batch', 'Validation Loss'])
 
-    def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
+    def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, *args, **kwargs):
         # Retrieve validation loss from outputs if your validation step returns this
         val_loss = outputs['val_loss'].item() if 'val_loss' in outputs else None
         epoch = trainer.current_epoch
@@ -20,6 +20,3 @@ class MetricLoggingCallback(Callback):
             writer = csv.writer(file)
             writer.writerow([epoch, batch_idx, val_loss])
 
-
-
-            
