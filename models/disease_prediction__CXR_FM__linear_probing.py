@@ -45,10 +45,7 @@ class CXR_FM(LightningModule):
             return self.model(x)
 
     def configure_optimizers(self):
-        params_to_update = []
-        for param in self.parameters():
-            if param.requires_grad == True:
-                params_to_update.append(param)
+        params_to_update = [param for param in self.parameters() if param.requires_grad]
         optimizer = torch.optim.Adam(params_to_update, lr=self.learning_rate)
         return optimizer
 

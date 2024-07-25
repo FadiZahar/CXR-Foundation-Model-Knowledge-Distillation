@@ -52,15 +52,28 @@ class ResNet50(LightningModule):
         return self.model.forward(x)
 
     def configure_optimizers(self):
-        params_to_update = []
-        for param in self.parameters():
-            if param.requires_grad == True:
-                params_to_update.append(param)
-        optimizer = torch.optim.Adam(self.parameters(), lr=1e-8)
-        lambda_lr = lambda epoch: (self.learning_rate / 500) * epoch if epoch < 500 else 1
-        warmup_scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=lambda_lr)
-        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=10, verbose=True)
-        return [optimizer], [{'scheduler': warmup_scheduler, 'interval': 'step'}, {'scheduler': scheduler, 'reduce_on_plateau': True, 'monitor': 'val_loss'}]
+        params_to_update = [param for param in self.parameters() if param.requires_grad]
+        optimizer = torch.optim.Adam(params_to_update, lr=self.learning_rate)
+
+        # Define the learning rate scheduler
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+            optimizer, 
+            mode='min', 
+            factor=0.1, 
+            patience=10
+        )
+
+        # Return the optimizer and the scheduler configuration
+        return {
+            'optimizer': optimizer,
+            'lr_scheduler': {
+                'scheduler': scheduler,
+                'monitor': 'val_loss', 
+                'interval': 'epoch',  
+                'frequency': 1, 
+                'reduce_on_plateau': True,  
+            }
+        }
 
     def unpack_batch(self, batch):
         return batch['cxr'], batch['label']

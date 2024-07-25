@@ -68,7 +68,8 @@ class CXR_FMKD_LinearProbing(LightningModule):
             return self.classifier(features)
 
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.classifier.parameters(), lr=self.learning_rate)
+        params_to_update = self.classifier.parameters()
+        optimizer = torch.optim.Adam(params_to_update, lr=self.learning_rate)
         return optimizer
 
     def unpack_batch(self, batch):

@@ -65,7 +65,8 @@ class CXR_FMKD_FullFineTuning(LightningModule):
             return self.classifier(features)
 
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(list(self.base_model.parameters()) + list(self.classifier.parameters()), lr=self.learning_rate)
+        params_to_update = list(self.base_model.parameters()) + list(self.classifier.parameters())
+        optimizer = torch.optim.Adam(params_to_update, lr=self.learning_rate)
         return optimizer
 
     def unpack_batch(self, batch):
