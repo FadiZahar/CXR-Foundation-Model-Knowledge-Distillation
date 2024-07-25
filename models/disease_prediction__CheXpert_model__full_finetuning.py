@@ -2,6 +2,7 @@ import os
 import numpy as np
 from skimage.io import imsave
 from argparse import ArgumentParser
+from datetime import datetime
 
 import torch
 import torch.nn as nn
@@ -32,6 +33,9 @@ class DenseNet(LightningModule):
         super().__init__()
         self.num_classes = num_classes
         self.learning_rate = learning_rate
+
+        # log hyperparameters
+        self.save_hyperparameters()
         
         # DenseNet-169: full finetuning
         self.model = models.densenet169(pretrained=True)
@@ -124,8 +128,14 @@ def main(hparams):
         sample = data.train_set.get_sample(idx)
         imsave(os.path.join(temp_dir_path, 'sample_' + str(idx) + '.jpg'), sample['cxr'].astype(np.uint8))
 
-    # Callback
+    # Callback metric logging
     metric_logger = MetricLoggingCallback(filename=os.path.join(logs_dir_path, 'metrics.csv'))
+
+    # WandB logger
+    wandb_logger = WandbLogger(save_dir=logs_dir_path, 
+                               project=OUT_DIR_NAME.lower(),
+                               name='run_' + OUT_DIR_NAME.lower() + '_' + datetime.now().strftime('%Y%m%d_%H%M'), 
+                               log_model="all")
 
     # Train
     trainer = Trainer(
@@ -140,7 +150,7 @@ def main(hparams):
         max_epochs=EPOCHS,
         accelerator='auto',
         devices=hparams.gpus,
-        logger=TensorBoardLogger(logs_dir_path, name=OUT_DIR_NAME.lower()),
+        logger=wandb_logger,
     )
     trainer.logger._default_hp_metric = False
     trainer.fit(model=model, datamodule=data)
