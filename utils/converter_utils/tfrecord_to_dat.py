@@ -1,8 +1,9 @@
-from tqdm import tqdm
-from os import listdir, makedirs
-from os.path import isfile, join
 import numpy as np
 import tensorflow as tf
+from os import listdir, makedirs
+from os.path import isfile, join
+from tqdm import tqdm
+from argparse import ArgumentParser
 
 
 
@@ -12,7 +13,7 @@ def parse_tfrecord_file(tfrecord_filepath):
     for raw_record in raw_dataset.take(1):   # Only take the first record
         example = tf.train.Example()
         example.ParseFromString(raw_record.numpy())
-        embedding = np.array(example.features.feature['embedding'].float_list.value, dtype=np.float32)
+        embedding = np.array(example.features.feature['embedding'].float_list.value, dtype=np.float32)   # should specify dtype=np.float32 for proper embeddings handling
         return embedding   # Return embedding after parsing the first record
     
 
@@ -34,10 +35,13 @@ def convert_tfrecords_to_dat(tf_dir, np_dir):
 
 
 if __name__ == '__main__':
-
-    # Specify the directories
-    tf_dir = '/vol/biomedic3/bglocker/cxr-foundation/outputs/chexpert/cxr_tfrecords/'
-    np_dir = '/vol/biomedic3/bglocker/mscproj24/fz221/data/cxrfm_embeddings/chexpert/cxr_numpy'
+    parser = ArgumentParser(description="Convert TFRecord files to NumPy .dat files.")
+    parser.add_argument('--tf_dir', type=str, default='/vol/biomedic3/bglocker/cxr-foundation/outputs/chexpert/cxr_tfrecords/',
+                        help='Directory containing TFRecord files.')
+    parser.add_argument('--np_dir', type=str, default='/vol/biomedic3/bglocker/mscproj24/fz221/data/cxrfm_embeddings/chexpert/cxr_numpy/',
+                        help='Output directory for NumPy .dat files.')
+    
+    args = parser.parse_args()
 
     # Run the conversion
-    convert_tfrecords_to_dat(tf_dir, np_dir)
+    convert_tfrecords_to_dat(args.tf_dir, args.np_dir)

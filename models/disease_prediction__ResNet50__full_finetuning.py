@@ -76,7 +76,7 @@ class ResNet50(LightningModule):
         loss = self.process_batch(batch)
         self.log('train_loss', loss, prog_bar=True)
         if batch_idx == 0 and batch['cxr'].shape[0] >= 20:
-            grid = torchvision.utils.make_grid(batch['cxr'][0:20, ...], nrow=4, normalize=True)
+            grid = torchvision.utils.make_grid(batch['cxr'][0:20, ...], nrow=5, normalize=True)
             grid = grid.permute(1, 2, 0).cpu().numpy()
             wandb.log({"Chest X-Rays": [wandb.Image(grid, caption=f"Batch {batch_idx}")]}, step=self.global_step)
         return loss
