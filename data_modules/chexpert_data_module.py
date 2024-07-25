@@ -3,7 +3,7 @@ from pytorch_lightning import LightningDataModule
 from typing import List, Optional
 
 # Import custom modules
-from chexpert_dataset import CheXpertDataset
+from data_modules.chexpert_dataset import CheXpertDataset
 
 
 
