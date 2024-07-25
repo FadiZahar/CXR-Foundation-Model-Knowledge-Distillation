@@ -39,7 +39,7 @@ class DenseNet(LightningModule):
         self.save_hyperparameters()
         
         # DenseNet-169: full finetuning
-        self.model = models.densenet169(pretrained=True)
+        self.model = models.densenet169(weights=models.DenseNet169_Weights.DEFAULT)
         num_features = self.model.classifier.in_features   # in_features: 1664 | out_features: 1000 (ImageNet)
         # Replace original classifier with new f.c. layer mapping the 1664 input features to 14 (disease classes):
         self.model.classifier = nn.Linear(num_features, self.num_classes)  
@@ -56,8 +56,21 @@ class DenseNet(LightningModule):
         for param in self.parameters():
             if param.requires_grad == True:
                 params_to_update.append(param)
-        optimizer = torch.optim.Adam(params_to_update, lr=self.learning_rate)
-        return optimizer
+        base_lr = self.learning_rate
+        max_lr = self.learning_rate*10
+        optimizer = torch.optim.Adam(params_to_update, lr=base_lr)
+        scheduler = torch.optim.lr_scheduler.OneCycleLR(
+            optimizer, 
+            max_lr=max_lr,
+            total_steps=self.trainer.estimated_stepping_batches  
+        )
+        return {
+            'optimizer': optimizer,
+            'lr_scheduler': {
+                'scheduler': scheduler,
+                'interval': 'step'
+            }
+        }
 
     def unpack_batch(self, batch):
         return batch['cxr'], batch['label']
@@ -74,7 +87,7 @@ class DenseNet(LightningModule):
         self.log('train_loss', loss, prog_bar=True)
         grid = torchvision.utils.make_grid(batch['cxr'][0:4, ...], nrow=2, normalize=True)
         grid = grid.permute(1, 2, 0).cpu().numpy()
-        wandb.log({"Chest X-Rays": [wandb.Image(grid, caption="Batch {}".format(batch_idx))]}, step=self.global_step)
+        wandb.log({"Chest X-Rays": [wandb.Image(grid, caption=f"Batch {batch_idx}")]}, step=self.global_step, commit=True)
         return loss
 
     def validation_step(self, batch, batch_idx):

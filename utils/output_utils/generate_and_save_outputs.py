@@ -28,7 +28,7 @@ def generate_evaluation_outputs(model, dataloader, device, num_classes, input_ty
 
         counts = []
         for i in range(num_classes):
-            t = (targets_list[:, i] == 1)
+            t = (targets_array[:, i] == 1)
             c = torch.sum(t)
             counts.append(c)
         print("Class counts:", counts)

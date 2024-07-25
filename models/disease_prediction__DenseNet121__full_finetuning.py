@@ -39,7 +39,7 @@ class DenseNet121(LightningModule):
         self.save_hyperparameters()
         
         # DenseNet-121: full finetuning
-        self.model = models.densenet121(pretrained=True)
+        self.model = models.densenet121(weights=models.DenseNet121_Weights.DEFAULT)
         num_features = self.model.classifier.in_features   # in_features: 1024 | out_features: 1000 (ImageNet)
         # Replace original classifier with new f.c. layer mapping the 1024 input features to 14 (disease classes):
         self.model.classifier = nn.Linear(num_features, self.num_classes)  

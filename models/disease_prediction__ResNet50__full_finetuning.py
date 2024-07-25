@@ -39,7 +39,7 @@ class ResNet50(LightningModule):
         self.save_hyperparameters()
         
         # ResNet-50: full finetuning
-        self.model = models.resnet50(pretrained=True)
+        self.model = models.resnet50(weights=models.ResNet50_Weights.DEFAULT)
         num_features = self.model.fc.in_features   # in_features: 2048 | out_features: 1000 (ImageNet)
         # Replace original f.c. layer with new f.c. layer mapping the 2048 input features to 14 (disease classes):
         self.model.fc = nn.Linear(num_features, self.num_classes)  

@@ -37,7 +37,7 @@ class Pre_CXR_FMKD(LightningModule):
         self.save_hyperparameters()
         
         # KD from teacher (CXR-FM) to student (DenseNet-169)
-        self.model = models.densenet169(pretrained=True)
+        self.model = models.densenet169(weights=models.DenseNet169_Weights.DEFAULT)
         num_features = self.model.classifier.in_features   # in_features: 1664 | out_features: 1000 (ImageNet)
         # Replace original classifier with new f.c. layer mapping the 1664 input features to 1376 (to match CXR-FM's embeddings):
         self.model.classifier = nn.Linear(num_features, embedding_size)  
