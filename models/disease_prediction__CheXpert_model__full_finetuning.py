@@ -3,6 +3,7 @@ import numpy as np
 from skimage.io import imsave
 from argparse import ArgumentParser
 from datetime import datetime
+import wandb
 
 import torch
 import torch.nn as nn
@@ -72,7 +73,8 @@ class DenseNet(LightningModule):
         loss = self.process_batch(batch)
         self.log('train_loss', loss, prog_bar=True)
         grid = torchvision.utils.make_grid(batch['cxr'][0:4, ...], nrow=2, normalize=True)
-        self.logger.experiment.add_image('Chest X-Rays', grid, self.global_step)
+        grid = grid.permute(1, 2, 0).cpu().numpy()
+        wandb.log({"Chest X-Rays": [wandb.Image(grid, caption="Batch {}".format(batch_idx))]}, step=self.global_step)
         return loss
 
     def validation_step(self, batch, batch_idx):
