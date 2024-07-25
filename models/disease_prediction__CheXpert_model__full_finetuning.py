@@ -132,9 +132,10 @@ def main(hparams):
     metric_logger = MetricLoggingCallback(filename=os.path.join(logs_dir_path, 'metrics.csv'))
 
     # WandB logger
+    project_name = OUT_DIR_NAME.replace('/', '_').lower().strip('_')
     wandb_logger = WandbLogger(save_dir=logs_dir_path, 
-                               project=OUT_DIR_NAME.lower(),
-                               name='run_' + OUT_DIR_NAME.lower() + '_' + datetime.now().strftime('%Y%m%d_%H%M'), 
+                               project=project_name,
+                               name='run_' + project_name + '_' + datetime.now().strftime('%Y%m%d_%H%M'), 
                                log_model="all")
 
     # Train
