@@ -91,7 +91,7 @@ class ResNet50(LightningModule):
             grid = torchvision.utils.make_grid(batch['cxr'][0:20, ...], nrow=5, normalize=True)
             grid = grid.permute(1, 2, 0).cpu().numpy()
             wandb.log({"Chest X-Rays": [wandb.Image(grid, caption=f"Batch {batch_idx}")]}, step=self.global_step)
-        return {'train_loss': loss}
+        return loss
 
     def validation_step(self, batch, batch_idx):
         _, loss = self.process_batch(batch)
