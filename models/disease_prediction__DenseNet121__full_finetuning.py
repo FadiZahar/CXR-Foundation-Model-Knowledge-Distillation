@@ -19,7 +19,7 @@ from pytorch_lightning.callbacks import ModelCheckpoint, TQDMProgressBar
 # Import custom modules
 from data_modules.chexpert_data_module import CheXpertDataModule
 from utils.output_utils.generate_and_save_outputs import run_evaluation_phase
-from utils.callback_utils.training_callbacks import MetricLoggingCallback
+from utils.callback_utils.training_callbacks import TrainLoggingCallback
 
 # Import global variables
 from config.config_chexpert import IMAGE_SIZE, NUM_CLASSES, EPOCHS, NUM_WORKERS, BATCH_SIZE, LEARNING_RATE
@@ -146,7 +146,7 @@ def main(hparams):
         imsave(os.path.join(temp_dir_path, 'sample_' + str(idx) + '.jpg'), sample['cxr'].astype(np.uint8))
 
     # Callback metric logging
-    metric_logger = MetricLoggingCallback(filename=os.path.join(logs_dir_path, 'metrics.csv'))
+    train_logger = TrainLoggingCallback(filename=os.path.join(logs_dir_path, 'val_loss_step.csv'))
 
     # WandB logger
     project_name = OUT_DIR_NAME.replace('/', '_').lower().strip('_')
@@ -163,7 +163,7 @@ def main(hparams):
                                    filename='best-checkpoint_DenseNet121_fft_{epoch}-{val_loss:.4f}',
                                    dirpath=ckpt_dir_path), 
                    TQDMProgressBar(refresh_rate=10),
-                   metric_logger],
+                   train_logger],
         log_every_n_steps=5,
         max_epochs=EPOCHS,
         accelerator='auto',

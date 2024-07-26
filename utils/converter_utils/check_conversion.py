@@ -1,6 +1,7 @@
 import os
 import numpy as np
 import matplotlib.pyplot as plt
+from argparse import ArgumentParser
 
 
 
@@ -94,11 +95,14 @@ def plot_combined_dat_files(source_dir, num_files=10, output_dir=None):
 
 
 if __name__ == '__main__':
-    source_dir = '/vol/biomedic3/bglocker/mscproj24/fz221/data/cxrfm_embeddings/chexpert/cxr_numpy'
-    output_dir = '/vol/biomedic3/bglocker/mscproj24/fz221/cxr-fmkd/utils/converter_utils'
-    examine_dat_files(source_dir=source_dir, output_dir=output_dir)
-    plot_combined_dat_files(source_dir=source_dir, output_dir=output_dir)
+    parser = ArgumentParser(description="Check TFRecord to NumPy .dat files conversion.")
+    parser.add_argument('--source_dir', type=str, default='/vol/biomedic3/bglocker/mscproj24/fz221/data/cxrfm_embeddings/chexpert/cxr_numpy',
+                        help='Directory containing NumPy .dat files.')
+    parser.add_argument('--output_dir', type=str, default='/vol/biomedic3/bglocker/mscproj24/fz221/cxr-fmkd/utils/converter_utils',
+                        help='Directory to store Embedding visualisations.')
+    
+    args = parser.parse_args()
 
-
-
-
+    # Run the conversion check
+    examine_dat_files(source_dir=args.source_dir, output_dir=args.output_dir)
+    plot_combined_dat_files(source_dir=args.source_dir, output_dir=args.output_dir)

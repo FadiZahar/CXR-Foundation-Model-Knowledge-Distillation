@@ -1,5 +1,7 @@
 import os
 from argparse import ArgumentParser
+from datetime import datetime
+import wandb
 
 import torch
 import torch.nn as nn
@@ -13,6 +15,7 @@ from pytorch_lightning.callbacks import ModelCheckpoint, TQDMProgressBar
 # Import custom modules
 from data_modules.chexpert_data_module import CheXpertDataModule
 from utils.output_utils.generate_and_save_outputs import run_evaluation_phase
+from utils.callback_utils.training_callbacks import TrainLoggingCallback
 
 # Import global variables
 from config.config_chexpert import IMAGE_SIZE, CXRFM_EMBEDS_SIZE, NUM_CLASSES, EPOCHS, NUM_WORKERS, BATCH_SIZE, LEARNING_RATE
@@ -29,6 +32,9 @@ class CXR_FM(LightningModule):
         self.learning_rate = learning_rate
         self.embedding_size = embedding_size
         self.extract_features = False
+
+        # log hyperparameters
+        self.save_hyperparameters()
         
         # CXR-FM: linear probing
         self.model = nn.Sequential(
@@ -70,6 +76,7 @@ class CXR_FM(LightningModule):
     def validation_step(self, batch, batch_idx):
         loss = self.process_batch(batch)
         self.log('val_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+        return {"val_loss": loss}
 
     def test_step(self, batch, batch_idx):
         loss = self.process_batch(batch)

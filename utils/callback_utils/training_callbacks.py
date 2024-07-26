@@ -3,7 +3,7 @@ import csv
 
 
 
-class MetricLoggingCallback(Callback):
+class TrainLoggingCallback(Callback):
     def __init__(self, filename):
         self.filename = filename
         # Open the file in write mode to initialise and write headers

@@ -19,7 +19,8 @@ from pytorch_lightning.callbacks import ModelCheckpoint, TQDMProgressBar
 # Import custom modules
 from data_modules.chexpert_data_module import CheXpertDataModule
 from utils.output_utils.generate_and_save_outputs import run_evaluation_phase
-from utils.callback_utils.training_callbacks import MetricLoggingCallback
+from utils.callback_utils.training_callbacks import TrainLoggingCallback
+from utils.callback_utils.evaluation_callbacks import EvalLoggingCallback
 
 # Import global variables
 from config.config_chexpert import IMAGE_SIZE, NUM_CLASSES, EPOCHS, NUM_WORKERS, BATCH_SIZE, LEARNING_RATE
@@ -81,25 +82,26 @@ class ResNet50(LightningModule):
         logits = self.forward(cxrs)
         probs = torch.sigmoid(logits)
         loss = F.binary_cross_entropy(probs, labels)
-        return loss
+        return logits, loss
 
     def training_step(self, batch, batch_idx):
-        loss = self.process_batch(batch)
+        _, loss = self.process_batch(batch)
         self.log('train_loss', loss, prog_bar=True)
         if batch_idx == 0 and batch['cxr'].shape[0] >= 20:
             grid = torchvision.utils.make_grid(batch['cxr'][0:20, ...], nrow=5, normalize=True)
             grid = grid.permute(1, 2, 0).cpu().numpy()
             wandb.log({"Chest X-Rays": [wandb.Image(grid, caption=f"Batch {batch_idx}")]}, step=self.global_step)
-        return loss
+        return {'train_loss': loss}
 
     def validation_step(self, batch, batch_idx):
-        loss = self.process_batch(batch)
+        _, loss = self.process_batch(batch)
         self.log('val_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
-        return {"val_loss": loss}
+        return {'val_loss': loss}
 
     def test_step(self, batch, batch_idx):
-        loss = self.process_batch(batch)
+        logits, loss = self.process_batch(batch)
         self.log('test_loss', loss)
+        return {'test_loss': loss, 'logits': logits}
 
 
 def freeze_model(model):
@@ -146,7 +148,8 @@ def main(hparams):
         imsave(os.path.join(temp_dir_path, 'sample_' + str(idx) + '.jpg'), sample['cxr'].astype(np.uint8))
 
     # Callback metric logging
-    metric_logger = MetricLoggingCallback(filename=os.path.join(logs_dir_path, 'metrics.csv'))
+    train_logger = TrainLoggingCallback(filename=os.path.join(logs_dir_path, 'val_loss_step.csv'))
+    test_logger = EvalLoggingCallback(num_classes=NUM_CLASSES, file_path=os.path.join(logs_dir_path, 'test_outputs_test.csv'))
 
     # WandB logger
     project_name = OUT_DIR_NAME.replace('/', '_').lower().strip('_')
@@ -163,7 +166,8 @@ def main(hparams):
                                    filename='best-checkpoint_ResNet50_fft_{epoch}-{val_loss:.4f}',
                                    dirpath=ckpt_dir_path), 
                    TQDMProgressBar(refresh_rate=10),
-                   metric_logger],
+                   train_logger,
+                   test_logger],
         log_every_n_steps=5,
         max_epochs=EPOCHS,
         accelerator='auto',
@@ -173,22 +177,24 @@ def main(hparams):
     trainer.logger._default_hp_metric = False
     trainer.fit(model=model, datamodule=data)
 
-    model = model_type.load_from_checkpoint(trainer.checkpoint_callback.best_model_path, num_classes=NUM_CLASSES)
+    trainer.test(model=model, datamodule=data, ckpt_path=trainer.checkpoint_callback.best_model_path)
+
+    best_model = model_type.load_from_checkpoint(trainer.checkpoint_callback.best_model_path, num_classes=NUM_CLASSES)
     device = torch.device("cuda:" + str(hparams.dev) if torch.cuda.is_available() else "cpu")
-    model.to(device)
+    best_model.to(device)
 
     # Generate and Save Outputs
-    run_evaluation_phase(model=model, dataloader=data.val_dataloader(), device=device, num_classes=NUM_CLASSES, 
+    run_evaluation_phase(model=best_model, dataloader=data.val_dataloader(), device=device, num_classes=NUM_CLASSES, 
                          file_path=os.path.join(out_dir_path, 'outputs_val.csv'), phase='validation_outputs', input_type='cxr')
-    run_evaluation_phase(model=model, dataloader=data.test_dataloader(), device=device, num_classes=NUM_CLASSES, 
+    run_evaluation_phase(model=best_model, dataloader=data.test_dataloader(), device=device, num_classes=NUM_CLASSES, 
                          file_path=os.path.join(out_dir_path, 'outputs_test.csv'), phase='testing_outputs', input_type='cxr')
     # Extract and Save Embeddings
-    model.remove_head()
-    run_evaluation_phase(model=model, dataloader=data.val_dataloader(), device=device, num_classes=NUM_CLASSES, 
+    best_model.remove_head()
+    run_evaluation_phase(model=best_model, dataloader=data.val_dataloader(), device=device, num_classes=NUM_CLASSES, 
                          file_path=os.path.join(out_dir_path, 'embeddings_val.csv'), phase='validation_embeddings', input_type='cxr')
-    run_evaluation_phase(model=model, dataloader=data.test_dataloader(), device=device, num_classes=NUM_CLASSES, 
+    run_evaluation_phase(model=best_model, dataloader=data.test_dataloader(), device=device, num_classes=NUM_CLASSES, 
                          file_path=os.path.join(out_dir_path, 'embeddings_test.csv'), phase='testing_embeddings', input_type='cxr')
-    model.reset_head()
+    best_model.reset_head()
 
 
 if __name__ == '__main__':
