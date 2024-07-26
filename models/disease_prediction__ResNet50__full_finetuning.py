@@ -57,25 +57,19 @@ class ResNet50(LightningModule):
 
     def configure_optimizers(self):
         params_to_update = [param for param in self.parameters() if param.requires_grad]
-        optimizer = torch.optim.Adam(params_to_update, lr=self.learning_rate)
-
-        # Define the learning rate scheduler
-        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+        base_lr = self.learning_rate
+        max_lr = self.learning_rate*10
+        optimizer = torch.optim.Adam(params_to_update, lr=base_lr)
+        scheduler = torch.optim.lr_scheduler.OneCycleLR(
             optimizer, 
-            mode='min', 
-            factor=0.1, 
-            patience=10
+            max_lr=max_lr,
+            total_steps=self.trainer.estimated_stepping_batches  
         )
-
-        # Return the optimizer and the scheduler configuration
         return {
             'optimizer': optimizer,
             'lr_scheduler': {
                 'scheduler': scheduler,
-                'monitor': 'val_loss', 
-                'interval': 'epoch',  
-                'frequency': 1, 
-                'reduce_on_plateau': True,  
+                'interval': 'step'
             }
         }
 
@@ -166,7 +160,7 @@ def main(hparams):
         default_root_dir=ckpt_dir_path,
         callbacks=[ModelCheckpoint(monitor='val_loss', 
                                    mode='min', 
-                                   filename='best-checkpoint_ResNet50_fft_{epoch}-{val_loss:.2f}',
+                                   filename='best-checkpoint_ResNet50_fft_{epoch}-{val_loss:.4f}',
                                    dirpath=ckpt_dir_path), 
                    TQDMProgressBar(refresh_rate=10),
                    metric_logger],

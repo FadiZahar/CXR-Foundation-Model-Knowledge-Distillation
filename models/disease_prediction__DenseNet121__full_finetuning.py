@@ -155,7 +155,7 @@ def main(hparams):
         default_root_dir=ckpt_dir_path,
         callbacks=[ModelCheckpoint(monitor='val_loss', 
                                    mode='min', 
-                                   filename='best-checkpoint_DenseNet121_fft_{epoch}-{val_loss:.2f}',
+                                   filename='best-checkpoint_DenseNet121_fft_{epoch}-{val_loss:.4f}',
                                    dirpath=ckpt_dir_path), 
                    TQDMProgressBar(refresh_rate=10),
                    metric_logger],
