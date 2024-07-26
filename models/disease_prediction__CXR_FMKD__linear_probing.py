@@ -60,6 +60,9 @@ class CXR_FMKD_LinearProbing(LightningModule):
     def remove_head(self): 
         self.extract_features = True
 
+    def reset_head(self): 
+        self.extract_features = False
+
     def forward(self, x):
         features = self.base_model(x)
         if self.extract_features:
@@ -170,10 +173,12 @@ def main(hparams):
     run_evaluation_phase(model=model, dataloader=data.test_dataloader(), device=device, num_classes=NUM_CLASSES, 
                          file_path=os.path.join(out_dir_path, 'outputs_test.csv'), phase='testing_outputs', input_type='cxr')
     # Extract and Save Embeddings
+    model.remove_head()
     run_evaluation_phase(model=model, dataloader=data.val_dataloader(), device=device, num_classes=NUM_CLASSES, 
                          file_path=os.path.join(out_dir_path, 'embeddings_val.csv'), phase='validation_embeddings', input_type='cxr')
     run_evaluation_phase(model=model, dataloader=data.test_dataloader(), device=device, num_classes=NUM_CLASSES, 
                          file_path=os.path.join(out_dir_path, 'embeddings_test.csv'), phase='testing_embeddings', input_type='cxr')
+    model.reset_head()
 
 
 if __name__ == '__main__':

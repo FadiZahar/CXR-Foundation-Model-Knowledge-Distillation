@@ -40,13 +40,17 @@ class DenseNet121(LightningModule):
         
         # DenseNet-121: full finetuning
         self.model = models.densenet121(weights=models.DenseNet121_Weights.DEFAULT)
-        num_features = self.model.classifier.in_features   # in_features: 1024 | out_features: 1000 (ImageNet)
-        # Replace original classifier with new f.c. layer mapping the 1024 input features to 14 (disease classes):
-        self.model.classifier = nn.Linear(num_features, self.num_classes)  
+        self.num_features = self.model.classifier.in_features   # in_features: 1024 | out_features: 1000 (ImageNet)
+
+        # Replace original classifier with new f.c. layer mapping the 1024 input features to 14 (disease classes), and store it:
+        self.classifier = nn.Linear(self.num_features, self.num_classes)
+        self.model.classifier = self.classifier  
 
     def remove_head(self): 
-        num_features = self.model.classifier.in_features
-        self.model.classifier = nn.Identity(num_features)
+        self.model.classifier = nn.Identity(self.num_features)
+    
+    def reset_head(self):
+        self.model.classifier = self.classifier
 
     def forward(self, x):
         return self.model.forward(x)
@@ -174,10 +178,12 @@ def main(hparams):
     run_evaluation_phase(model=model, dataloader=data.test_dataloader(), device=device, num_classes=NUM_CLASSES, 
                          file_path=os.path.join(out_dir_path, 'outputs_test.csv'), phase='testing_outputs', input_type='cxr')
     # Extract and Save Embeddings
+    model.remove_head()
     run_evaluation_phase(model=model, dataloader=data.val_dataloader(), device=device, num_classes=NUM_CLASSES, 
                          file_path=os.path.join(out_dir_path, 'embeddings_val.csv'), phase='validation_embeddings', input_type='cxr')
     run_evaluation_phase(model=model, dataloader=data.test_dataloader(), device=device, num_classes=NUM_CLASSES, 
                          file_path=os.path.join(out_dir_path, 'embeddings_test.csv'), phase='testing_embeddings', input_type='cxr')
+    model.reset_head()
 
 
 if __name__ == '__main__':

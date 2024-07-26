@@ -23,8 +23,8 @@ def generate_evaluation_embeddings(model, dataloader, device):
 
 
 def save_embeddings_to_csv(embeds, target_embeds, file_path):
-    cols_names_embeds = [f'embed_{i}' for i in range(embeds.shape[1])]
-    cols_names_target_embeds = [f'target_embed_{i}' for i in range(target_embeds.shape[1])]
+    cols_names_embeds = [f'embed_{i+1}' for i in range(embeds.shape[1])]
+    cols_names_target_embeds = [f'target_embed_{i+1}' for i in range(target_embeds.shape[1])]
     
     df_embeddings = pd.DataFrame(data=embeds, columns=cols_names_embeds)
     df_targets = pd.DataFrame(data=target_embeds, columns=cols_names_target_embeds)
@@ -35,9 +35,11 @@ def save_embeddings_to_csv(embeds, target_embeds, file_path):
 def run_evaluation_phase(model, dataloader, device, file_path, phase):
     print(f'<<>> {phase.upper()} PHASE <<>>')
     if 'embeddings' in phase:
-        model.remove_head()
+        # model.remove_head()
         target_embeds, pre_embeds = generate_evaluation_embeddings(model=model, dataloader=dataloader, device=device)
         save_embeddings_to_csv(embeddings=pre_embeds, targets=target_embeds, file_path=file_path)
     else:
         target_embeds, output_embeds = generate_evaluation_embeddings(model=model, dataloader=dataloader, device=device)
         save_embeddings_to_csv(embeddings=output_embeds, targets=target_embeds, file_path=file_path)
+
+

@@ -40,13 +40,17 @@ class ResNet50(LightningModule):
         
         # ResNet-50: full finetuning
         self.model = models.resnet50(weights=models.ResNet50_Weights.DEFAULT)
-        num_features = self.model.fc.in_features   # in_features: 2048 | out_features: 1000 (ImageNet)
+        self.num_features = self.model.fc.in_features   # in_features: 2048 | out_features: 1000 (ImageNet)
+
         # Replace original f.c. layer with new f.c. layer mapping the 2048 input features to 14 (disease classes):
-        self.model.fc = nn.Linear(num_features, self.num_classes)  
+        self.fc = nn.Linear(self.num_features, self.num_classes)
+        self.model.fc = self.fc 
 
     def remove_head(self): 
-        num_features = self.model.fc.in_features
-        self.model.fc = nn.Identity(num_features)
+        self.model.fc = nn.Identity(self.num_features)
+    
+    def reset_head(self):
+        self.model.fc = self.fc
 
     def forward(self, x):
         return self.model.forward(x)
@@ -185,10 +189,12 @@ def main(hparams):
     run_evaluation_phase(model=model, dataloader=data.test_dataloader(), device=device, num_classes=NUM_CLASSES, 
                          file_path=os.path.join(out_dir_path, 'outputs_test.csv'), phase='testing_outputs', input_type='cxr')
     # Extract and Save Embeddings
+    model.remove_head()
     run_evaluation_phase(model=model, dataloader=data.val_dataloader(), device=device, num_classes=NUM_CLASSES, 
                          file_path=os.path.join(out_dir_path, 'embeddings_val.csv'), phase='validation_embeddings', input_type='cxr')
     run_evaluation_phase(model=model, dataloader=data.test_dataloader(), device=device, num_classes=NUM_CLASSES, 
                          file_path=os.path.join(out_dir_path, 'embeddings_test.csv'), phase='testing_embeddings', input_type='cxr')
+    model.reset_head()
 
 
 if __name__ == '__main__':

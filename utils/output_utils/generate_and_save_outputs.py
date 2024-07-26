@@ -29,7 +29,7 @@ def generate_evaluation_outputs(model, dataloader, device, num_classes, input_ty
         counts = []
         for i in range(num_classes):
             t = (targets_array[:, i] == 1)
-            c = torch.sum(t)
+            c = torch.sum(t).item()
             counts.append(c)
         print("Class counts:", counts)
 
@@ -58,9 +58,9 @@ def generate_evaluation_embeddings(model, dataloader, device, input_type='cxr'):
 
 
 def save_outputs_to_csv(probs, logits, targets, num_classes, file_path):
-    cols_names_probs = [f'prob_class_{i}' for i in range(num_classes)]
-    cols_names_logits = [f'logit_class_{i}' for i in range(num_classes)]
-    cols_names_targets = [f'target_class_{i}' for i in range(num_classes)]
+    cols_names_probs = [f'prob_class_{i+1}' for i in range(num_classes)]
+    cols_names_logits = [f'logit_class_{i+1}' for i in range(num_classes)]
+    cols_names_targets = [f'target_class_{i+1}' for i in range(num_classes)]
     
     df_probs = pd.DataFrame(data=probs, columns=cols_names_probs)
     df_logits = pd.DataFrame(data=logits, columns=cols_names_logits)
@@ -70,8 +70,8 @@ def save_outputs_to_csv(probs, logits, targets, num_classes, file_path):
 
 
 def save_embeddings_to_csv(embeddings, targets, num_classes, file_path):
-    cols_names_embeddings = [f'embed_{i}' for i in range(embeddings.shape[1])]
-    cols_names_targets = [f'target_class_{i}' for i in range(num_classes)]
+    cols_names_embeddings = [f'embed_{i+1}' for i in range(embeddings.shape[1])]
+    cols_names_targets = [f'target_class_{i+1}' for i in range(num_classes)]
     
     df_embeddings = pd.DataFrame(data=embeddings, columns=cols_names_embeddings)
     df_targets = pd.DataFrame(data=targets, columns=cols_names_targets)
@@ -82,7 +82,7 @@ def save_embeddings_to_csv(embeddings, targets, num_classes, file_path):
 def run_evaluation_phase(model, dataloader, device, num_classes, file_path, phase, input_type):
     print(f'<<>> {phase.upper()} PHASE <<>>')
     if 'embeddings' in phase:
-        model.remove_head()
+        # model.remove_head()
         targets, embeddings = generate_evaluation_embeddings(model=model, dataloader=dataloader, device=device, 
                                                              input_type=input_type)
         save_embeddings_to_csv(embeddings=embeddings, targets=targets, num_classes=num_classes, file_path=file_path)
@@ -90,3 +90,5 @@ def run_evaluation_phase(model, dataloader, device, num_classes, file_path, phas
         targets, logits, probs = generate_evaluation_outputs(model=model, dataloader=dataloader, device=device, 
                                                              num_classes=num_classes, input_type=input_type)
         save_outputs_to_csv(probs=probs, logits=logits, targets=targets, num_classes=num_classes, file_path=file_path)
+
+
