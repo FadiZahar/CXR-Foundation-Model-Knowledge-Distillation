@@ -36,6 +36,8 @@ class ResNet50(LightningModule):
         super().__init__()
         self.num_classes = num_classes
         self.learning_rate = learning_rate
+        self.validation_step_outputs = []
+        self.testing_step_outputs = []
 
         # log hyperparameters
         self.save_hyperparameters()
@@ -112,12 +114,15 @@ class ResNet50(LightningModule):
         labels_np = labels.cpu().numpy()
         probs_np = probs.cpu().detach().numpy()
 
-        return {'val_loss': loss, 'logits': logits, 'probs': probs_np, 'labels': labels_np}
+        output = {'val_loss': loss, 'logits': logits, 'probs': probs_np, 'labels': labels_np}
+        self.validation_step_outputs.append(output)
+        return output
     
-    def validation_epoch_end(self, outputs):
-        all_probs = np.vstack([x['probs'] for x in outputs])
-        all_labels = np.vstack([x['labels'] for x in outputs])
+    def on_validation_epoch_end(self):
+        all_probs = np.vstack([x['probs'] for x in self.validation_step_outputs])
+        all_labels = np.vstack([x['labels'] for x in self.validation_step_outputs])
         generate_and_log_metrics(targets=all_labels, probs=all_probs)
+        self.validation_step_outputs.clear()
 
 
     ## Testing
@@ -129,12 +134,15 @@ class ResNet50(LightningModule):
         labels_np = labels.cpu().numpy()
         probs_np = probs.cpu().detach().numpy()
 
-        return {'test_loss': loss, 'logits': logits, 'probs': probs_np, 'labels': labels_np}
+        output = {'test_loss': loss, 'logits': logits, 'probs': probs_np, 'labels': labels_np}
+        self.testing_step_outputs.append(output)
+        return output
     
-    def test_epoch_end(self, outputs):
-        all_probs = np.vstack([x['probs'] for x in outputs])
-        all_labels = np.vstack([x['labels'] for x in outputs])
+    def on_test_epoch_end(self):
+        all_probs = np.vstack([x['probs'] for x in self.testing_step_outputs])
+        all_labels = np.vstack([x['labels'] for x in self.testing_step_outputs])
         generate_and_log_metrics(targets=all_labels, probs=all_probs)
+        self.testing_step_outputs.clear()
 
 
 def freeze_model(model):
