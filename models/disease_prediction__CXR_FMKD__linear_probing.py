@@ -26,7 +26,7 @@ OUT_DIR_NAME = 'CXR-FMKD_linear-probing/'
 
 
 # Get base model directory and best checkpoint path
-BASE_MODEL_DIR_NAME = 'CXR-FMKD_KD-initialisation/'
+BASE_MODEL_DIR_NAME = 'CXR-FMKD_KD-initialisation-MSE/'
 BASE_MODEL_DIR_PATH = os.path.join(MAIN_DIR_PATH, BASE_MODEL_DIR_NAME)
 BASE_MODEL_CHECKPOINT_FILEPATH = os.path.join(BASE_MODEL_DIR_PATH, 'lightning_checkpoints/best-checkpoint_pre-CXR-FMKD.ckpt')
 

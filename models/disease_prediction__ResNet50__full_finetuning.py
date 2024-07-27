@@ -19,6 +19,7 @@ from pytorch_lightning.callbacks import ModelCheckpoint, TQDMProgressBar
 # Import custom modules
 from data_modules.chexpert_data_module import CheXpertDataModule
 from utils.output_utils.generate_and_save_outputs import run_evaluation_phase
+from utils.output_utils.generate_performance_metrics import generate_and_log_metrics
 from utils.callback_utils.training_callbacks import TrainLoggingCallback
 from utils.callback_utils.evaluation_callbacks import EvalLoggingCallback
 
@@ -82,11 +83,11 @@ class ResNet50(LightningModule):
         logits = self.forward(cxrs)
         probs = torch.sigmoid(logits)
         loss = F.binary_cross_entropy(probs, labels)
-        return logits, loss
+        return logits, probs, labels, loss
 
     def training_step(self, batch, batch_idx):
-        _, loss = self.process_batch(batch)
-        self.log('train_loss', loss, prog_bar=True)
+        _, _, _, loss = self.process_batch(batch)
+        self.log('train_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
         if batch_idx == 0 and batch['cxr'].shape[0] >= 20:
             grid = torchvision.utils.make_grid(batch['cxr'][0:20, ...], nrow=5, normalize=True)
             grid = grid.permute(1, 2, 0).cpu().numpy()
@@ -94,13 +95,15 @@ class ResNet50(LightningModule):
         return loss
 
     def validation_step(self, batch, batch_idx):
-        _, loss = self.process_batch(batch)
+        logits, probs, labels, loss = self.process_batch(batch)
         self.log('val_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
-        return {'val_loss': loss}
+        generate_and_log_metrics(targets=labels, probs=probs)
+        return {'val_loss': loss, 'logits': logits}
 
     def test_step(self, batch, batch_idx):
-        logits, loss = self.process_batch(batch)
-        self.log('test_loss', loss)
+        logits, probs, labels, loss = self.process_batch(batch)
+        self.log('test_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+        generate_and_log_metrics(targets=labels, probs=probs)
         return {'test_loss': loss, 'logits': logits}
 
 
@@ -177,6 +180,8 @@ def main(hparams):
     trainer.logger._default_hp_metric = False
     trainer.fit(model=model, datamodule=data)
 
+    # Validating and Testing just for wandb loging
+    trainer.validate(model=model, datamodule=data, ckpt_path=trainer.checkpoint_callback.best_model_path)
     trainer.test(model=model, datamodule=data, ckpt_path=trainer.checkpoint_callback.best_model_path)
 
     best_model = model_type.load_from_checkpoint(trainer.checkpoint_callback.best_model_path, num_classes=NUM_CLASSES)
