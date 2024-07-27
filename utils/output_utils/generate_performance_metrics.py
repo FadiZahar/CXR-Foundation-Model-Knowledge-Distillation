@@ -2,6 +2,9 @@ import numpy as np
 import wandb
 from sklearn.metrics import roc_auc_score, average_precision_score, roc_curve
 
+# Import global variables
+from config.config_chexpert import LABELS
+
 
 
 def calculate_roc_auc(targets, probs):
@@ -53,16 +56,22 @@ def generate_and_log_metrics(targets, probs, target_fpr=0.2):
     pr_auc_per_class, pr_auc_macro = calculate_pr_auc(targets, probs)
     j_indices_max, j_indices_target_fpr = calculate_youden_index(targets, probs, target_fpr)
 
+    # Preparing data for logging
+    roc_auc_logs = {f"ROC-AUC for Class {i+1} [{LABELS[i]}]": roc_auc for i, roc_auc in enumerate(roc_auc_per_class)}
+    pr_auc_logs = {f"PR-AUC for Class {i+1} [{LABELS[i]}]": pr_auc for i, pr_auc in enumerate(pr_auc_per_class)}
+    j_max_logs = {f"Youden Index (Max) for Class {i+1} [{LABELS[i]}]": j_idx for i, j_idx in enumerate(j_indices_max)}
+    j_target_fpr_logs = {f"Youden Index at FPR={target_fpr} for Class {i+1} [{LABELS[i]}]": j_idx for i, j_idx in enumerate(j_indices_target_fpr)}
+
     # Logging ROC-AUC
-    wandb.log({"ROC-AUC per Class": {f"Class {i+1}": auc for i, auc in enumerate(roc_auc_per_class)}})
+    wandb.log(roc_auc_logs)
     wandb.log({"ROC-AUC (Macro)": roc_auc_macro})
 
     # Logging PR-AUC
-    wandb.log({"PR-AUC per Class": {f"Class {i+1}": auc for i, auc in enumerate(pr_auc_per_class)}})
+    wandb.log(pr_auc_logs)
     wandb.log({"PR-AUC (Macro)": pr_auc_macro})
 
     # Logging Youden's Indices
-    wandb.log({"Youden Index (Max) per Class": {f"Class {i+1}": idx for i, idx in enumerate(j_indices_max)}})
-    wandb.log({"Youden Index at FPR={target_fpr} per Class": {f"Class {i+1}": idx for i, idx in enumerate(j_indices_target_fpr)}})
+    wandb.log(j_max_logs)
+    wandb.log(j_target_fpr_logs)
 
 

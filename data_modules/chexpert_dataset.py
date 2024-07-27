@@ -8,6 +8,9 @@ import torch
 from torch.utils.data import Dataset
 import torchvision.transforms as T
 
+# Import global variables
+from config.config_chexpert import LABELS
+
 
 
 class CheXpertDataset(Dataset):
@@ -25,21 +28,7 @@ class CheXpertDataset(Dataset):
             T.RandomApply(transforms=[T.RandomAffine(degrees=15, scale=(0.9, 1.1))], p=0.5),
         ])
         
-        self.labels = [
-            'No Finding',
-            'Enlarged Cardiomediastinum',
-            'Cardiomegaly',
-            'Lung Opacity',
-            'Lung Lesion',
-            'Edema',
-            'Consolidation',
-            'Pneumonia',
-            'Atelectasis',
-            'Pneumothorax',
-            'Pleural Effusion',
-            'Pleural Other',
-            'Fracture',
-            'Support Devices']
+        self.labels = LABELS
 
         self.records = []
         for _, row in tqdm(self.entries.iterrows(), total=len(self.entries), desc='Loading CXR Records'):
