@@ -85,31 +85,62 @@ class ResNet50(LightningModule):
         loss = F.binary_cross_entropy(probs, labels)
         return logits, probs, labels, loss
 
+
+    ## Training
     def training_step(self, batch, batch_idx):
         _, _, _, loss = self.process_batch(batch)
         self.log('train_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+
+        # Log the current learning rate
+        current_lr = self.trainer.optimizers[0].param_groups[0]['lr']
+        self.log('learning_rate', current_lr, on_step=True, on_epoch=False)
+
         if batch_idx == 0 and batch['cxr'].shape[0] >= 20:
             grid = torchvision.utils.make_grid(batch['cxr'][0:20, ...], nrow=5, normalize=True)
             grid = grid.permute(1, 2, 0).cpu().numpy()
             wandb.log({"Chest X-Rays": [wandb.Image(grid, caption=f"Batch {batch_idx}")]}, step=self.global_step)
+
         return loss
 
+
+    ## Validation
     def validation_step(self, batch, batch_idx):
         logits, probs, labels, loss = self.process_batch(batch)
         self.log('val_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
-        generate_and_log_metrics(targets=labels, probs=probs)
-        return {'val_loss': loss, 'logits': logits}
 
+        # Convert tensors to CPU and numpy for sklearn compatibility
+        labels_np = labels.cpu().numpy()
+        probs_np = probs.cpu().detach().numpy()
+
+        return {'val_loss': loss, 'logits': logits, 'probs': probs_np, 'labels': labels_np}
+    
+    def validation_epoch_end(self, outputs):
+        all_probs = np.vstack([x['probs'] for x in outputs])
+        all_labels = np.vstack([x['labels'] for x in outputs])
+        generate_and_log_metrics(targets=all_labels, probs=all_probs)
+
+
+    ## Testing
     def test_step(self, batch, batch_idx):
         logits, probs, labels, loss = self.process_batch(batch)
         self.log('test_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
-        generate_and_log_metrics(targets=labels, probs=probs)
-        return {'test_loss': loss, 'logits': logits}
+
+        # Convert tensors to CPU and numpy for sklearn compatibility
+        labels_np = labels.cpu().numpy()
+        probs_np = probs.cpu().detach().numpy()
+
+        return {'test_loss': loss, 'logits': logits, 'probs': probs_np, 'labels': labels_np}
+    
+    def test_epoch_end(self, outputs):
+        all_probs = np.vstack([x['probs'] for x in outputs])
+        all_labels = np.vstack([x['labels'] for x in outputs])
+        generate_and_log_metrics(targets=all_labels, probs=all_probs)
 
 
 def freeze_model(model):
     for param in model.parameters():
         param.requires_grad = False
+
 
 
 def main(hparams):
@@ -152,7 +183,6 @@ def main(hparams):
 
     # Callback metric logging
     train_logger = TrainLoggingCallback(filename=os.path.join(logs_dir_path, 'val_loss_step.csv'))
-    test_logger = EvalLoggingCallback(num_classes=NUM_CLASSES, file_path=os.path.join(logs_dir_path, 'test_outputs_test.csv'))
 
     # WandB logger
     project_name = OUT_DIR_NAME.replace('/', '_').lower().strip('_')
@@ -169,8 +199,7 @@ def main(hparams):
                                    filename='best-checkpoint_ResNet50_fft_{epoch}-{val_loss:.4f}',
                                    dirpath=ckpt_dir_path), 
                    TQDMProgressBar(refresh_rate=10),
-                   train_logger,
-                   test_logger],
+                   train_logger],
         log_every_n_steps=5,
         max_epochs=EPOCHS,
         accelerator='auto',
