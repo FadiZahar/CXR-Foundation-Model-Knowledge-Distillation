@@ -173,11 +173,6 @@ def main(hparams):
     temp_dir_path = os.path.join(out_dir_path, 'temp')
     os.makedirs(temp_dir_path, exist_ok=True)
 
-    # Save sample images
-    for idx in range(5):
-        sample = data.train_set.get_sample(idx)
-        imsave(os.path.join(temp_dir_path, 'sample_' + str(idx) + '.jpg'), sample['cxr'].astype(np.uint8))
-
 
     # Sets seeds for numpy, torch, python.random and PYTHONHASHSEED.
     seed_everything(42, workers=True)
@@ -192,6 +187,11 @@ def main(hparams):
                               train_records=TRAIN_RECORDS_CSV,
                               val_records=VAL_RECORDS_CSV,
                               test_records=TEST_RECORDS_CSV)
+    
+    # Save sample images
+    for idx in range(5):
+        sample = data.train_set.get_sample(idx)
+        imsave(os.path.join(temp_dir_path, f'sample_{idx}.jpg'), sample['cxr'].astype(np.uint8))
 
     # Model
     model_type = ResNet50
