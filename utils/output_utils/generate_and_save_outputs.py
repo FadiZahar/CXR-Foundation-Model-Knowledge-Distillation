@@ -21,13 +21,14 @@ def generate_evaluation_outputs(model, dataloader, device, num_classes, input_ty
             inputs, labels = batch[input_type].to(device), batch['label'].to(device)
             logits = model(inputs)
             probs = torch.sigmoid(logits)
-            losses = F.binary_cross_entropy(probs, labels, reduction='none')  # Calculate individual losses
+            losses = F.binary_cross_entropy(probs, labels, reduction='none')  # No reduction yet
+            losses_per_sample = losses.mean(dim=1)  # Mean across classes
 
             batch_indices.extend([batch_idx] * len(labels))
             logits_list.append(logits)
             probs_list.append(probs)
             targets_list.append(labels)
-            losses_list.extend(losses.tolist())
+            losses_list.extend(losses_per_sample.tolist())
 
         logits_array = torch.cat(logits_list, dim=0)
         probs_array = torch.cat(probs_list, dim=0)
