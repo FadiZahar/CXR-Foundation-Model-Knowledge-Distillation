@@ -54,12 +54,10 @@ def generate_and_log_metrics(targets, probs, target_fpr=0.2):
     j_indices_max, j_indices_target_fpr = calculate_youden_index(targets, probs, target_fpr)
 
     # Logging ROC-AUC
-    wandb.log({"ROC": wandb.plot.roc_curve(targets, probs)})
     wandb.log({"ROC-AUC per Class": {f"Class {i+1}": auc for i, auc in enumerate(roc_auc_per_class)}})
     wandb.log({"ROC-AUC (Macro)": roc_auc_macro})
 
     # Logging PR-AUC
-    wandb.log({"pr": wandb.plot.pr_curve(targets, probs)})
     wandb.log({"PR-AUC per Class": {f"Class {i+1}": auc for i, auc in enumerate(pr_auc_per_class)}})
     wandb.log({"PR-AUC (Macro)": pr_auc_macro})
 
