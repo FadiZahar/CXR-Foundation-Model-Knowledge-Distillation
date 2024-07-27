@@ -19,9 +19,8 @@ from pytorch_lightning.callbacks import ModelCheckpoint, TQDMProgressBar
 # Import custom modules
 from data_modules.chexpert_data_module import CheXpertDataModule
 from utils.output_utils.generate_and_save_outputs import run_evaluation_phase
-from utils.output_utils.generate_performance_metrics import generate_and_log_metrics
+from utils.output_utils.generate_and_log_metrics import generate_and_log_metrics
 from utils.callback_utils.training_callbacks import TrainLoggingCallback
-from utils.callback_utils.evaluation_callbacks import EvalLoggingCallback
 
 # Import global variables
 from config.config_chexpert import IMAGE_SIZE, NUM_CLASSES, EPOCHS, NUM_WORKERS, BATCH_SIZE, LEARNING_RATE
@@ -32,12 +31,14 @@ OUT_DIR_NAME = 'ResNet50_full-finetuning/'
 
 
 class ResNet50(LightningModule):
-    def __init__(self, num_classes: int, learning_rate: float):
+    def __init__(self, num_classes: int, learning_rate: float, out_dir_path:str):
         super().__init__()
         self.num_classes = num_classes
         self.learning_rate = learning_rate
+        self.out_dir_path = out_dir_path
         self.validation_step_outputs = []
         self.testing_step_outputs = []
+        self.validation_mode = 'Training'
 
         # log hyperparameters
         self.save_hyperparameters()
@@ -121,7 +122,13 @@ class ResNet50(LightningModule):
     def on_validation_epoch_end(self):
         all_probs = np.vstack([x['probs'] for x in self.validation_step_outputs])
         all_labels = np.vstack([x['labels'] for x in self.validation_step_outputs])
-        generate_and_log_metrics(targets=all_labels, probs=all_probs)
+        # Check the mode and log accordingly
+        if self.validation_mode == 'Training':
+            generate_and_log_metrics(targets=all_labels, probs=all_probs, out_dir_path=self.out_dir_path, 
+                                     phase='Validation')
+        else:
+            generate_and_log_metrics(targets=all_labels, probs=all_probs, out_dir_path=self.out_dir_path, 
+                                     phase='Final Validation')
         self.validation_step_outputs.clear()
 
 
@@ -141,7 +148,7 @@ class ResNet50(LightningModule):
     def on_test_epoch_end(self):
         all_probs = np.vstack([x['probs'] for x in self.testing_step_outputs])
         all_labels = np.vstack([x['labels'] for x in self.testing_step_outputs])
-        generate_and_log_metrics(targets=all_labels, probs=all_probs)
+        generate_and_log_metrics(targets=all_labels, probs=all_probs, out_dir_path=self.out_dir_path, phase='Testing')
         self.testing_step_outputs.clear()
 
 
@@ -152,24 +159,6 @@ def freeze_model(model):
 
 
 def main(hparams):
-
-    # Sets seeds for numpy, torch, python.random and PYTHONHASHSEED.
-    seed_everything(42, workers=True)
-
-    # Data
-    data = CheXpertDataModule(image_size=IMAGE_SIZE,
-                              cxrs_filepath=CXRS_FILEPATH,
-                              embeddings_filepath=EMBEDDINGS_FILEPATH,
-                              pseudo_rgb=True,
-                              batch_size=BATCH_SIZE,
-                              num_workers=NUM_WORKERS,
-                              train_records=TRAIN_RECORDS_CSV,
-                              val_records=VAL_RECORDS_CSV,
-                              test_records=TEST_RECORDS_CSV)
-
-    # Model
-    model_type = ResNet50
-    model = model_type(num_classes=NUM_CLASSES, learning_rate=LEARNING_RATE)
 
     # Create output directory
     out_dir_path = os.path.join(MAIN_DIR_PATH, OUT_DIR_NAME)
@@ -188,6 +177,25 @@ def main(hparams):
     for idx in range(5):
         sample = data.train_set.get_sample(idx)
         imsave(os.path.join(temp_dir_path, 'sample_' + str(idx) + '.jpg'), sample['cxr'].astype(np.uint8))
+
+
+    # Sets seeds for numpy, torch, python.random and PYTHONHASHSEED.
+    seed_everything(42, workers=True)
+
+    # Data
+    data = CheXpertDataModule(image_size=IMAGE_SIZE,
+                              cxrs_filepath=CXRS_FILEPATH,
+                              embeddings_filepath=EMBEDDINGS_FILEPATH,
+                              pseudo_rgb=True,
+                              batch_size=BATCH_SIZE,
+                              num_workers=NUM_WORKERS,
+                              train_records=TRAIN_RECORDS_CSV,
+                              val_records=VAL_RECORDS_CSV,
+                              test_records=TEST_RECORDS_CSV)
+
+    # Model
+    model_type = ResNet50
+    model = model_type(num_classes=NUM_CLASSES, learning_rate=LEARNING_RATE, out_dir_path=out_dir_path)
 
     # Callback metric logging
     train_logger = TrainLoggingCallback(filename=os.path.join(logs_dir_path, 'val_loss_step.csv'))
@@ -218,6 +226,7 @@ def main(hparams):
     trainer.fit(model=model, datamodule=data)
 
     # Validating and Testing just for wandb loging
+    model.validation_mode = 'Final'
     trainer.validate(model=model, datamodule=data, ckpt_path=trainer.checkpoint_callback.best_model_path)
     trainer.test(model=model, datamodule=data, ckpt_path=trainer.checkpoint_callback.best_model_path)
 
