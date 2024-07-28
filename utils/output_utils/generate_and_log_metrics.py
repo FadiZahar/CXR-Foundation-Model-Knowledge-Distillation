@@ -44,9 +44,9 @@ class MetricTracker:
         wandb.log({f"Macro PR-AUC ({phase} phase)": self.pr_auc_macro})
         # Plot and log Youden's Index per class for max and target FPR
         self.plot_metrics(f"Youden Index Max per Class ({phase} phase)", self.j_index_max_per_class, 
-                        f"J-Index Max", out_dir_path, phase)
+                        f"J-Index Max", 'yim', out_dir_path, phase)
         self.plot_metrics(f"Youden Index @ {target_fpr} FPR per Class ({phase} phase)", self.j_index_fpr_per_class, 
-                        f"J-Index @ {target_fpr} FPR", out_dir_path, phase)
+                        f"J-Index @ {target_fpr} FPR", 'yi', out_dir_path, phase)
 
 
     def plot_metrics(self, title, data, metric_name, palette_type, out_dir_path, phase):
@@ -54,6 +54,8 @@ class MetricTracker:
             color_palette = plt.cm.viridis(np.linspace(0, 1, len(data))) 
         elif palette_type == 'pr':
             color_palette = plt.cm.plasma(np.linspace(0, 1, len(data))) 
+        elif palette_type == 'yi':
+            color_palette = plt.cm.twilight_shifted(np.linspace(0, 1, len(data)))
         else:
             color_palette = plt.cm.copper(np.linspace(0, 1, len(data)))
 
