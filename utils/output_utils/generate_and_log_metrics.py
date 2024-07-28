@@ -38,10 +38,12 @@ class MetricTracker:
     def log_to_wandb(self, out_dir_path, phase, target_fpr):
         # Plot and log ROC-AUC per class and macro ROC-AUC
         self.plot_metrics(f"ROC-AUC per Class ({phase} phase)", self.roc_auc_per_class, f"ROC-AUC", 'roc', out_dir_path, phase)
-        wandb.log({f"Macro ROC-AUC ({phase} phase)": self.roc_auc_macro[-1]})
+        current_roc_auc_macro = self.roc_auc_macro[-1]
+        wandb.log({f"Macro ROC-AUC ({phase} phase)": current_roc_auc_macro})
         # Plot and log PR-AUC per class and macro PR-AUC
         self.plot_metrics(f"PR-AUC per Class ({phase} phase)", self.pr_auc_per_class, f"PR-AUC", 'pr', out_dir_path, phase)
-        wandb.log({f"Macro PR-AUC ({phase} phase)": self.pr_auc_macro[-1]})
+        current_pr_auc_macro = self.pr_auc_macro[-1]
+        wandb.log({f"Macro PR-AUC ({phase} phase)": current_pr_auc_macro})
         # Plot and log Youden's Index per class for max and target FPR
         self.plot_metrics(f"Youden Index Max per Class ({phase} phase)", self.j_index_max_per_class, 
                         f"J-Index Max", 'yim', out_dir_path, phase)
@@ -72,9 +74,12 @@ class MetricTracker:
         plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
         plt.grid(True)
         plt.xticks(epochs) 
-        plt_path = os.path.join(out_dir_path, f'{metric_name}_over_epochs_({phase}).png')
+
+        metrics_plot_dir = os.path.join(out_dir_path, 'metrics_plots')
+        os.makedirs(metrics_plot_dir, exist_ok=True)
+        plt_path = os.path.join(metrics_plot_dir, f'{metric_name}_over_epochs_({phase}).png')
         plt.savefig(plt_path, bbox_inches='tight') 
-        wandb.log({title: wandb.Image(fig)})
+        wandb.log({title: wandb.Image(plt_path)})
         plt.close(fig)
 
 
