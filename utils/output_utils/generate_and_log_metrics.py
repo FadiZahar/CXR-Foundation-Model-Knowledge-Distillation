@@ -58,7 +58,7 @@ class MetricTracker:
             color_palette = plt.cm.copper(np.linspace(0, 1, len(data)))
 
         epochs = list(range(1, len(data[0]) + 1))
-        plt.figure(figsize=(12, 6))
+        fig, ax = plt.subplots(figsize=(12, 6))
         
         for idx, class_data in enumerate(data):
             plt.plot(epochs, class_data, label=f'Class {idx + 1} [{LABELS[idx]}]', color=color_palette[idx],
@@ -72,8 +72,8 @@ class MetricTracker:
         plt.xticks(epochs) 
         plt_path = os.path.join(out_dir_path, f'{metric_name}_over_epochs_({phase}).png')
         plt.savefig(plt_path, bbox_inches='tight') 
-        wandb.log({title: plt})
-        plt.close()
+        wandb.log({title: wandb.Image(fig)})
+        plt.close(fig)
 
 
 
