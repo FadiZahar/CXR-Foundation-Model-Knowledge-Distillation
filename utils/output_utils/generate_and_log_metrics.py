@@ -38,10 +38,10 @@ class MetricTracker:
     def log_to_wandb(self, out_dir_path, phase, target_fpr):
         # Plot and log ROC-AUC per class and macro ROC-AUC
         self.plot_metrics(f"ROC-AUC per Class ({phase} phase)", self.roc_auc_per_class, f"ROC-AUC", 'roc', out_dir_path, phase)
-        wandb.log({f"Macro ROC-AUC ({phase} phase)": self.roc_auc_macro})
+        wandb.log({f"Macro ROC-AUC ({phase} phase)": self.roc_auc_macro[-1]})
         # Plot and log PR-AUC per class and macro PR-AUC
         self.plot_metrics(f"PR-AUC per Class ({phase} phase)", self.pr_auc_per_class, f"PR-AUC", 'pr', out_dir_path, phase)
-        wandb.log({f"Macro PR-AUC ({phase} phase)": self.pr_auc_macro})
+        wandb.log({f"Macro PR-AUC ({phase} phase)": self.pr_auc_macro[-1]})
         # Plot and log Youden's Index per class for max and target FPR
         self.plot_metrics(f"Youden Index Max per Class ({phase} phase)", self.j_index_max_per_class, 
                         f"J-Index Max", 'yim', out_dir_path, phase)
