@@ -1,4 +1,5 @@
 import os
+import csv
 import numpy as np
 import matplotlib.pyplot as plt
 import wandb
@@ -12,14 +13,29 @@ from config.config_chexpert import LABELS
 class MetricTracker:
     def __init__(self, labels):
         self.labels = labels
-        # Initialise dictionaries to store metrics as lists for each class and for macro metrics
-        self.roc_auc_per_class = [[] for _ in labels]
-        self.pr_auc_per_class = [[] for _ in labels]
-        self.j_index_max_per_class = [[] for _ in labels]
-        self.j_index_fpr_per_class = [[] for _ in labels]
+        self.current_phase = None
+        self.epoch_offset = 0 
+        self.ordered_epoch_offsets = []
+        self.ordered_phases = []
+        self.reset_metrics()
+
+
+    def reset_metrics(self):
+        self.roc_auc_per_class = [[] for _ in self.labels]
+        self.pr_auc_per_class = [[] for _ in self.labels]
+        self.j_index_max_per_class = [[] for _ in self.labels]
+        self.j_index_fpr_per_class = [[] for _ in self.labels]
         self.roc_auc_macro = []
         self.pr_auc_macro = []
 
+    
+    def check_phase(self, phase):
+        if self.current_phase != phase:
+            self.current_phase = phase
+            self.epoch_offset = len(self.pr_auc_macro)
+            self.ordered_epoch_offsets.append(self.epoch_offset)
+            self.ordered_phases.append(phase)
+    
 
     def update(self, roc_auc_per_class, roc_auc_macro, 
                pr_auc_per_class, pr_auc_macro, 
@@ -37,18 +53,20 @@ class MetricTracker:
 
     def log_to_wandb(self, out_dir_path, phase, target_fpr):
         # Plot and log ROC-AUC per class and macro ROC-AUC
-        self.plot_metrics(f"ROC-AUC per Class ({phase} phase)", self.roc_auc_per_class, f"ROC-AUC", 'roc', out_dir_path, phase)
+        self.plot_metrics(f"AUC-ROC per Class - {phase}", self.roc_auc_per_class, f"AUC-ROC Score", 'roc', out_dir_path, phase)
         current_roc_auc_macro = self.roc_auc_macro[-1]
-        wandb.log({f"Macro ROC-AUC ({phase} phase)": current_roc_auc_macro})
+        wandb.log({f"Macro AUC-ROC - {phase}": current_roc_auc_macro})
+
         # Plot and log PR-AUC per class and macro PR-AUC
-        self.plot_metrics(f"PR-AUC per Class ({phase} phase)", self.pr_auc_per_class, f"PR-AUC", 'pr', out_dir_path, phase)
+        self.plot_metrics(f"AUC-PR per Class - {phase}", self.pr_auc_per_class, f"AUC-PR Score", 'pr', out_dir_path, phase)
         current_pr_auc_macro = self.pr_auc_macro[-1]
-        wandb.log({f"Macro PR-AUC ({phase} phase)": current_pr_auc_macro})
+        wandb.log({f"Macro AUC-PR - {phase}": current_pr_auc_macro})
+
         # Plot and log Youden's Index per class for max and target FPR
-        self.plot_metrics(f"Youden Index Max per Class ({phase} phase)", self.j_index_max_per_class, 
-                        f"J-Index Max", 'yim', out_dir_path, phase)
-        self.plot_metrics(f"Youden Index @ {target_fpr} FPR per Class ({phase} phase)", self.j_index_fpr_per_class, 
-                        f"J-Index @ {target_fpr} FPR", 'yi', out_dir_path, phase)
+        self.plot_metrics(f"Max Youden's Index per Class - {phase}", self.j_index_max_per_class, 
+                        f"Youden's Index", 'yim', out_dir_path, phase)
+        self.plot_metrics(f"Youden's Index at {int(target_fpr*100)}% FPR per Class - {phase}", self.j_index_fpr_per_class, 
+                        f"Youden's Index at Target FPR", 'yi', out_dir_path, phase)
 
 
     def plot_metrics(self, title, data, metric_name, palette_type, out_dir_path, phase):
@@ -61,7 +79,7 @@ class MetricTracker:
         else:
             color_palette = plt.cm.copper(np.linspace(0, 1, len(data)))
 
-        epochs = list(range(1, len(data[0]) + 1))
+        epochs = list(range(len(data[0])))  # Start epochs at 0 (convention)
         fig, ax = plt.subplots(figsize=(12, 6))
         
         for idx, class_data in enumerate(data):
@@ -77,8 +95,8 @@ class MetricTracker:
 
         metrics_plot_dir = os.path.join(out_dir_path, 'metrics_plots')
         os.makedirs(metrics_plot_dir, exist_ok=True)
-        plt_path = os.path.join(metrics_plot_dir, f'{metric_name}_over_epochs_({phase}).png')
-        plt.savefig(plt_path, bbox_inches='tight') 
+        plt_path = os.path.join(metrics_plot_dir, f'{metric_name}_{phase}.png')
+        plt.savefig(plt_path, bbox_inches='tight', dpi=300) 
         wandb.log({title: wandb.Image(plt_path)})
         plt.close(fig)
 
@@ -134,6 +152,7 @@ metric_tracker = MetricTracker(LABELS)
 
 
 def generate_and_log_metrics(targets, probs, out_dir_path, phase, target_fpr=0.2):
+    metric_tracker.check_phase(phase)
     roc_auc_per_class, roc_auc_macro = calculate_roc_auc(targets, probs)
     pr_auc_per_class, pr_auc_macro = calculate_pr_auc(targets, probs)
     j_indices_max, j_indices_target_fpr = calculate_youden_index(targets, probs, target_fpr)
@@ -142,6 +161,47 @@ def generate_and_log_metrics(targets, probs, out_dir_path, phase, target_fpr=0.2
                           pr_auc_per_class=pr_auc_per_class, pr_auc_macro=pr_auc_macro, 
                           j_indices_max=j_indices_max, j_indices_target_fpr=j_indices_target_fpr)
     metric_tracker.log_to_wandb(out_dir_path=out_dir_path, phase=phase, target_fpr=target_fpr)
+
+
+def save_metrics(out_dir_path):
+    metrics_path = os.path.join(out_dir_path, 'metrics_csv')
+    os.makedirs(metrics_path, exist_ok=True)
+
+    for phase_index, phase in enumerate(metric_tracker.ordered_phases):
+        csv_path = os.path.join(metrics_path, f"{phase}.csv")
+        start_epoch = metric_tracker.ordered_epoch_offsets[phase_index]
+        if (phase_index + 1) < len(metric_tracker.ordered_epoch_offsets):
+            end_epoch = metric_tracker.ordered_epoch_offsets[phase_index + 1]
+        else:
+            end_epoch = len(metric_tracker.roc_auc_macro)
+        
+        with open(csv_path, 'w', newline='') as file:
+            fieldnames = ['epoch']  # Start with the epoch column
+            # Extend fieldnames for each metric
+            for idx in range(len(metric_tracker.labels)):
+                fieldnames.extend([
+                    f'auc_roc_class{idx+1}',
+                    f'auc_pr_class{idx+1}',
+                    f'j_index_max_class{idx+1}',
+                    f'j_index_fpr_class{idx+1}'
+                ])
+            fieldnames.extend(['macro_auc_roc', 'macro_auc_pr'])
+            
+            writer = csv.DictWriter(file, fieldnames=fieldnames)
+            writer.writeheader()
+            
+            # Write data for epochs in the current phase
+            for epoch in range(start_epoch, end_epoch):
+                adjusted_epoch = epoch - start_epoch
+                row = {'epoch': adjusted_epoch}
+                for idx in range(len(metric_tracker.labels)):
+                    row[f'auc_roc_class{idx+1}'] = metric_tracker.roc_auc_per_class[idx][epoch]
+                    row[f'auc_pr_class{idx+1}'] = metric_tracker.pr_auc_per_class[idx][epoch]
+                    row[f'j_index_max_class{idx+1}'] = metric_tracker.j_index_max_per_class[idx][epoch]
+                    row[f'j_index_fpr_class{idx+1}'] = metric_tracker.j_index_fpr_per_class[idx][epoch]
+                row['macro_auc_roc'] = metric_tracker.roc_auc_macro[epoch]
+                row['macro_auc_pr'] = metric_tracker.pr_auc_macro[epoch]
+                writer.writerow(row)
 
 
 

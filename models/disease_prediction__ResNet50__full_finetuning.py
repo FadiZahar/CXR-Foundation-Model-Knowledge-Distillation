@@ -19,7 +19,7 @@ from pytorch_lightning.callbacks import ModelCheckpoint, TQDMProgressBar
 # Import custom modules
 from data_modules.chexpert_data_module import CheXpertDataModule
 from utils.output_utils.generate_and_save_outputs import run_evaluation_phase
-from utils.output_utils.generate_and_log_metrics import generate_and_log_metrics
+from utils.output_utils.generate_and_log_metrics import generate_and_log_metrics, save_metrics
 from utils.callback_utils.training_callbacks import TrainLoggingCallback
 
 # Import global variables
@@ -109,7 +109,10 @@ class ResNet50(LightningModule):
     ## Validation
     def validation_step(self, batch, batch_idx):
         logits, probs, labels, loss = self.process_batch(batch)
-        self.log('val_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+        if self.validation_mode == 'Training':
+            self.log('val_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+        else:
+            self.log('val_final_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
 
         # Convert tensors to CPU and numpy for sklearn compatibility
         labels_np = labels.cpu().numpy()
@@ -125,7 +128,7 @@ class ResNet50(LightningModule):
         # Check the mode and log accordingly
         if self.validation_mode == 'Training':
             generate_and_log_metrics(targets=all_labels, probs=all_probs, out_dir_path=self.out_dir_path, 
-                                     phase='Validation')
+                                     phase='Validation (During Training)')
         else:
             generate_and_log_metrics(targets=all_labels, probs=all_probs, out_dir_path=self.out_dir_path, 
                                      phase='Final Validation')
@@ -225,10 +228,11 @@ def main(hparams):
     trainer.logger._default_hp_metric = False
     trainer.fit(model=model, datamodule=data)
 
-    # Validating and Testing just for wandb loging
+    # Final Validating and Testing on the best model just for wandb logs
     model.validation_mode = 'Final'
     trainer.validate(model=model, datamodule=data, ckpt_path=trainer.checkpoint_callback.best_model_path)
     trainer.test(model=model, datamodule=data, ckpt_path=trainer.checkpoint_callback.best_model_path)
+    save_metrics(out_dir_path=out_dir_path)
 
     best_model = model_type.load_from_checkpoint(trainer.checkpoint_callback.best_model_path, num_classes=NUM_CLASSES)
     device = torch.device("cuda:" + str(hparams.dev) if torch.cuda.is_available() else "cpu")
