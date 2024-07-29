@@ -175,7 +175,7 @@ def main(hparams):
     # Train
     trainer = Trainer(
         default_root_dir=ckpt_dir_path,
-        callbacks=[ModelCheckpoint(monitor='val_loss', 
+        callbacks=[ModelCheckpoint(monitor='val_MSE_loss', 
                                    mode='min', 
                                    filename='best-checkpoint_pre-CXR-FMKD',
                                    dirpath=ckpt_dir_path), 
