@@ -48,7 +48,7 @@ class ResNet50(LightningModule):
         self.model = models.resnet50(weights=models.ResNet50_Weights.DEFAULT)
         self.num_features = self.model.fc.in_features   # in_features: 2048 | out_features: 1000 (ImageNet)
 
-        # Replace original f.c. layer with new f.c. layer mapping the 2048 input features to 14 (disease classes):
+        # Replace original f.c. layer with new f.c. layer mapping the 2048 input features to 14 (disease classes), and store it:
         self.fc = nn.Linear(self.num_features, self.num_classes)
         self.model.fc = self.fc 
 
@@ -59,7 +59,7 @@ class ResNet50(LightningModule):
         self.model.fc = self.fc
 
     def forward(self, x):
-        return self.model.forward(x)
+        return self.model(x)
 
     def configure_optimizers(self):
         params_to_update = [param for param in self.parameters() if param.requires_grad]
@@ -254,10 +254,11 @@ def main(hparams):
     best_model.reset_head()
 
 
+
 if __name__ == '__main__':
     parser = ArgumentParser()
-    parser.add_argument('--gpus', default=1)
-    parser.add_argument('--dev', default=0)
+    parser.add_argument('--gpus', default=1, help='Number of GPUs to use')
+    parser.add_argument('--dev', default=0, help='GPU device number')
     args = parser.parse_args()
 
     main(args)

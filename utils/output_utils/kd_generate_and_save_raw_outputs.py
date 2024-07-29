@@ -49,7 +49,7 @@ def run_evaluation_phase(model, dataloader, device, file_path, phase):
     else:
         batch_indices, target_embeds, output_embeds = generate_evaluation_embeddings(model=model, dataloader=dataloader, 
                                                                                      device=device)
-        save_embeddings_to_csv(embeds=output_embeds, target_embeds=target_embeds, batch_indices=batch_indices, 
+        save_embeddings_to_csv(embeds=output_embeds, targets=target_embeds, batch_indices=batch_indices, 
                                file_path=file_path)
 
 
