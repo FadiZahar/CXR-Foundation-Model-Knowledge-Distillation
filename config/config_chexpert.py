@@ -27,6 +27,9 @@ NUM_WORKERS = 4
 BATCH_SIZE = 150
 LEARNING_RATE = 0.001
 
+# Evaluation
+TARGET_FPR = 0.2
+
 # Data Paths
 CXRS_FILEPATH = '/vol/biodata/data/chest_xray/CheXpert-v1.0/'
 EMBEDDINGS_FILEPATH = '/vol/biomedic3/bglocker/mscproj24/fz221/data/cxrfm_embeddings/chexpert/cxr_numpy'

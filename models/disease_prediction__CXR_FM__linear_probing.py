@@ -14,7 +14,7 @@ from pytorch_lightning.callbacks import ModelCheckpoint, TQDMProgressBar
 
 # Import custom modules
 from data_modules.chexpert_data_module import CheXpertDataModule
-from utils.output_utils.generate_and_save_outputs import run_evaluation_phase
+from utils.output_utils.generate_and_save_raw_outputs import run_evaluation_phase
 from utils.callback_utils.training_callbacks import TrainLoggingCallback
 
 # Import global variables

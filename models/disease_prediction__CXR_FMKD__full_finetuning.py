@@ -16,7 +16,7 @@ from pytorch_lightning.callbacks import ModelCheckpoint, TQDMProgressBar
 # Import custom modules
 from models.knowledge_distillation.kd_initialisation__CXR_FMKD__MSE import Pre_CXR_FMKD
 from data_modules.chexpert_data_module import CheXpertDataModule
-from utils.output_utils.generate_and_save_outputs import run_evaluation_phase
+from utils.output_utils.generate_and_save_raw_outputs import run_evaluation_phase
 
 # Import global variables
 from config.config_chexpert import IMAGE_SIZE, CXRFM_EMBEDS_SIZE, NUM_CLASSES, EPOCHS, NUM_WORKERS, BATCH_SIZE, LEARNING_RATE
