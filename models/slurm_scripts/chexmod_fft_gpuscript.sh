@@ -2,7 +2,7 @@
 #SBATCH --partition=gpus48       
 #SBATCH --gres=gpu:1             
 #SBATCH --output=/vol/biomedic3/bglocker/mscproj24/fz221/cxr-fmkd/models/slurm_scripts/slurm_logs/chexmod_fft.%N.%j.log  
-#SBATCH --time=3-00:00:00        
+#SBATCH --time=0-05:00:00        
 
 #SBATCH --job-name=chexmod_fft
 
