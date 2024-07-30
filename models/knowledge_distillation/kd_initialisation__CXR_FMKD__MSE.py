@@ -164,7 +164,7 @@ def main(hparams):
         default_root_dir=ckpt_dir_path,
         callbacks=[ModelCheckpoint(monitor='val_MSE_loss', 
                                    mode='min', 
-                                   filename='best-checkpoint_pre-CXR-FMKD',
+                                   filename='best-checkpoint_pre-CXR-FMKD_MSE_{epoch}-{val_loss:.4f}',
                                    dirpath=ckpt_dir_path), 
                    TQDMProgressBar(refresh_rate=10),
                    train_logger],

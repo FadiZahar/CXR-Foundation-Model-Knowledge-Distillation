@@ -25,6 +25,7 @@ from utils.callback_utils.training_callbacks import TrainLoggingCallback
 # Import global variables
 from config.config_chexpert import IMAGE_SIZE, CXRFM_EMBEDS_SIZE, NUM_CLASSES, EPOCHS, NUM_WORKERS, BATCH_SIZE, LEARNING_RATE, TARGET_FPR
 from config.config_chexpert import CXRS_FILEPATH, EMBEDDINGS_FILEPATH, TRAIN_RECORDS_CSV, VAL_RECORDS_CSV, TEST_RECORDS_CSV, MAIN_DIR_PATH
+from config.config_chexpert import BEST_CHECKPOINT_KD_MSE_FILENAME as BEST_CHECKPOINT_KD_FILENAME
 
 OUT_DIR_NAME = 'CXR-FMKD_linear-probing/'
 
@@ -178,7 +179,7 @@ def main(hparams):
     # Get base model directory and best checkpoint path
     BASE_MODEL_DIR_NAME = hparams.base_model_dir_name
     BASE_MODEL_DIR_PATH = os.path.join(MAIN_DIR_PATH, BASE_MODEL_DIR_NAME)
-    BASE_MODEL_CHECKPOINT_FILEPATH = os.path.join(BASE_MODEL_DIR_PATH, 'lightning_checkpoints/best-checkpoint_pre-CXR-FMKD.ckpt')
+    BASE_MODEL_CHECKPOINT_FILEPATH = os.path.join(BASE_MODEL_DIR_PATH, 'lightning_checkpoints', BEST_CHECKPOINT_KD_FILENAME)
 
     # Ensure the checkpoint file exists
     if not os.path.exists(BASE_MODEL_CHECKPOINT_FILEPATH):

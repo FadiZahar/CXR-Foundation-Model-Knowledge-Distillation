@@ -30,6 +30,9 @@ LEARNING_RATE = 0.001
 # Evaluation
 TARGET_FPR = 0.2
 
+# knowledge Distillation
+BEST_CHECKPOINT_KD_MSE_FILENAME = 'best-checkpoint_pre-CXR-FMKD.ckpt'
+
 # Data Paths
 CXRS_FILEPATH = '/vol/biodata/data/chest_xray/CheXpert-v1.0/'
 EMBEDDINGS_FILEPATH = '/vol/biomedic3/bglocker/mscproj24/fz221/data/cxrfm_embeddings/chexpert/cxr_numpy'
