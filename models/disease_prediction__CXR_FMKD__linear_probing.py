@@ -176,8 +176,11 @@ def freeze_model(model):
 
 def main(hparams):
 
+    # Get KD Type used for pre-trained CXR-FMKD of choice
+    KD_TYPE_DIR_NAME = f'KD-{hparams.kd_type}'
+
     # Get base model directory and best checkpoint path
-    BASE_MODEL_DIR_NAME = hparams.base_model_dir_name
+    BASE_MODEL_DIR_NAME = f'CXR-FMKD_KD-initialisation-{hparams.kd_type}'
     BASE_MODEL_DIR_PATH = os.path.join(MAIN_DIR_PATH, BASE_MODEL_DIR_NAME)
     BASE_MODEL_CHECKPOINT_FILEPATH = os.path.join(BASE_MODEL_DIR_PATH, 'lightning_checkpoints', BEST_CHECKPOINT_KD_FILENAME)
 
@@ -186,11 +189,11 @@ def main(hparams):
         raise FileNotFoundError(f"CXR-FMKD base model checkpoint file not found: {BASE_MODEL_CHECKPOINT_FILEPATH}")
 
     # If the file exists, continue
-    print("CXR-FMKD checkpoint file is available, proceeding with subsequent operations.")
+    print("CXR-FMKD checkpoint file is available, proceeding with subsequent operations...")
 
 
     # Create output directory
-    out_dir_path = os.path.join(MAIN_DIR_PATH, OUT_DIR_NAME)
+    out_dir_path = os.path.join(MAIN_DIR_PATH, KD_TYPE_DIR_NAME, OUT_DIR_NAME)
     os.makedirs(out_dir_path, exist_ok=True)
     # Create TensorBoard logs directory
     logs_dir_path = os.path.join(out_dir_path, 'lightning_logs/')
@@ -286,8 +289,7 @@ if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument('--gpus', default=1, help='Number of GPUs to use')
     parser.add_argument('--dev', default=0, help='GPU device number')
-    parser.add_argument('--base_model_dir_name', type=str, default='CXR-FMKD_KD-initialisation-MSE/', 
-                        help='Base model directory name')
+    parser.add_argument('--kd_type', type=str, default='MSE', help='Type of Knowledge Distillation used')
     args = parser.parse_args()
 
     main(args)
