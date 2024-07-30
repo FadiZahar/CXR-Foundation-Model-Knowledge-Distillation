@@ -182,7 +182,7 @@ def main(hparams):
                    TQDMProgressBar(refresh_rate=10),
                    train_logger],
         log_every_n_steps=5,
-        max_epochs=60,
+        max_epochs=100,
         accelerator='auto',
         devices=hparams.gpus,
         logger=wandb_logger,
