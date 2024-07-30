@@ -63,8 +63,21 @@ class DenseNet121(LightningModule):
 
     def configure_optimizers(self):
         params_to_update = [param for param in self.parameters() if param.requires_grad]
-        optimizer = torch.optim.Adam(params_to_update, lr=self.learning_rate)
-        return optimizer
+        base_lr = self.learning_rate
+        max_lr = self.learning_rate*10
+        optimizer = torch.optim.Adam(params_to_update, lr=base_lr)
+        scheduler = torch.optim.lr_scheduler.OneCycleLR(
+            optimizer, 
+            max_lr=max_lr,
+            total_steps=self.trainer.estimated_stepping_batches  
+        )
+        return {
+            'optimizer': optimizer,
+            'lr_scheduler': {
+                'scheduler': scheduler,
+                'interval': 'step'
+            }
+        }
 
     def unpack_batch(self, batch):
         return batch['cxr'], batch['label']
