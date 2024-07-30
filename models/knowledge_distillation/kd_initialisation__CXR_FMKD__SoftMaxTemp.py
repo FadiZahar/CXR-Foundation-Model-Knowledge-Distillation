@@ -26,7 +26,7 @@ from config.config_chexpert import IMAGE_SIZE, CXRFM_EMBEDS_SIZE, EPOCHS, NUM_WO
 from config.config_chexpert import CXRS_FILEPATH, EMBEDDINGS_FILEPATH, TRAIN_RECORDS_CSV, VAL_RECORDS_CSV, MAIN_DIR_PATH
 
 DEV_SPLIT = [0.7, 0.3]
-OUT_DIR_NAME = 'CXR-FMKD_KD-initialisation-MSE/'
+OUT_DIR_NAME = 'CXR-FMKD_KD-initialisation-SoftMaxTemp/'
 
 
 
@@ -177,7 +177,7 @@ def main(hparams):
         default_root_dir=ckpt_dir_path,
         callbacks=[ModelCheckpoint(monitor='val_loss', 
                                    mode='min', 
-                                   filename='best-checkpoint_pre-CXR-FMKD_MSE_{epoch}-{val_loss:.4f}',
+                                   filename='best-checkpoint_pre-CXR-FMKD_SoftMaxTemp_{epoch}-{val_loss:.4f}',
                                    dirpath=ckpt_dir_path), 
                    TQDMProgressBar(refresh_rate=10),
                    train_logger],
