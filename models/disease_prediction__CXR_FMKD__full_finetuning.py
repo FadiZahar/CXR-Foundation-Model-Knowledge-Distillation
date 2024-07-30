@@ -27,7 +27,7 @@ from config.config_chexpert import IMAGE_SIZE, CXRFM_EMBEDS_SIZE, NUM_CLASSES, E
 from config.config_chexpert import CXRS_FILEPATH, EMBEDDINGS_FILEPATH, TRAIN_RECORDS_CSV, VAL_RECORDS_CSV, TEST_RECORDS_CSV, MAIN_DIR_PATH
 from config.config_chexpert import BEST_CHECKPOINT_KD_MSE_FILENAME as BEST_CHECKPOINT_KD_FILENAME
 
-OUT_DIR_NAME = 'CXR-FMKD_full-finetuning/'
+OUT_DIR_NAME = 'CXR-FMKD_full-finetuning-constlr/'
 
 
 
@@ -69,23 +69,9 @@ class CXR_FMKD_FullFineTuning(LightningModule):
             return self.classifier(features)
 
     def configure_optimizers(self):
-        # params_to_update = list(self.base_model.parameters()) + list(self.classifier.parameters())
         params_to_update = [param for param in self.parameters() if param.requires_grad]
-        base_lr = self.learning_rate
-        max_lr = self.learning_rate*10
-        optimizer = torch.optim.Adam(params_to_update, lr=base_lr)
-        scheduler = torch.optim.lr_scheduler.OneCycleLR(
-            optimizer, 
-            max_lr=max_lr,
-            total_steps=self.trainer.estimated_stepping_batches  
-        )
-        return {
-            'optimizer': optimizer,
-            'lr_scheduler': {
-                'scheduler': scheduler,
-                'interval': 'step'
-            }
-        }
+        optimizer = torch.optim.Adam(params_to_update, lr=self.learning_rate)
+        return optimizer
 
     def unpack_batch(self, batch):
         return batch['cxr'], batch['label']
