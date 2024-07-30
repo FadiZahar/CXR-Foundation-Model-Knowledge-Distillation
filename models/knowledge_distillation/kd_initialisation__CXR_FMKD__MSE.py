@@ -26,7 +26,7 @@ from config.config_chexpert import IMAGE_SIZE, CXRFM_EMBEDS_SIZE, EPOCHS, NUM_WO
 from config.config_chexpert import CXRS_FILEPATH, EMBEDDINGS_FILEPATH, TRAIN_RECORDS_CSV, VAL_RECORDS_CSV, MAIN_DIR_PATH
 
 DEV_SPLIT = [0.7, 0.3]
-OUT_DIR_NAME = 'CXR-FMKD_KD-initialisation-MSE-epochs40-batch128/'
+OUT_DIR_NAME = 'CXR-FMKD_KD-initialisation-MSE-epochs100/'
 
 
 
@@ -147,7 +147,7 @@ def main(hparams):
                               cxrs_filepath=CXRS_FILEPATH,
                               embeddings_filepath=EMBEDDINGS_FILEPATH,
                               pseudo_rgb=True,
-                              batch_size=128,
+                              batch_size=BATCH_SIZE,
                               num_workers=NUM_WORKERS,
                               train_records=TRAIN_RECORDS_CSV,
                               val_records=VAL_RECORDS_CSV,
@@ -182,7 +182,7 @@ def main(hparams):
                    TQDMProgressBar(refresh_rate=10),
                    train_logger],
         log_every_n_steps=5,
-        max_epochs=40,
+        max_epochs=60,
         accelerator='auto',
         devices=hparams.gpus,
         logger=wandb_logger,
