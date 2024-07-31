@@ -27,7 +27,7 @@ from config.config_chexpert import CXRS_FILEPATH, EMBEDDINGS_FILEPATH, TRAIN_REC
 
 DEV_SPLIT = [0.7, 0.3]
 EPOCHS = 40
-OUT_DIR_NAME = 'CXR-FMKD_KD-initialisation-MSE/'
+OUT_DIR_NAME = 'CXR-FMKD_KD-initialisation-MSEandCosineSim/'
 
 
 
@@ -82,8 +82,15 @@ class Pre_CXR_FMKD(LightningModule):
     def process_batch(self, batch):
         cxrs, target_embeds = self.unpack_batch(batch)   # cxrs: Chest X-Rays, embeds: embeddings
         output_embeds = self.forward(cxrs)
-        # Calculate Mean Squared Error (MSE) Loss between output embeddings from DenseNet-169 and target embeddings from CXR-FM
-        loss = F.mse_loss(output_embeds, target_embeds)
+        # MSE Loss
+        mse_loss = F.mse_loss(output_embeds, target_embeds)
+        # Cosine Similarity Loss
+        cosine_sim = F.cosine_similarity(output_embeds, target_embeds, dim=1)
+        cosine_loss = 1 - cosine_sim.mean()
+        # Combine losses
+        alpha = 0.5  # weight for MSE loss
+        beta = 0.5   # weight for cosine similarity loss
+        loss = alpha * mse_loss + beta * cosine_loss
         return loss
 
     ## Training
@@ -178,7 +185,7 @@ def main(hparams):
         default_root_dir=ckpt_dir_path,
         callbacks=[ModelCheckpoint(monitor='val_loss', 
                                    mode='min', 
-                                   filename='best-checkpoint_pre-CXR-FMKD_MSE_{epoch}-{val_loss:.4f}',
+                                   filename='best-checkpoint_pre-CXR-FMKD_MSEandCosineSim_{epoch}-{val_loss:.4f}',
                                    dirpath=ckpt_dir_path), 
                    TQDMProgressBar(refresh_rate=10),
                    train_logger],
