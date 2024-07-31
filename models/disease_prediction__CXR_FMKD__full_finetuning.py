@@ -27,7 +27,7 @@ from config.config_chexpert import IMAGE_SIZE, CXRFM_EMBEDS_SIZE, NUM_CLASSES, E
 from config.config_chexpert import CXRS_FILEPATH, EMBEDDINGS_FILEPATH, TRAIN_RECORDS_CSV, VAL_RECORDS_CSV, TEST_RECORDS_CSV, MAIN_DIR_PATH
 from config.config_chexpert import BEST_CHECKPOINT_KD_MSE_FILENAME as BEST_CHECKPOINT_KD_FILENAME
 
-OUT_DIR_NAME = 'CXR-FMKD_full-finetuning-constlr/'
+OUT_DIR_NAME = 'CXR-FMKD_full-finetuning/'
 
 
 

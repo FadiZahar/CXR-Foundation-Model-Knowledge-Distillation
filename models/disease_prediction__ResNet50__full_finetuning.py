@@ -26,7 +26,7 @@ from utils.callback_utils.training_callbacks import TrainLoggingCallback
 from config.config_chexpert import IMAGE_SIZE, NUM_CLASSES, EPOCHS, NUM_WORKERS, BATCH_SIZE, LEARNING_RATE, TARGET_FPR
 from config.config_chexpert import CXRS_FILEPATH, EMBEDDINGS_FILEPATH, TRAIN_RECORDS_CSV, VAL_RECORDS_CSV, TEST_RECORDS_CSV, MAIN_DIR_PATH
 
-OUT_DIR_NAME = 'ResNet50_full-finetuning-batch128/'
+OUT_DIR_NAME = 'ResNet50_full-finetuning/'
 
 
 
@@ -63,21 +63,8 @@ class ResNet50(LightningModule):
 
     def configure_optimizers(self):
         params_to_update = [param for param in self.parameters() if param.requires_grad]
-        base_lr = self.learning_rate
-        max_lr = self.learning_rate*10
-        optimizer = torch.optim.Adam(params_to_update, lr=base_lr)
-        scheduler = torch.optim.lr_scheduler.OneCycleLR(
-            optimizer, 
-            max_lr=max_lr,
-            total_steps=self.trainer.estimated_stepping_batches  
-        )
-        return {
-            'optimizer': optimizer,
-            'lr_scheduler': {
-                'scheduler': scheduler,
-                'interval': 'step'
-            }
-        }
+        optimizer = torch.optim.Adam(params_to_update, lr=self.learning_rate)
+        return optimizer
 
     def unpack_batch(self, batch):
         return batch['cxr'], batch['label']
@@ -187,7 +174,7 @@ def main(hparams):
                               cxrs_filepath=CXRS_FILEPATH,
                               embeddings_filepath=EMBEDDINGS_FILEPATH,
                               pseudo_rgb=True,
-                              batch_size=128,
+                              batch_size=BATCH_SIZE,
                               num_workers=NUM_WORKERS,
                               train_records=TRAIN_RECORDS_CSV,
                               val_records=VAL_RECORDS_CSV,

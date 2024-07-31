@@ -24,7 +24,7 @@ LABELS = [
 # Training
 EPOCHS = 20
 NUM_WORKERS = 4
-BATCH_SIZE = 150
+BATCH_SIZE = 128   # previously 150
 LEARNING_RATE = 0.001
 
 # Evaluation
