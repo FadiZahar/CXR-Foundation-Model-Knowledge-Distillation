@@ -30,7 +30,7 @@ OUT_DIR_NAME = 'CheXpert-model_linear-probing/'
 
 
 
-class CheXpertModel(LightningModule):
+class CheXpertModel_LinearProbing(LightningModule):
     def __init__(self, num_classes: int, learning_rate: float, out_dir_path:str, target_fpr: float):
         super().__init__()
         self.num_classes = num_classes
@@ -189,7 +189,7 @@ def main(hparams):
         imsave(os.path.join(temp_dir_path, f'sample_{idx}.jpg'), sample['cxr'].astype(np.uint8))
 
     # Model
-    model_type = CheXpertModel
+    model_type = CheXpertModel_LinearProbing
     model = model_type(num_classes=NUM_CLASSES, learning_rate=LEARNING_RATE, out_dir_path=out_dir_path, target_fpr=TARGET_FPR)
 
     # Callback metric logging
