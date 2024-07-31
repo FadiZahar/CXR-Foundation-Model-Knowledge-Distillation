@@ -1,10 +1,10 @@
 #!/bin/bash
 #SBATCH --partition=gpus48       
 #SBATCH --gres=gpu:1             
-#SBATCH --output=/vol/biomedic3/bglocker/mscproj24/fz221/cxr-fmkd/models/slurm_scripts/slurm_logs/cxrfmkd_lp.%N.%j.log  
+#SBATCH --output=/vol/biomedic3/bglocker/mscproj24/fz221/cxr-fmkd/models/slurm_scripts/slurm_logs/cxrfmkd_lp_mse&cosinesim.%N.%j.log  
 #SBATCH --time=0-05:00:00        
 
-#SBATCH --job-name=cxrfmkd_lp
+#SBATCH --job-name=cxrfmkd_lp_mse&cosinesim
 
 # Activate the Python virtual environment (fmkd_venv)
 source /vol/bitbucket/fz221/fmkd_venv/bin/activate
@@ -17,4 +17,4 @@ export WANDB_CACHE_DIR=/vol/biomedic3/bglocker/mscproj24/fz221/.wandb_storage/ca
 export WANDB_CONFIG_DIR=/vol/biomedic3/bglocker/mscproj24/fz221/.wandb_storage/config
 
 # Run the Python script
-python /vol/biomedic3/bglocker/mscproj24/fz221/cxr-fmkd/models/disease_prediction__CXR_FMKD__linear_probing.py
+python /vol/biomedic3/bglocker/mscproj24/fz221/cxr-fmkd/models/disease_prediction__CXR_FMKD__linear_probing.py --kd_type 'MSEandCosineSim'
