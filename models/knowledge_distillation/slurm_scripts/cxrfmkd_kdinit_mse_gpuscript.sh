@@ -1,10 +1,10 @@
 #!/bin/bash
 #SBATCH --partition=gpus48       
 #SBATCH --gres=gpu:1             
-#SBATCH --output=/vol/biomedic3/bglocker/mscproj24/fz221/cxr-fmkd/models/knowledge_distillation/slurm_scripts/slurm_logs/cxrfmkd_kdinit.%N.%j.log  
+#SBATCH --output=/vol/biomedic3/bglocker/mscproj24/fz221/cxr-fmkd/models/knowledge_distillation/slurm_scripts/slurm_logs/cxrfmkd_kdinit_mse.%N.%j.log  
 #SBATCH --time=0-08:00:00        
 
-#SBATCH --job-name=cxrfmkd_kdinit
+#SBATCH --job-name=cxrfmkd_kdinit_mse
 
 # Activate the Python virtual environment (fmkd_venv)
 source /vol/bitbucket/fz221/fmkd_venv/bin/activate

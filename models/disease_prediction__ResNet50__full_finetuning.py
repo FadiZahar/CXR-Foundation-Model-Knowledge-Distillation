@@ -187,7 +187,7 @@ def main(hparams):
                               cxrs_filepath=CXRS_FILEPATH,
                               embeddings_filepath=EMBEDDINGS_FILEPATH,
                               pseudo_rgb=True,
-                              batch_size=BATCH_SIZE,
+                              batch_size=128,
                               num_workers=NUM_WORKERS,
                               train_records=TRAIN_RECORDS_CSV,
                               val_records=VAL_RECORDS_CSV,
