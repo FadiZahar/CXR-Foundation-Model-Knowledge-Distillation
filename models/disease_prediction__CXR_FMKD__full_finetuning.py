@@ -16,7 +16,6 @@ from pytorch_lightning.callbacks import ModelCheckpoint, TQDMProgressBar
 
 
 # Import custom modules
-from models.knowledge_distillation.kd_initialisation__CXR_FMKD__MSE import Pre_CXR_FMKD
 from data_modules.chexpert_data_module import CheXpertDataModule
 from utils.output_utils.generate_and_save_raw_outputs import run_evaluation_phase
 from utils.output_utils.generate_and_save_metrics import generate_and_log_metrics, save_and_plot_all_metrics
@@ -25,7 +24,13 @@ from utils.callback_utils.training_callbacks import TrainLoggingCallback
 # Import global variables
 from config.config_chexpert import IMAGE_SIZE, CXRFM_EMBEDS_SIZE, NUM_CLASSES, EPOCHS, NUM_WORKERS, BATCH_SIZE, LEARNING_RATE, TARGET_FPR
 from config.config_chexpert import CXRS_FILEPATH, EMBEDDINGS_FILEPATH, TRAIN_RECORDS_CSV, VAL_RECORDS_CSV, TEST_RECORDS_CSV, MAIN_DIR_PATH
-from config.config_chexpert import BEST_CHECKPOINT_KD_MSE_FILENAME as BEST_CHECKPOINT_KD_FILENAME
+
+# Knowledge Distillation Imports
+from models.knowledge_distillation.kd_initialisation__CXR_FMKD__MSE import Pre_CXR_FMKD as Pre_CXR_FMKD_MSE
+from models.knowledge_distillation.kd_initialisation__CXR_FMKD__CosineSim import Pre_CXR_FMKD as Pre_CXR_FMKD_CosineSim
+from models.knowledge_distillation.kd_initialisation__CXR_FMKD__MSEandCosineSim import Pre_CXR_FMKD as Pre_CXR_FMKD_MSEandCosineSim
+
+from config.config_chexpert import BEST_CHECKPOINT_KD_MSE_FILENAME, BEST_CHECKPOINT_KD_CosineSim_FILENAME, BEST_CHECKPOINT_KD_MSEandCosineSim_FILENAME
 
 OUT_DIR_NAME = 'CXR-FMKD_full-finetuning/'
 
@@ -159,8 +164,30 @@ def freeze_model(model):
 
 def main(hparams):
 
-    # Get KD Type used for pre-trained CXR-FMKD of choice
-    KD_TYPE_DIR_NAME = f'KD-{hparams.kd_type}'
+    # Mapping of KD types to their respective modules and checkpoint filenames
+    kd_mapping = {
+        'MSE': {
+            'module': Pre_CXR_FMKD_MSE,
+            'checkpoint_filename': BEST_CHECKPOINT_KD_MSE_FILENAME
+        },
+        'CosineSim': {
+            'module': Pre_CXR_FMKD_CosineSim,
+            'checkpoint_filename': BEST_CHECKPOINT_KD_CosineSim_FILENAME
+        },
+        'MSEandCosineSim': {
+            'module': Pre_CXR_FMKD_MSEandCosineSim,
+            'checkpoint_filename': BEST_CHECKPOINT_KD_MSEandCosineSim_FILENAME
+        }
+    }
+
+    # Check if kd_type is valid
+    if hparams.kd_type not in kd_mapping:
+        raise ValueError(f"Invalid KD type {hparams.kd_type}. Valid types are {list(kd_mapping.keys())}")
+    
+    # Get KD specific module and checkpoint filename
+    kd_info = kd_mapping[hparams.kd_type]
+    Pre_CXR_FMKD = kd_info['module']
+    BEST_CHECKPOINT_KD_FILENAME = kd_info['checkpoint_filename']
 
     # Get base model directory and best checkpoint path
     BASE_MODEL_DIR_NAME = f'CXR-FMKD_KD-initialisation-{hparams.kd_type}'
@@ -176,6 +203,7 @@ def main(hparams):
 
 
     # Create output directory
+    KD_TYPE_DIR_NAME = f'KD-{hparams.kd_type}'
     out_dir_path = os.path.join(MAIN_DIR_PATH, KD_TYPE_DIR_NAME, OUT_DIR_NAME)
     os.makedirs(out_dir_path, exist_ok=True)
     # Create TensorBoard logs directory
