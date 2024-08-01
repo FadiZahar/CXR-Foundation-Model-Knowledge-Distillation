@@ -251,9 +251,11 @@ def main(hparams):
 
     # WandB logger
     project_name = OUT_DIR_NAME.replace('/', '_').lower().strip('_')
+    kd_type_suffix = hparams.kd_type
+    run_name = f'run_{project_name}_{kd_type_suffix}_{datetime.now().strftime("%Y%m%d_%H%M")}'
     wandb_logger = WandbLogger(save_dir=logs_dir_path, 
                                project=project_name,
-                               name='run_' + project_name + '_' + datetime.now().strftime('%Y%m%d_%H%M'), 
+                               name=run_name, 
                                log_model="all")
 
     # Train
