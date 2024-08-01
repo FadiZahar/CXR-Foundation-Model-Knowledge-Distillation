@@ -32,7 +32,7 @@ from models.knowledge_distillation.kd_initialisation__CXR_FMKD__MSEandCosineSim 
 
 from config.config_chexpert import BEST_CHECKPOINT_KD_MSE_FILENAME, BEST_CHECKPOINT_KD_CosineSim_FILENAME, BEST_CHECKPOINT_KD_MSEandCosineSim_FILENAME
 
-OUT_DIR_NAME = 'CXR-FMKD-1664to14_full-finetuning/'
+OUT_DIR_NAME = 'CXR-FMKD-1664to14_full-finetuning-TEST/'
 
 
 
