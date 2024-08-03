@@ -32,7 +32,7 @@ from models.knowledge_distillation.kd_initialisation__CXR_FMKD__MSEandCosineSim 
 
 from config.config_chexpert import BEST_CHECKPOINT_KD_MSE_FILENAME, BEST_CHECKPOINT_KD_CosineSim_FILENAME, BEST_CHECKPOINT_KD_MSEandCosineSim_FILENAME
 
-OUT_DIR_NAME = 'CXR-FMKD-1664to14_full-finetuning-TEST/'
+OUT_DIR_NAME = 'CXR-FMKD-1664to14_full-finetuning/'
 
 
 
@@ -198,7 +198,11 @@ def main(hparams):
 
     # Create output directory
     KD_TYPE_DIR_NAME = f'KD-{hparams.kd_type}'
-    out_dir_path = os.path.join(MAIN_DIR_PATH, KD_TYPE_DIR_NAME, OUT_DIR_NAME)
+    if hparams.multirun_id:
+        inner_out_dir_name = f"{OUT_DIR_NAME.strip('/')}_{hparams.multirun_id}"
+        out_dir_path = os.path.join(MAIN_DIR_PATH, KD_TYPE_DIR_NAME, OUT_DIR_NAME, 'multiruns', inner_out_dir_name)
+    else:
+        out_dir_path = os.path.join(MAIN_DIR_PATH, KD_TYPE_DIR_NAME, OUT_DIR_NAME)
     os.makedirs(out_dir_path, exist_ok=True)
     # Create TensorBoard logs directory
     logs_dir_path = os.path.join(out_dir_path, 'lightning_logs/')
@@ -243,7 +247,11 @@ def main(hparams):
     # WandB logger
     project_name = OUT_DIR_NAME.replace('/', '_').lower().strip('_')
     kd_type_suffix = hparams.kd_type
-    run_name = f'run_{project_name}_{kd_type_suffix}_{datetime.now().strftime("%Y%m%d_%H%M")}'
+    if hparams.multirun_id:
+        multirun_id = hparams.multirun_id
+        run_name = f'run_{project_name}_{kd_type_suffix}_{multirun_id}_{datetime.now().strftime("%Y%m%d_%H%M")}' 
+    else:
+        run_name = f'run_{project_name}_{kd_type_suffix}_{datetime.now().strftime("%Y%m%d_%H%M")}' 
     wandb_logger = WandbLogger(save_dir=logs_dir_path, 
                                project=project_name,
                                name=run_name, 
@@ -297,6 +305,8 @@ if __name__ == '__main__':
     parser.add_argument('--gpus', default=1, help='Number of GPUs to use')
     parser.add_argument('--dev', default=0, help='GPU device number')
     parser.add_argument('--kd_type', type=str, default='MSE', help='Type of Knowledge Distillation used')
+    parser.add_argument('--multirun_id', default=None, help='Optional identifier for multi runs')
+    
     args = parser.parse_args()
 
     main(args)

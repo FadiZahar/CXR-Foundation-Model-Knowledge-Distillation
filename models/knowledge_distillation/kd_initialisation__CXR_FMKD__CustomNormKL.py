@@ -80,14 +80,15 @@ class Pre_CXR_FMKD(LightningModule):
         return batch['cxr'], batch['embedding']
 
     def custom_kl_loss(self, output_embeds, target_embeds):
+        eps = 1e-10
         # Normalised target_embeds
-        target_sum = target_embeds.sum(dim=1, keepdim=True)
+        target_sum = target_embeds.sum(dim=1, keepdim=True) + eps
         normalised_target_embeds = target_embeds / target_sum
         # Normalised output_embeds  
-        output_sum = output_embeds.sum(dim=1, keepdim=True)
+        output_sum = output_embeds.sum(dim=1, keepdim=True) + eps
         normalised_output_embeds = output_embeds / output_sum
         # Inputs (i.e., output_embeds) should be in the log-space
-        log_output_embeds = torch.log(normalised_output_embeds.clamp(min=1e-10))
+        log_output_embeds = torch.log(normalised_output_embeds.clamp(min=eps))
         loss = F.kl_div(log_output_embeds, normalised_target_embeds, reduction='batchmean')
         return loss
 
@@ -138,7 +139,11 @@ def freeze_model(model):
 def main(hparams):
 
     # Create output directory
-    out_dir_path = os.path.join(MAIN_DIR_PATH, OUT_DIR_NAME)
+    if hparams.multirun_id:
+        inner_out_dir_name = f"{OUT_DIR_NAME.strip('/')}_{hparams.multirun_id}"
+        out_dir_path = os.path.join(MAIN_DIR_PATH, OUT_DIR_NAME, 'multiruns', inner_out_dir_name)
+    else:
+        out_dir_path = os.path.join(MAIN_DIR_PATH, OUT_DIR_NAME)
     os.makedirs(out_dir_path, exist_ok=True)
     # Create TensorBoard logs directory
     logs_dir_path = os.path.join(out_dir_path, 'lightning_logs/')
@@ -179,9 +184,14 @@ def main(hparams):
 
     # WandB logger
     project_name = OUT_DIR_NAME.replace('/', '_').lower().strip('_')
+    if hparams.multirun_id:
+        multirun_id = hparams.multirun_id
+        run_name = f'run_{project_name}_{multirun_id}_{datetime.now().strftime("%Y%m%d_%H%M")}' 
+    else:
+        run_name = f'run_{project_name}_{datetime.now().strftime("%Y%m%d_%H%M")}' 
     wandb_logger = WandbLogger(save_dir=logs_dir_path, 
                                project=project_name,
-                               name='run_' + project_name + '_' + datetime.now().strftime('%Y%m%d_%H%M'), 
+                               name=run_name, 
                                log_model="all")
 
     # Train
@@ -230,6 +240,8 @@ if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument('--gpus', default=1, help='Number of GPUs to use')
     parser.add_argument('--dev', default=0, help='GPU device number')
+    parser.add_argument('--multirun_id', default=None, help='Optional identifier for multi runs')
+
     args = parser.parse_args()
 
     main(args)
