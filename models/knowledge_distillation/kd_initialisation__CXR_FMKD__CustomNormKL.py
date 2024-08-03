@@ -80,7 +80,7 @@ class Pre_CXR_FMKD(LightningModule):
         return batch['cxr'], batch['embedding']
 
     def custom_kl_loss(self, output_embeds, target_embeds):
-        eps = 1e-10
+        eps = 1e-8
         # Normalised target_embeds
         target_sum = target_embeds.sum(dim=1, keepdim=True) + eps
         normalised_target_embeds = target_embeds / target_sum
@@ -88,7 +88,7 @@ class Pre_CXR_FMKD(LightningModule):
         output_sum = output_embeds.sum(dim=1, keepdim=True) + eps
         normalised_output_embeds = output_embeds / output_sum
         # Inputs (i.e., output_embeds) should be in the log-space
-        log_output_embeds = torch.log(normalised_output_embeds.clamp(min=eps))
+        log_output_embeds = torch.log(normalised_output_embeds)
         loss = F.kl_div(log_output_embeds, normalised_target_embeds, reduction='batchmean')
         return loss
 
