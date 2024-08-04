@@ -5,7 +5,7 @@
 #SBATCH --time=0-05:00:00        
 
 # Accepts multirun_id from the command line; --job-name replaces the %x in --output above
-#SBATCH --job-name=densenet121_fft_"$1"
+#SBATCH --job-name=densenet121_fft_multirun
 
 # Activate the Python virtual environment (fmkd_venv)
 source /vol/bitbucket/fz221/fmkd_venv/bin/activate

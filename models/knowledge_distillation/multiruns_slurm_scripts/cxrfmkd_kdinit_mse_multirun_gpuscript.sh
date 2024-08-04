@@ -5,7 +5,7 @@
 #SBATCH --time=1-00:00:00        
 
 # Accepts multirun_id from the command line; --job-name replaces the %x in --output above
-#SBATCH --job-name=cxrfmkd_kdinit_mse_"$1"
+#SBATCH --job-name=cxrfmkd_kdinit_mse_multirun
 
 # Activate the Python virtual environment (fmkd_venv)
 source /vol/bitbucket/fz221/fmkd_venv/bin/activate
