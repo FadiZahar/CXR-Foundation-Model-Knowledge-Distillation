@@ -5,8 +5,8 @@
 #SBATCH --time=0-05:00:00        
 
 # Accepts multirun_id from the command line; --job-name replaces the %x in --output above
-MULTIRUN_ID=$1
-#SBATCH --job-name=cxrfm_lp_${MULTIRUN_ID}
+#SBATCH --job-name="cxrfm_lp_$1"
+echo "Received multirun_id: $1" >> /tmp/debug_job_submission.txt
 
 # Activate the Python virtual environment (fmkd_venv)
 source /vol/bitbucket/fz221/fmkd_venv/bin/activate
