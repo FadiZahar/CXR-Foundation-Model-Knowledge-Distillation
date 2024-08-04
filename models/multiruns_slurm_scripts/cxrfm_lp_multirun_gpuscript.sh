@@ -5,8 +5,7 @@
 #SBATCH --time=0-05:00:00        
 
 # Accepts multirun_id from the command line; --job-name replaces the %x in --output above
-export JOB_NAME="cxrfm_lp_$1"
-#SBATCH --job-name=$JOB_NAME
+#SBATCH --job-name=cxrfm_lp_%1
 
 # Activate the Python virtual environment (fmkd_venv)
 source /vol/bitbucket/fz221/fmkd_venv/bin/activate
@@ -19,4 +18,4 @@ export WANDB_CACHE_DIR=/vol/biomedic3/bglocker/mscproj24/fz221/.wandb_storage/ca
 export WANDB_CONFIG_DIR=/vol/biomedic3/bglocker/mscproj24/fz221/.wandb_storage/config
 
 # Run the Python script
-python /vol/biomedic3/bglocker/mscproj24/fz221/cxr-fmkd/models/disease_prediction__CXR_FM__linear_probing.py --multirun_id "$1"
+python /vol/biomedic3/bglocker/mscproj24/fz221/cxr-fmkd/models/disease_prediction__CXR_FM__linear_probing.py --multirun_id "%1"
