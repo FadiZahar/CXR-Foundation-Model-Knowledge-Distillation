@@ -31,9 +31,9 @@ LEARNING_RATE = 0.001
 TARGET_FPR = 0.2
 
 # Knowledge Distillation
-BEST_CHECKPOINT_KD_MSE_FILENAME = 'best-checkpoint_pre-CXR-FMKD_MSE_epoch=38-val_loss=0.0940.ckpt'
+BEST_CHECKPOINT_KD_MSE_FILENAME = 'best-checkpoint_pre-CXR-FMKD_MSE_epoch=38-val_loss=0.0936.ckpt'
 BEST_CHECKPOINT_KD_CosineSim_FILENAME = 'best-checkpoint_pre-CXR-FMKD_CosineSim_epoch=38-val_loss=0.0106.ckpt'
-BEST_CHECKPOINT_KD_MSEandCosineSim_FILENAME = 'best-checkpoint_pre-CXR-FMKD_MSEandCosineSim_epoch=39-val_loss=0.0524.ckpt'
+BEST_CHECKPOINT_KD_MSEandCosineSim_FILENAME = 'best-checkpoint_pre-CXR-FMKD_MSEandCosineSim_epoch=39-val_loss=0.0521.ckpt'
 
 # Data Paths
 CXRS_FILEPATH = '/vol/biodata/data/chest_xray/CheXpert-v1.0/'
