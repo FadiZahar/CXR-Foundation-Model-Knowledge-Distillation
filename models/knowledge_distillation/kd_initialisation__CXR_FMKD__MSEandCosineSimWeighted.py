@@ -241,7 +241,7 @@ if __name__ == '__main__':
     parser.add_argument('--gpus', default=1, help='Number of GPUs to use')
     parser.add_argument('--dev', default=0, help='GPU device number')
     parser.add_argument('--multirun_id', default=None, help='Optional identifier for multi runs')
-    parser.add_argument('--alpha', default=0.5, help='Adjust weighted MSE(alpha)&CosineSim(1-alpha) combination')
+    parser.add_argument('--alpha', type=float, default=0.5, help='Adjust weighted MSE(alpha)&CosineSim(1-alpha) combination')
     
     args = parser.parse_args()
 
