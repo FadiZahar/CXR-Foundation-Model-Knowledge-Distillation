@@ -93,13 +93,16 @@ class Pre_CXR_FMKD(LightningModule):
         cosine_loss = 1 - cosine_sim.mean()
 
         # Convert log variance to precision (exp(-log_var)): Higher precision means lower uncertainty or variance
-        precision_mse = torch.exp(-self.log_var_mse)
-        precision_cosine = torch.exp(-self.log_var_cosinesim)
+        precision_mse = torch.exp(-F.softplus(self.log_var_mse))
+        precision_cosine = torch.exp(-F.softplus(self.log_var_cosinesim))
         # Encourage the model to not only minimise the loss but also become more confident (reduce variance)
         weighted_mse_loss = precision_mse * mse_loss + self.log_var_mse
         weighted_cosine_loss = precision_cosine * cosine_loss + self.log_var_cosinesim
 
-        loss = weighted_mse_loss + weighted_cosine_loss
+        reg_factor = 0.01
+        reg_loss = reg_factor * (self.log_var_mse.pow(2) + self.log_var_cosinesim.pow(2))
+
+        loss = weighted_mse_loss + weighted_cosine_loss + reg_loss
         return loss
 
     ## Training
