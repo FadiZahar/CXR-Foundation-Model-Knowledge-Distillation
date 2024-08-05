@@ -29,8 +29,11 @@ from config.config_chexpert import CXRS_FILEPATH, EMBEDDINGS_FILEPATH, TRAIN_REC
 from models.knowledge_distillation.kd_initialisation__CXR_FMKD__MSE import Pre_CXR_FMKD as Pre_CXR_FMKD_MSE
 from models.knowledge_distillation.kd_initialisation__CXR_FMKD__CosineSim import Pre_CXR_FMKD as Pre_CXR_FMKD_CosineSim
 from models.knowledge_distillation.kd_initialisation__CXR_FMKD__MSEandCosineSim import Pre_CXR_FMKD as Pre_CXR_FMKD_MSEandCosineSim
+from models.knowledge_distillation.kd_initialisation__CXR_FMKD__MSEandCosineSimLearned import Pre_CXR_FMKD as Pre_CXR_FMKD_MSEandCosineSimLearned
+from models.knowledge_distillation.kd_initialisation__CXR_FMKD__MSEandCosineSimWeighted import Pre_CXR_FMKD as Pre_CXR_FMKD_MSEandCosineSimWeighted
 
 from config.config_chexpert import BEST_CHECKPOINT_KD_MSE_FILENAME, BEST_CHECKPOINT_KD_CosineSim_FILENAME, BEST_CHECKPOINT_KD_MSEandCosineSim_FILENAME
+from config.config_chexpert import BEST_CHECKPOINT_KD_MSEandCosineSimLearned_FILENAME, BEST_CHECKPOINT_KD_MSEandCosineSimWeighted_FILENAME
 
 OUT_DIR_NAME = 'CXR-FMKD_linear-probing/'
 
@@ -180,6 +183,14 @@ def main(hparams):
         'MSEandCosineSim': {
             'module': Pre_CXR_FMKD_MSEandCosineSim,
             'checkpoint_filename': BEST_CHECKPOINT_KD_MSEandCosineSim_FILENAME
+        },
+        'MSEandCosineSimLearned': {
+            'module': Pre_CXR_FMKD_MSEandCosineSimLearned,
+            'checkpoint_filename': BEST_CHECKPOINT_KD_MSEandCosineSimLearned_FILENAME
+        },
+        'MSEandCosineSimWeighted': {
+            'module': Pre_CXR_FMKD_MSEandCosineSimWeighted,
+            'checkpoint_filename': BEST_CHECKPOINT_KD_MSEandCosineSimWeighted_FILENAME
         }
     }
 
