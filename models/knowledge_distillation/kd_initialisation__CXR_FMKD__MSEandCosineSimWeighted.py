@@ -138,11 +138,13 @@ def freeze_model(model):
 def main(hparams):
 
     # Create output directory
+    formatted_alpha = f"{hparams.alpha:.2f}".replace('.', 'p')
+    out_dir_name_w_alphaspec = f"{OUT_DIR_NAME.strip('/')}-alpha{formatted_alpha}"
     if hparams.multirun_id:
-        inner_out_dir_name = f"{OUT_DIR_NAME.strip('/')}_{hparams.multirun_id}"
-        out_dir_path = os.path.join(MAIN_DIR_PATH, OUT_DIR_NAME, 'multiruns', inner_out_dir_name)
+        inner_out_dir_name = f"{out_dir_name_w_alphaspec}_{hparams.multirun_id}"
+        out_dir_path = os.path.join(MAIN_DIR_PATH, out_dir_name_w_alphaspec, 'multiruns', inner_out_dir_name)
     else:
-        out_dir_path = os.path.join(MAIN_DIR_PATH, OUT_DIR_NAME)
+        out_dir_path = os.path.join(MAIN_DIR_PATH, out_dir_name_w_alphaspec)
     os.makedirs(out_dir_path, exist_ok=True)
     # Create TensorBoard logs directory
     logs_dir_path = os.path.join(out_dir_path, 'lightning_logs/')
@@ -194,12 +196,11 @@ def main(hparams):
                                log_model="all")
 
     # Train
-    formatted_alpha = f"{hparams.alpha:.2f}".replace('.', 'p')
     trainer = Trainer(
         default_root_dir=ckpt_dir_path,
         callbacks=[ModelCheckpoint(monitor='val_loss', 
                                    mode='min', 
-                                   filename=f'best-checkpoint_pre-CXR-FMKD_MSEandCosineSimWeighted_alpha{formatted_alpha}_{{epoch}}_{{val_loss:.4f}}',
+                                   filename=f'best-checkpoint_pre-CXR-FMKD_MSEandCosineSimWeighted-alpha{formatted_alpha}_{{epoch}}_{{val_loss:.4f}}',
                                    dirpath=ckpt_dir_path), 
                    TQDMProgressBar(refresh_rate=10),
                    train_logger],

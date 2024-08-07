@@ -33,7 +33,9 @@ from models.knowledge_distillation.kd_initialisation__CXR_FMKD__MSEandCosineSimL
 from models.knowledge_distillation.kd_initialisation__CXR_FMKD__MSEandCosineSimWeighted import Pre_CXR_FMKD as Pre_CXR_FMKD_MSEandCosineSimWeighted
 
 from config.config_chexpert import BEST_CHECKPOINT_KD_MSE_FILENAME, BEST_CHECKPOINT_KD_CosineSim_FILENAME, BEST_CHECKPOINT_KD_MSEandCosineSim_FILENAME
-from config.config_chexpert import BEST_CHECKPOINT_KD_MSEandCosineSimLearned_FILENAME, BEST_CHECKPOINT_KD_MSEandCosineSimWeighted_FILENAME
+from config.config_chexpert import BEST_CHECKPOINT_KD_MSEandCosineSimLearned_FILENAME, BEST_CHECKPOINT_KD_MSEandCosineSimWeighted_alpha0p50_FILENAME
+from config.config_chexpert import BEST_CHECKPOINT_KD_MSEandCosineSimWeighted_alpha0p60_FILENAME, BEST_CHECKPOINT_KD_MSEandCosineSimWeighted_alpha0p70_FILENAME
+from config.config_chexpert import BEST_CHECKPOINT_KD_MSEandCosineSimWeighted_alpha0p80_FILENAME, BEST_CHECKPOINT_KD_MSEandCosineSimWeighted_alpha0p90_FILENAME
 
 OUT_DIR_NAME = 'CXR-FMKD_full-finetuning/'
 
@@ -185,9 +187,25 @@ def main(hparams):
             'module': Pre_CXR_FMKD_MSEandCosineSimLearned,
             'checkpoint_filename': BEST_CHECKPOINT_KD_MSEandCosineSimLearned_FILENAME
         },
-        'MSEandCosineSimWeighted': {
+        'MSEandCosineSimWeighted-alpha0p50': {
             'module': Pre_CXR_FMKD_MSEandCosineSimWeighted,
-            'checkpoint_filename': BEST_CHECKPOINT_KD_MSEandCosineSimWeighted_FILENAME
+            'checkpoint_filename': BEST_CHECKPOINT_KD_MSEandCosineSimWeighted_alpha0p50_FILENAME
+        },
+        'MSEandCosineSimWeighted-alpha0p60': {
+            'module': Pre_CXR_FMKD_MSEandCosineSimWeighted,
+            'checkpoint_filename': BEST_CHECKPOINT_KD_MSEandCosineSimWeighted_alpha0p60_FILENAME
+        },
+        'MSEandCosineSimWeighted-alpha0p70': {
+            'module': Pre_CXR_FMKD_MSEandCosineSimWeighted,
+            'checkpoint_filename': BEST_CHECKPOINT_KD_MSEandCosineSimWeighted_alpha0p70_FILENAME
+        },
+        'MSEandCosineSimWeighted-alpha0p80': {
+            'module': Pre_CXR_FMKD_MSEandCosineSimWeighted,
+            'checkpoint_filename': BEST_CHECKPOINT_KD_MSEandCosineSimWeighted_alpha0p80_FILENAME
+        },
+        'MSEandCosineSimWeighted-alpha0p90': {
+            'module': Pre_CXR_FMKD_MSEandCosineSimWeighted,
+            'checkpoint_filename': BEST_CHECKPOINT_KD_MSEandCosineSimWeighted_alpha0p90_FILENAME
         }
     }
 
