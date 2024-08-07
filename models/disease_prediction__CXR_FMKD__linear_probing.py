@@ -291,6 +291,7 @@ def main(hparams):
         accelerator='auto',
         devices=hparams.gpus,
         logger=wandb_logger,
+        deterministic=True
     )
     trainer.logger._default_hp_metric = False
     trainer.fit(model=model, datamodule=data)
