@@ -3,6 +3,7 @@
 #SBATCH --gres=gpu:1             
 #SBATCH --output=/vol/biomedic3/bglocker/mscproj24/fz221/cxr-fmkd/models/slurm_scripts/slurm_logs/%x.%N.%j.log  
 #SBATCH --time=0-05:00:00 
+#SBATCH --nodelist=luna 
 
 #SBATCH --job-name=cxrfm_lp
 
