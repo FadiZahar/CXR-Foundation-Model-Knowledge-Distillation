@@ -26,7 +26,7 @@ from utils.callback_utils.training_callbacks import TrainLoggingCallback
 from config.config_chexpert import IMAGE_SIZE, NUM_CLASSES, EPOCHS, NUM_WORKERS, BATCH_SIZE, LEARNING_RATE, TARGET_FPR
 from config.config_chexpert import CXRS_FILEPATH, EMBEDDINGS_FILEPATH, TRAIN_RECORDS_CSV, VAL_RECORDS_CSV, TEST_RECORDS_CSV, MAIN_DIR_PATH
 
-OUT_DIR_NAME = 'CheXpert-model_full-finetuning/'
+OUT_DIR_NAME = 'CheXpert-model_full-finetuning-TESTRepro/'
 
 
 
