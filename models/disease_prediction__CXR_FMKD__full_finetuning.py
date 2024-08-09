@@ -27,12 +27,15 @@ from config.config_chexpert import CXRS_FILEPATH, EMBEDDINGS_FILEPATH, TRAIN_REC
 
 # Knowledge Distillation Imports
 from models.knowledge_distillation.kd_initialisation__CXR_FMKD__MSE import Pre_CXR_FMKD as Pre_CXR_FMKD_MSE
+from models.knowledge_distillation.kd_initialisation__CXR_FMKD__MAE import Pre_CXR_FMKD as Pre_CXR_FMKD_MAE
+from models.knowledge_distillation.kd_initialisation__CXR_FMKD__HuberLoss import Pre_CXR_FMKD as Pre_CXR_FMKD_HuberLoss
 from models.knowledge_distillation.kd_initialisation__CXR_FMKD__CosineSim import Pre_CXR_FMKD as Pre_CXR_FMKD_CosineSim
 from models.knowledge_distillation.kd_initialisation__CXR_FMKD__MSEandCosineSim import Pre_CXR_FMKD as Pre_CXR_FMKD_MSEandCosineSim
 from models.knowledge_distillation.kd_initialisation__CXR_FMKD__MSEandCosineSimLearned import Pre_CXR_FMKD as Pre_CXR_FMKD_MSEandCosineSimLearned
 from models.knowledge_distillation.kd_initialisation__CXR_FMKD__MSEandCosineSimWeighted import Pre_CXR_FMKD as Pre_CXR_FMKD_MSEandCosineSimWeighted
 
-from config.config_chexpert import BEST_CHECKPOINT_KD_MSE_FILENAME, BEST_CHECKPOINT_KD_CosineSim_FILENAME, BEST_CHECKPOINT_KD_MSEandCosineSim_FILENAME
+from config.config_chexpert import BEST_CHECKPOINT_KD_MSE_FILENAME, BEST_CHECKPOINT_KD_MAE_FILENAME, BEST_CHECKPOINT_KD_HuberLoss_FILENAME
+from config.config_chexpert import BEST_CHECKPOINT_KD_CosineSim_FILENAME, BEST_CHECKPOINT_KD_MSEandCosineSim_FILENAME
 from config.config_chexpert import BEST_CHECKPOINT_KD_MSEandCosineSimLearned_FILENAME, BEST_CHECKPOINT_KD_MSEandCosineSimWeighted_alpha0p50_FILENAME
 from config.config_chexpert import BEST_CHECKPOINT_KD_MSEandCosineSimWeighted_alpha0p60_FILENAME, BEST_CHECKPOINT_KD_MSEandCosineSimWeighted_alpha0p70_FILENAME
 from config.config_chexpert import BEST_CHECKPOINT_KD_MSEandCosineSimWeighted_alpha0p80_FILENAME, BEST_CHECKPOINT_KD_MSEandCosineSimWeighted_alpha0p90_FILENAME
@@ -174,6 +177,14 @@ def main(hparams):
         'MSE': {
             'module': Pre_CXR_FMKD_MSE,
             'checkpoint_filename': BEST_CHECKPOINT_KD_MSE_FILENAME
+        },
+        'MAE': {
+            'module': Pre_CXR_FMKD_MAE,
+            'checkpoint_filename': BEST_CHECKPOINT_KD_MAE_FILENAME
+        },
+        'HuberLoss': {
+            'module': Pre_CXR_FMKD_HuberLoss,
+            'checkpoint_filename': BEST_CHECKPOINT_KD_HuberLoss_FILENAME
         },
         'CosineSim': {
             'module': Pre_CXR_FMKD_CosineSim,

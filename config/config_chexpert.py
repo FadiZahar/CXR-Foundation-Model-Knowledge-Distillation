@@ -32,6 +32,8 @@ TARGET_FPR = 0.2
 
 # Knowledge Distillation
 BEST_CHECKPOINT_KD_MSE_FILENAME = 'best-checkpoint_pre-CXR-FMKD_MSE_epoch=38-val_loss=0.0940.ckpt'
+BEST_CHECKPOINT_KD_MAE_FILENAME = 'best-checkpoint_pre-CXR-FMKD_MAE_epoch=38-val_loss=0.0940.ckpt'
+BEST_CHECKPOINT_KD_HuberLoss_FILENAME = 'best-checkpoint_pre-CXR-FMKD_HuberLoss_epoch=38-val_loss=0.0940.ckpt'
 BEST_CHECKPOINT_KD_CosineSim_FILENAME = 'best-checkpoint_pre-CXR-FMKD_CosineSim_epoch=38-val_loss=0.0106.ckpt'
 BEST_CHECKPOINT_KD_MSEandCosineSim_FILENAME = 'best-checkpoint_pre-CXR-FMKD_MSEandCosineSim_epoch=38-val_loss=0.0521.ckpt'
 BEST_CHECKPOINT_KD_MSEandCosineSimLearned_FILENAME = 'best-checkpoint_pre-CXR-FMKD_MSEandCosineSimLearned_epoch=37-val_loss=-4.8417.ckpt'
