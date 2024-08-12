@@ -2,9 +2,10 @@
 #SBATCH --partition=gpus48       
 #SBATCH --gres=gpu:1             
 #SBATCH --output=/vol/biomedic3/bglocker/mscproj24/fz221/cxr-fmkd/models/knowledge_distillation/multiruns_slurm_scripts/multiruns_slurm_logs/cxrfmkd_kdinit_mse/%x.%N.%j.log  
-#SBATCH --time=1-00:00:00        
+#SBATCH --time=1-00:00:00  
+#SBATCH --nodelist=luna       
 
-# Accepts multirun_id from the command line; --job-name replaces the %x in --output above
+# Accepts multirun_seed from the command line; --job-name replaces the %x in --output above
 #SBATCH --job-name=cxrfmkd_kdinit_mse_multirun
 
 # Activate the Python virtual environment (fmkd_venv)
@@ -18,4 +19,4 @@ export WANDB_CACHE_DIR=/vol/biomedic3/bglocker/mscproj24/fz221/.wandb_storage/ca
 export WANDB_CONFIG_DIR=/vol/biomedic3/bglocker/mscproj24/fz221/.wandb_storage/config
 
 # Run the Python script
-python /vol/biomedic3/bglocker/mscproj24/fz221/cxr-fmkd/models/knowledge_distillation/kd_initialisation__CXR_FMKD__MSE.py --multirun_id "$1"
+python /vol/biomedic3/bglocker/mscproj24/fz221/cxr-fmkd/models/knowledge_distillation/kd_initialisation__CXR_FMKD__MSE.py --multirun_seed "$1" --config "$2"
