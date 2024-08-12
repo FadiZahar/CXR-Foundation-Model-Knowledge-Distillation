@@ -6,7 +6,7 @@ import wandb
 from sklearn.metrics import roc_auc_score, average_precision_score, roc_curve
 
 # Import global variables
-from config.config_chexpert import LABELS
+from config.config_shared import LABELS
 
 
 
@@ -157,7 +157,11 @@ def calculate_youden_index(targets, probs, target_fpr):
         j_indices_max.append(max_j_index)
         
         # Find the closest index where FPR is less than or equal to target_fpr
-        idx_target = np.where(fpr <= target_fpr)[0][-1]
+        # idx_target = np.where(fpr <= target_fpr)[0][-1]
+
+        # Find the closest index to the target_fpr
+        idx_target = np.argmin(np.abs(fpr - target_fpr))
+        
         j_index_at_target_fpr = tpr[idx_target] - fpr[idx_target]
         j_indices_target_fpr.append(j_index_at_target_fpr)
     

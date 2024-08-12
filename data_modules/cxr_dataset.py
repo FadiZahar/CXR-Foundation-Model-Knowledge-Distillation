@@ -9,11 +9,11 @@ from torch.utils.data import Dataset
 import torchvision.transforms as T
 
 # Import global variables
-from config.config_chexpert import LABELS
+from config.config_shared import LABELS
 
 
 
-class CheXpertDataset(Dataset):
+class CXRDataset(Dataset):
     def __init__(self, image_size: tuple, records_filepath: str, cxrs_filepath: str, embeddings_filepath: str, 
                  augmentation: bool = False, pseudo_rgb: bool = True):
         self.image_size = image_size

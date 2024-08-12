@@ -17,20 +17,20 @@ from pytorch_lightning.callbacks import ModelCheckpoint, TQDMProgressBar
 
 
 # Import custom modules
-from data_modules.chexpert_data_module import CheXpertDataModule
+from data_modules.cxr_data_module import CXRDataModule
 from utils.output_utils.kd_generate_and_save_raw_outputs import run_evaluation_phase
 from utils.callback_utils.training_callbacks import TrainLoggingCallback
 
 # Import global variables
-from config.config_chexpert import IMAGE_SIZE, CXRFM_EMBEDS_SIZE, NUM_WORKERS, BATCH_SIZE, LEARNING_RATE
-from config.config_chexpert import CXRS_FILEPATH, EMBEDDINGS_FILEPATH, TRAIN_RECORDS_CSV, VAL_RECORDS_CSV, MAIN_DIR_PATH
+from config.config_shared import IMAGE_SIZE, CXRFM_EMBEDS_SIZE, NUM_WORKERS, BATCH_SIZE, LEARNING_RATE
+# Import the configuration loader
+from config.loader_config import load_config
 
 DEV_SPLIT = [0.7, 0.3]
 EPOCHS = 40
-AVERAGE_MSE_TRAIN_LOSS = 0.0749225
-AVERAGE_COSINESIM_TRAIN_LOSS = 0.008535
+AVERAGE_FINALPLATEAU_MSE_TRAIN_LOSS = 0.07545425
+AVERAGE_FINALPLATEAU_COSINESIM_TRAIN_LOSS = 0.008772321
 OUT_DIR_NAME = 'CXR-FMKD_KD-initialisation-MSEandCosineSimWeighted/'
-
 
 
 
@@ -92,8 +92,8 @@ class Pre_CXR_FMKD(LightningModule):
         cosine_sim = F.cosine_similarity(output_embeds, target_embeds, dim=1)
         cosine_loss = 1 - cosine_sim.mean()
         # Scaled loss combination
-        scaled_mse_loss = mse_loss / AVERAGE_MSE_TRAIN_LOSS 
-        scaled_cosine_loss = cosine_loss / AVERAGE_COSINESIM_TRAIN_LOSS
+        scaled_mse_loss = mse_loss / AVERAGE_FINALPLATEAU_MSE_TRAIN_LOSS 
+        scaled_cosine_loss = cosine_loss / AVERAGE_FINALPLATEAU_COSINESIM_TRAIN_LOSS
         loss = self.alpha * scaled_mse_loss + (1 - self.alpha) * scaled_cosine_loss
         return loss
 
@@ -137,6 +137,16 @@ def freeze_model(model):
 
 def main(hparams):
 
+    # Load the configuration dynamically based on the command line argument
+    config = load_config(hparams.config)
+    # Accessing the configuration to import dataset-specific variables
+    CXRS_FILEPATH = config.CXRS_FILEPATH
+    EMBEDDINGS_FILEPATH = config.EMBEDDINGS_FILEPATH
+    TRAIN_RECORDS_CSV = config.TRAIN_RECORDS_CSV
+    VAL_RECORDS_CSV = config.VAL_RECORDS_CSV
+    MAIN_DIR_PATH = config.MAIN_DIR_PATH
+
+
     # Create output directory
     formatted_alpha = f"{hparams.alpha:.2f}".replace('.', 'p')
     out_dir_name_w_alphaspec = f"{OUT_DIR_NAME.strip('/')}-alpha{formatted_alpha}"
@@ -161,7 +171,7 @@ def main(hparams):
     seed_everything(42, workers=True)
 
     # Data
-    data = CheXpertDataModule(image_size=IMAGE_SIZE,
+    data = CXRDataModule(image_size=IMAGE_SIZE,
                               cxrs_filepath=CXRS_FILEPATH,
                               embeddings_filepath=EMBEDDINGS_FILEPATH,
                               pseudo_rgb=True,
@@ -244,6 +254,7 @@ if __name__ == '__main__':
     parser.add_argument('--dev', default=0, help='GPU device number')
     parser.add_argument('--multirun_id', default=None, help='Optional identifier for multi runs')
     parser.add_argument('--alpha', type=float, default=0.5, help='Adjust weighted MSE(alpha)&CosineSim(1-alpha) combination')
+    parser.add_argument('--config', default='chexpert', choices=['chexpert', 'mimic'], help='Config dataset module to use')
     
     args = parser.parse_args()
 

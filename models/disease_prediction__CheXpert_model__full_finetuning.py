@@ -17,16 +17,17 @@ from pytorch_lightning.callbacks import ModelCheckpoint, TQDMProgressBar
 
 
 # Import custom modules
-from data_modules.chexpert_data_module import CheXpertDataModule
+from data_modules.cxr_data_module import CXRDataModule
 from utils.output_utils.generate_and_save_raw_outputs import run_evaluation_phase
 from utils.output_utils.generate_and_save_metrics import generate_and_log_metrics, save_and_plot_all_metrics
 from utils.callback_utils.training_callbacks import TrainLoggingCallback
 
 # Import global variables
-from config.config_chexpert import IMAGE_SIZE, NUM_CLASSES, EPOCHS, NUM_WORKERS, BATCH_SIZE, LEARNING_RATE, TARGET_FPR
-from config.config_chexpert import CXRS_FILEPATH, EMBEDDINGS_FILEPATH, TRAIN_RECORDS_CSV, VAL_RECORDS_CSV, TEST_RECORDS_CSV, MAIN_DIR_PATH
+from config.config_shared import IMAGE_SIZE, NUM_CLASSES, EPOCHS, NUM_WORKERS, BATCH_SIZE, LEARNING_RATE, TARGET_FPR
+# Import the configuration loader
+from config.loader_config import load_config
 
-OUT_DIR_NAME = 'CheXpert-model_full-finetuning-TESTRepro/'
+OUT_DIR_NAME = 'CheXpert-model_full-finetuning/'
 
 
 
@@ -152,6 +153,17 @@ def freeze_model(model):
 
 def main(hparams):
 
+    # Load the configuration dynamically based on the command line argument
+    config = load_config(hparams.config)
+    # Accessing the configuration to import dataset-specific variables
+    CXRS_FILEPATH = config.CXRS_FILEPATH
+    EMBEDDINGS_FILEPATH = config.EMBEDDINGS_FILEPATH
+    TRAIN_RECORDS_CSV = config.TRAIN_RECORDS_CSV
+    VAL_RECORDS_CSV = config.VAL_RECORDS_CSV
+    TEST_RECORDS_CSV = config.TEST_RECORDS_CSV
+    MAIN_DIR_PATH = config.MAIN_DIR_PATH
+
+
     # Create output directory
     if hparams.multirun_id:
         inner_out_dir_name = f"{OUT_DIR_NAME.strip('/')}_{hparams.multirun_id}"
@@ -174,7 +186,7 @@ def main(hparams):
     seed_everything(42, workers=True)
 
     # Data
-    data = CheXpertDataModule(image_size=IMAGE_SIZE,
+    data = CXRDataModule(image_size=IMAGE_SIZE,
                               cxrs_filepath=CXRS_FILEPATH,
                               embeddings_filepath=EMBEDDINGS_FILEPATH,
                               pseudo_rgb=True,
@@ -257,6 +269,7 @@ if __name__ == '__main__':
     parser.add_argument('--gpus', default=1, help='Number of GPUs to use')
     parser.add_argument('--dev', default=0, help='GPU device number')
     parser.add_argument('--multirun_id', default=None, help='Optional identifier for multi runs')
+    parser.add_argument('--config', default='chexpert', choices=['chexpert', 'mimic'], help='Config dataset module to use')
 
     args = parser.parse_args()
 

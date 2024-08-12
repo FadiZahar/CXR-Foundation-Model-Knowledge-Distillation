@@ -3,11 +3,11 @@ from pytorch_lightning import LightningDataModule
 from typing import List, Optional
 
 # Import custom modules
-from data_modules.chexpert_dataset import CheXpertDataset
+from data_modules.cxr_dataset import CXRDataset
 
 
 
-class CheXpertDataModule(LightningDataModule):
+class CXRDataModule(LightningDataModule):
     def __init__(self, image_size: tuple, cxrs_filepath: str, embeddings_filepath: str, pseudo_rgb: bool, batch_size: int, num_workers: int, 
                  train_records: str, val_records: str, test_records: Optional[str] = None, dev_split: Optional[List[float]] = None):
         super().__init__()
@@ -26,15 +26,15 @@ class CheXpertDataModule(LightningDataModule):
         self.num_workers = num_workers
 
 
-        self.train_set = CheXpertDataset(image_size=self.image_size, records_filepath=self.train_records, cxrs_filepath=self.cxrs_filepath,
+        self.train_set = CXRDataset(image_size=self.image_size, records_filepath=self.train_records, cxrs_filepath=self.cxrs_filepath,
                                          embeddings_filepath=self.embeddings_filepath, augmentation=True, pseudo_rgb=self.pseudo_rgb)
         if self.test_records:
-            self.val_set = CheXpertDataset(image_size=self.image_size, records_filepath=self.val_records, cxrs_filepath=self.cxrs_filepath,
+            self.val_set = CXRDataset(image_size=self.image_size, records_filepath=self.val_records, cxrs_filepath=self.cxrs_filepath,
                                         embeddings_filepath=self.embeddings_filepath, augmentation=False, pseudo_rgb=self.pseudo_rgb)
-            self.test_set = CheXpertDataset(image_size=self.image_size, records_filepath=self.test_records, cxrs_filepath=self.cxrs_filepath,
+            self.test_set = CXRDataset(image_size=self.image_size, records_filepath=self.test_records, cxrs_filepath=self.cxrs_filepath,
                                         embeddings_filepath=self.embeddings_filepath, augmentation=False, pseudo_rgb=self.pseudo_rgb)
         else:
-            dev_set = CheXpertDataset(image_size=self.image_size, records_filepath=self.val_records, cxrs_filepath=self.cxrs_filepath,
+            dev_set = CXRDataset(image_size=self.image_size, records_filepath=self.val_records, cxrs_filepath=self.cxrs_filepath,
                                        embeddings_filepath=self.embeddings_filepath, augmentation=False, pseudo_rgb=self.pseudo_rgb)
             self.val_set, self.test_set = random_split(dev_set, self.dev_split)
 

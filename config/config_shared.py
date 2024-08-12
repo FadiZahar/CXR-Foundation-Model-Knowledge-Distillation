@@ -1,0 +1,32 @@
+# Configuration for project-wide settings
+
+# Model Parameters
+IMAGE_SIZE = (224, 224)
+CXRFM_EMBEDS_SIZE = 1376
+NUM_CLASSES = 14
+LABELS = [
+    'No Finding',
+    'Enlarged Cardiomediastinum',
+    'Cardiomegaly',
+    'Lung Opacity',
+    'Lung Lesion',
+    'Edema',
+    'Consolidation',
+    'Pneumonia',
+    'Atelectasis',
+    'Pneumothorax',
+    'Pleural Effusion',
+    'Pleural Other',
+    'Fracture',
+    'Support Devices'
+    ]
+
+# Training
+EPOCHS = 20
+NUM_WORKERS = 4
+BATCH_SIZE = 128   # previously 150
+LEARNING_RATE = 0.001
+
+# Evaluation
+TARGET_FPR = 0.2
+
