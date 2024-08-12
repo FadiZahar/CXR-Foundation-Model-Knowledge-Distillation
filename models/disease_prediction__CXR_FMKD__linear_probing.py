@@ -24,7 +24,7 @@ from utils.callback_utils.training_callbacks import TrainLoggingCallback
 # Import global variables
 from config.config_shared import IMAGE_SIZE, CXRFM_EMBEDS_SIZE, NUM_CLASSES, EPOCHS, NUM_WORKERS, BATCH_SIZE, LEARNING_RATE, TARGET_FPR
 # Import the configuration loader
-from config.loader_config import load_config
+from config.loader_config import load_config, get_dataset_name
 
 # Knowledge Distillation Imports
 from models.knowledge_distillation.kd_initialisation__CXR_FMKD__MSE import Pre_CXR_FMKD as Pre_CXR_FMKD_MSE
@@ -35,7 +35,7 @@ from models.knowledge_distillation.kd_initialisation__CXR_FMKD__MSEandCosineSim 
 from models.knowledge_distillation.kd_initialisation__CXR_FMKD__MSEandCosineSimLearned import Pre_CXR_FMKD as Pre_CXR_FMKD_MSEandCosineSimLearned
 from models.knowledge_distillation.kd_initialisation__CXR_FMKD__MSEandCosineSimWeighted import Pre_CXR_FMKD as Pre_CXR_FMKD_MSEandCosineSimWeighted
 
-OUT_DIR_NAME = 'CXR-FMKD_linear-probing/'
+pre_OUT_DIR_NAME = 'CXR-FMKD_linear-probing/'
 
 
 
@@ -172,6 +172,7 @@ def main(hparams):
 
     # Load the configuration dynamically based on the command line argument
     config = load_config(hparams.config)
+    
     # Accessing the configuration to import dataset-specific variables
     CXRS_FILEPATH = config.CXRS_FILEPATH
     EMBEDDINGS_FILEPATH = config.EMBEDDINGS_FILEPATH
@@ -179,6 +180,7 @@ def main(hparams):
     VAL_RECORDS_CSV = config.VAL_RECORDS_CSV
     TEST_RECORDS_CSV = config.TEST_RECORDS_CSV
     MAIN_DIR_PATH = config.MAIN_DIR_PATH
+
     BEST_CHECKPOINT_KD_MSE_FILENAME = config.BEST_CHECKPOINT_KD_MSE_FILENAME
     BEST_CHECKPOINT_KD_MAE_FILENAME = config.BEST_CHECKPOINT_KD_MAE_FILENAME
     BEST_CHECKPOINT_KD_HuberLoss_FILENAME = config.BEST_CHECKPOINT_KD_HuberLoss_FILENAME
@@ -191,52 +193,56 @@ def main(hparams):
     BEST_CHECKPOINT_KD_MSEandCosineSimWeighted_alpha0p80_FILENAME = config.BEST_CHECKPOINT_KD_MSEandCosineSimWeighted_alpha0p80_FILENAME
     BEST_CHECKPOINT_KD_MSEandCosineSimWeighted_alpha0p90_FILENAME = config.BEST_CHECKPOINT_KD_MSEandCosineSimWeighted_alpha0p90_FILENAME
 
+    # Updated OUT_DIR_NAME to include dataset name
+    dataset_name = get_dataset_name(hparams.config)
+    OUT_DIR_NAME = dataset_name + '_' + pre_OUT_DIR_NAME
+
 
     # Mapping of KD types to their respective modules and checkpoint filenames
     kd_mapping = {
         'MSE': {
             'module': Pre_CXR_FMKD_MSE,
-            'checkpoint_filename': BEST_CHECKPOINT_KD_MSE_FILENAME
+            'checkpoint_filepath': BEST_CHECKPOINT_KD_MSE_FILENAME
         },
         'MAE': {
             'module': Pre_CXR_FMKD_MAE,
-            'checkpoint_filename': BEST_CHECKPOINT_KD_MAE_FILENAME
+            'checkpoint_filepath': BEST_CHECKPOINT_KD_MAE_FILENAME
         },
         'HuberLoss': {
             'module': Pre_CXR_FMKD_HuberLoss,
-            'checkpoint_filename': BEST_CHECKPOINT_KD_HuberLoss_FILENAME
+            'checkpoint_filepath': BEST_CHECKPOINT_KD_HuberLoss_FILENAME
         },
         'CosineSim': {
             'module': Pre_CXR_FMKD_CosineSim,
-            'checkpoint_filename': BEST_CHECKPOINT_KD_CosineSim_FILENAME
+            'checkpoint_filepath': BEST_CHECKPOINT_KD_CosineSim_FILENAME
         },
         'MSEandCosineSim': {
             'module': Pre_CXR_FMKD_MSEandCosineSim,
-            'checkpoint_filename': BEST_CHECKPOINT_KD_MSEandCosineSim_FILENAME
+            'checkpoint_filepath': BEST_CHECKPOINT_KD_MSEandCosineSim_FILENAME
         },
         'MSEandCosineSimLearned': {
             'module': Pre_CXR_FMKD_MSEandCosineSimLearned,
-            'checkpoint_filename': BEST_CHECKPOINT_KD_MSEandCosineSimLearned_FILENAME
+            'checkpoint_filepath': BEST_CHECKPOINT_KD_MSEandCosineSimLearned_FILENAME
         },
         'MSEandCosineSimWeighted-alpha0p50': {
             'module': Pre_CXR_FMKD_MSEandCosineSimWeighted,
-            'checkpoint_filename': BEST_CHECKPOINT_KD_MSEandCosineSimWeighted_alpha0p50_FILENAME
+            'checkpoint_filepath': BEST_CHECKPOINT_KD_MSEandCosineSimWeighted_alpha0p50_FILENAME
         },
         'MSEandCosineSimWeighted-alpha0p60': {
             'module': Pre_CXR_FMKD_MSEandCosineSimWeighted,
-            'checkpoint_filename': BEST_CHECKPOINT_KD_MSEandCosineSimWeighted_alpha0p60_FILENAME
+            'checkpoint_filepath': BEST_CHECKPOINT_KD_MSEandCosineSimWeighted_alpha0p60_FILENAME
         },
         'MSEandCosineSimWeighted-alpha0p70': {
             'module': Pre_CXR_FMKD_MSEandCosineSimWeighted,
-            'checkpoint_filename': BEST_CHECKPOINT_KD_MSEandCosineSimWeighted_alpha0p70_FILENAME
+            'checkpoint_filepath': BEST_CHECKPOINT_KD_MSEandCosineSimWeighted_alpha0p70_FILENAME
         },
         'MSEandCosineSimWeighted-alpha0p80': {
             'module': Pre_CXR_FMKD_MSEandCosineSimWeighted,
-            'checkpoint_filename': BEST_CHECKPOINT_KD_MSEandCosineSimWeighted_alpha0p80_FILENAME
+            'checkpoint_filepath': BEST_CHECKPOINT_KD_MSEandCosineSimWeighted_alpha0p80_FILENAME
         },
         'MSEandCosineSimWeighted-alpha0p90': {
             'module': Pre_CXR_FMKD_MSEandCosineSimWeighted,
-            'checkpoint_filename': BEST_CHECKPOINT_KD_MSEandCosineSimWeighted_alpha0p90_FILENAME
+            'checkpoint_filepath': BEST_CHECKPOINT_KD_MSEandCosineSimWeighted_alpha0p90_FILENAME
         }
     }
 
@@ -247,12 +253,13 @@ def main(hparams):
     # Get KD specific module and checkpoint filename
     kd_info = kd_mapping[hparams.kd_type]
     Pre_CXR_FMKD = kd_info['module']
-    BEST_CHECKPOINT_KD_FILENAME = kd_info['checkpoint_filename']
+    BEST_CHECKPOINT_KD_FILEPATH = kd_info['checkpoint_filepath']
 
     # Get base model directory and best checkpoint path
-    BASE_MODEL_DIR_NAME = f'CXR-FMKD_KD-initialisation-{hparams.kd_type}'
-    BASE_MODEL_DIR_PATH = os.path.join(MAIN_DIR_PATH, BASE_MODEL_DIR_NAME)
-    BASE_MODEL_CHECKPOINT_FILEPATH = os.path.join(BASE_MODEL_DIR_PATH, 'lightning_checkpoints', BEST_CHECKPOINT_KD_FILENAME)
+    KD_TYPE_DIR_NAME = f'KD-{hparams.kd_type}'
+    BASE_MODEL_DIR_NAME = f'{dataset_name}_CXR-FMKD_KD-initialisation-{hparams.kd_type}'
+    BASE_MODEL_DIR_PATH = os.path.join(MAIN_DIR_PATH, KD_TYPE_DIR_NAME, BASE_MODEL_DIR_NAME)
+    BASE_MODEL_CHECKPOINT_FILEPATH = os.path.join(BASE_MODEL_DIR_PATH, BEST_CHECKPOINT_KD_FILEPATH)
 
     # Ensure the checkpoint file exists
     if not os.path.exists(BASE_MODEL_CHECKPOINT_FILEPATH):
@@ -263,9 +270,8 @@ def main(hparams):
 
 
     # Create output directory
-    KD_TYPE_DIR_NAME = f'KD-{hparams.kd_type}'
-    if hparams.multirun_id:
-        inner_out_dir_name = f"{OUT_DIR_NAME.strip('/')}_{hparams.multirun_id}"
+    if hparams.multirun_seed:
+        inner_out_dir_name = f"{OUT_DIR_NAME.strip('/')}_multirun-seed{hparams.multirun_seed}"
         out_dir_path = os.path.join(MAIN_DIR_PATH, KD_TYPE_DIR_NAME, OUT_DIR_NAME, 'multiruns', inner_out_dir_name)
     else:
         out_dir_path = os.path.join(MAIN_DIR_PATH, KD_TYPE_DIR_NAME, OUT_DIR_NAME)
@@ -282,7 +288,10 @@ def main(hparams):
 
 
     # Sets seeds for numpy, torch, python.random and PYTHONHASHSEED.
-    seed_everything(42, workers=True)
+    if hparams.multirun_seed:
+        seed_everything(hparams.multirun_seed, workers=True)
+    else:
+        seed_everything(42, workers=True)
 
     # Data
     data = CXRDataModule(image_size=IMAGE_SIZE,
@@ -313,9 +322,9 @@ def main(hparams):
     # WandB logger
     project_name = OUT_DIR_NAME.replace('/', '_').lower().strip('_')
     kd_type_suffix = hparams.kd_type
-    if hparams.multirun_id:
-        multirun_id = hparams.multirun_id
-        run_name = f'run_{project_name}_{kd_type_suffix}_{multirun_id}_{datetime.now().strftime("%Y%m%d_%H%M")}' 
+    if hparams.multirun_seed:
+        multirun_seed = hparams.multirun_seed
+        run_name = f'run_{project_name}_{kd_type_suffix}_multirun-seed{multirun_seed}_{datetime.now().strftime("%Y%m%d_%H%M")}' 
     else:
         run_name = f'run_{project_name}_{kd_type_suffix}_{datetime.now().strftime("%Y%m%d_%H%M")}' 
     wandb_logger = WandbLogger(save_dir=logs_dir_path, 
@@ -372,7 +381,7 @@ if __name__ == '__main__':
     parser.add_argument('--gpus', default=1, help='Number of GPUs to use')
     parser.add_argument('--dev', default=0, help='GPU device number')
     parser.add_argument('--kd_type', type=str, default='MSE', help='Type of Knowledge Distillation used')
-    parser.add_argument('--multirun_id', default=None, help='Optional identifier for multi runs')
+    parser.add_argument('--multirun_seed', default=None, help='Seed for initialising randomness in multiruns for reproducibility')
     parser.add_argument('--config', default='chexpert', choices=['chexpert', 'mimic'], help='Config dataset module to use')
     
     args = parser.parse_args()

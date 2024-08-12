@@ -18,36 +18,39 @@ from pytorch_lightning.callbacks import ModelCheckpoint, TQDMProgressBar
 
 # Import custom modules
 from data_modules.cxr_data_module import CXRDataModule
-from utils.output_utils.kd_generate_and_save_raw_outputs import run_evaluation_phase
+from utils.output_utils.generate_and_save_raw_outputs import run_evaluation_phase
+from utils.output_utils.generate_and_save_metrics import generate_and_log_metrics, save_and_plot_all_metrics
 from utils.callback_utils.training_callbacks import TrainLoggingCallback
 
 # Import global variables
-from config.config_shared import IMAGE_SIZE, CXRFM_EMBEDS_SIZE, NUM_WORKERS, BATCH_SIZE, LEARNING_RATE
+from config.config_shared import IMAGE_SIZE, NUM_CLASSES, EPOCHS, NUM_WORKERS, BATCH_SIZE, LEARNING_RATE, TARGET_FPR
 # Import the configuration loader
 from config.loader_config import load_config, get_dataset_name
 
-DEV_SPLIT = [0.7, 0.3]
-EPOCHS = 40
-pre_OUT_DIR_NAME = 'CXR-FMKD_KD-initialisation-MSE/'
+pre_OUT_DIR_NAME = 'CXR-model_full-finetuning/'
 
 
 
-class Pre_CXR_FMKD(LightningModule):
-    def __init__(self, learning_rate: float, embedding_size: int):
+class CXRModel_FullFineTuning(LightningModule):
+    def __init__(self, num_classes: int, learning_rate: float, out_dir_path:str, target_fpr: float):
         super().__init__()
+        self.num_classes = num_classes
         self.learning_rate = learning_rate
-        self.embedding_size = embedding_size
+        self.out_dir_path = out_dir_path
+        self.target_fpr = target_fpr
+        self.validation_step_outputs = []
+        self.testing_step_outputs = []
         self.validation_mode = 'Training'
 
         # log hyperparameters
         self.save_hyperparameters()
         
-        # KD from teacher (CXR-FM) to student (DenseNet-169)
+        # DenseNet-169: full finetuning
         self.model = models.densenet169(weights=models.DenseNet169_Weights.DEFAULT)
         self.num_features = self.model.classifier.in_features   # in_features: 1664 | out_features: 1000 (ImageNet)
 
-        # Replace original classifier with new f.c. layer mapping the 1664 input features to 1376 (to match CXR-FM's embeddings), and store it:
-        self.classifier = nn.Linear(self.num_features, self.embedding_size)
+        # Replace original classifier with new f.c. layer mapping the 1664 input features to 14 (disease classes), and store it:
+        self.classifier = nn.Linear(self.num_features, self.num_classes)
         self.model.classifier = self.classifier  
 
     def remove_head(self): 
@@ -61,35 +64,23 @@ class Pre_CXR_FMKD(LightningModule):
 
     def configure_optimizers(self):
         params_to_update = [param for param in self.parameters() if param.requires_grad]
-        base_lr = self.learning_rate
-        max_lr = self.learning_rate*10
-        optimizer = torch.optim.Adam(params_to_update, lr=base_lr)
-        scheduler = torch.optim.lr_scheduler.OneCycleLR(
-            optimizer, 
-            max_lr=max_lr,
-            total_steps=self.trainer.estimated_stepping_batches  
-        )
-        return {
-            'optimizer': optimizer,
-            'lr_scheduler': {
-                'scheduler': scheduler,
-                'interval': 'step'
-            }
-        }
+        optimizer = torch.optim.Adam(params_to_update, lr=self.learning_rate)
+        return optimizer
 
     def unpack_batch(self, batch):
-        return batch['cxr'], batch['embedding']
+        return batch['cxr'], batch['label']
 
     def process_batch(self, batch):
-        cxrs, target_embeds = self.unpack_batch(batch)   # cxrs: Chest X-Rays, embeds: embeddings
-        output_embeds = self.forward(cxrs)
-        # Calculate Mean Squared Error (MSE) Loss between output embeddings from DenseNet-169 and target embeddings from CXR-FM
-        loss = F.mse_loss(output_embeds, target_embeds)
-        return loss
+        cxrs, labels = self.unpack_batch(batch)   # cxrs: Chest X-Rays
+        logits = self.forward(cxrs)
+        probs = torch.sigmoid(logits)
+        loss = F.binary_cross_entropy(probs, labels)
+        return logits, probs, labels, loss
+    
 
     ## Training
     def training_step(self, batch, batch_idx):
-        loss = self.process_batch(batch)
+        _, _, _, loss = self.process_batch(batch)
         self.log('train_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
 
         # Log the current learning rate
@@ -103,20 +94,55 @@ class Pre_CXR_FMKD(LightningModule):
 
         return loss
 
+
     ## Validation
     def validation_step(self, batch, batch_idx):
-        loss = self.process_batch(batch)
+        logits, probs, labels, loss = self.process_batch(batch)
         if self.validation_mode == 'Training':
             self.log('val_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
         else:
             self.log('val_final_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
-        return {'val_loss': loss}
+
+        # Convert tensors to CPU and numpy for sklearn compatibility
+        labels_np = labels.cpu().numpy()
+        probs_np = probs.cpu().detach().numpy()
+
+        output = {'val_loss': loss, 'logits': logits, 'probs': probs_np, 'labels': labels_np}
+        self.validation_step_outputs.append(output)
+        return output
+    
+    def on_validation_epoch_end(self):
+        all_probs = np.vstack([x['probs'] for x in self.validation_step_outputs])
+        all_labels = np.vstack([x['labels'] for x in self.validation_step_outputs])
+        # Check the mode and log accordingly
+        if self.validation_mode == 'Training':
+            generate_and_log_metrics(targets=all_labels, probs=all_probs, out_dir_path=self.out_dir_path, 
+                                     phase='Validation - During Training', target_fpr=self.target_fpr)
+        else:
+            generate_and_log_metrics(targets=all_labels, probs=all_probs, out_dir_path=self.out_dir_path, 
+                                     phase='Validation - Final', target_fpr=self.target_fpr)
+        self.validation_step_outputs.clear()
+
 
     ## Testing
     def test_step(self, batch, batch_idx):
-        loss = self.process_batch(batch)
+        logits, probs, labels, loss = self.process_batch(batch)
         self.log('test_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
-        return {'test_loss': loss}
+
+        # Convert tensors to CPU and numpy for sklearn compatibility
+        labels_np = labels.cpu().numpy()
+        probs_np = probs.cpu().detach().numpy()
+
+        output = {'test_loss': loss, 'logits': logits, 'probs': probs_np, 'labels': labels_np}
+        self.testing_step_outputs.append(output)
+        return output
+    
+    def on_test_epoch_end(self):
+        all_probs = np.vstack([x['probs'] for x in self.testing_step_outputs])
+        all_labels = np.vstack([x['labels'] for x in self.testing_step_outputs])
+        generate_and_log_metrics(targets=all_labels, probs=all_probs, out_dir_path=self.out_dir_path, 
+                                 phase='Testing', target_fpr=self.target_fpr)
+        self.testing_step_outputs.clear()
 
 
 def freeze_model(model):
@@ -134,6 +160,7 @@ def main(hparams):
     EMBEDDINGS_FILEPATH = config.EMBEDDINGS_FILEPATH
     TRAIN_RECORDS_CSV = config.TRAIN_RECORDS_CSV
     VAL_RECORDS_CSV = config.VAL_RECORDS_CSV
+    TEST_RECORDS_CSV = config.TEST_RECORDS_CSV
     MAIN_DIR_PATH = config.MAIN_DIR_PATH
 
     # Updated OUT_DIR_NAME to include dataset name
@@ -142,12 +169,11 @@ def main(hparams):
 
 
     # Create output directory
-    KD_TYPE_DIR_NAME = "KD-MSE"
     if hparams.multirun_seed:
         inner_out_dir_name = f"{OUT_DIR_NAME.strip('/')}_multirun-seed{hparams.multirun_seed}"
-        out_dir_path = os.path.join(MAIN_DIR_PATH, KD_TYPE_DIR_NAME, OUT_DIR_NAME, 'multiruns', inner_out_dir_name)
+        out_dir_path = os.path.join(MAIN_DIR_PATH, OUT_DIR_NAME, 'multiruns', inner_out_dir_name)
     else:
-        out_dir_path = os.path.join(MAIN_DIR_PATH, KD_TYPE_DIR_NAME, OUT_DIR_NAME)
+        out_dir_path = os.path.join(MAIN_DIR_PATH, OUT_DIR_NAME)
     os.makedirs(out_dir_path, exist_ok=True)
     # Create TensorBoard logs directory
     logs_dir_path = os.path.join(out_dir_path, 'lightning_logs/')
@@ -175,7 +201,7 @@ def main(hparams):
                               num_workers=NUM_WORKERS,
                               train_records=TRAIN_RECORDS_CSV,
                               val_records=VAL_RECORDS_CSV,
-                              dev_split=DEV_SPLIT)
+                              test_records=TEST_RECORDS_CSV)
     
     # Save sample images
     for idx in range(5):
@@ -183,8 +209,8 @@ def main(hparams):
         imsave(os.path.join(temp_dir_path, f'sample_{idx}.jpg'), sample['cxr'].astype(np.uint8))
 
     # Model
-    model_type = Pre_CXR_FMKD
-    model = model_type(learning_rate=LEARNING_RATE, embedding_size=CXRFM_EMBEDS_SIZE)
+    model_type = CXRModel_FullFineTuning
+    model = model_type(num_classes=NUM_CLASSES, learning_rate=LEARNING_RATE, out_dir_path=out_dir_path, target_fpr=TARGET_FPR)
 
     # Callback metric logging
     train_logger = TrainLoggingCallback(filename=os.path.join(logs_dir_path, 'val_loss_step.csv'))
@@ -206,7 +232,7 @@ def main(hparams):
         default_root_dir=ckpt_dir_path,
         callbacks=[ModelCheckpoint(monitor='val_loss', 
                                    mode='min', 
-                                   filename='best-checkpoint_pre-CXR-FMKD_MSE_{epoch}-{val_loss:.4f}',
+                                   filename='best-checkpoint_CheXpert-model_fft_{epoch}-{val_loss:.4f}',
                                    dirpath=ckpt_dir_path), 
                    TQDMProgressBar(refresh_rate=10),
                    train_logger],
@@ -224,22 +250,23 @@ def main(hparams):
     model.validation_mode = 'Final'
     trainer.validate(model=model, datamodule=data, ckpt_path=trainer.checkpoint_callback.best_model_path)
     trainer.test(model=model, datamodule=data, ckpt_path=trainer.checkpoint_callback.best_model_path)
+    save_and_plot_all_metrics(out_dir_path=out_dir_path)
 
-    best_model = model_type.load_from_checkpoint(trainer.checkpoint_callback.best_model_path)
+    best_model = model_type.load_from_checkpoint(trainer.checkpoint_callback.best_model_path, num_classes=NUM_CLASSES)
     device = torch.device("cuda:" + str(hparams.dev) if torch.cuda.is_available() else "cpu")
     best_model.to(device)
 
     # Generate and Save Outputs
-    run_evaluation_phase(model=best_model, dataloader=data.val_dataloader(), device=device, file_path=os.path.join(out_dir_path, 'outputs_val.csv'), 
-                         phase='validation_outputs')
-    run_evaluation_phase(model=best_model, dataloader=data.test_dataloader(), device=device, file_path=os.path.join(out_dir_path, 'outputs_test.csv'), 
-                         phase='testing_outputs')
+    run_evaluation_phase(model=best_model, dataloader=data.val_dataloader(), device=device, num_classes=NUM_CLASSES, 
+                         file_path=os.path.join(out_dir_path, 'outputs_val.csv'), phase='validation_outputs', input_type='cxr')
+    run_evaluation_phase(model=best_model, dataloader=data.test_dataloader(), device=device, num_classes=NUM_CLASSES, 
+                         file_path=os.path.join(out_dir_path, 'outputs_test.csv'), phase='testing_outputs', input_type='cxr')
     # Extract and Save Embeddings
     best_model.remove_head()
-    run_evaluation_phase(model=best_model, dataloader=data.val_dataloader(), device=device, file_path=os.path.join(out_dir_path, 'embeddings_val.csv'), 
-                         phase='validation_embeddings')
-    run_evaluation_phase(model=best_model, dataloader=data.test_dataloader(), device=device, file_path=os.path.join(out_dir_path, 'embeddings_test.csv'), 
-                         phase='testing_embeddings')
+    run_evaluation_phase(model=best_model, dataloader=data.val_dataloader(), device=device, num_classes=NUM_CLASSES, 
+                         file_path=os.path.join(out_dir_path, 'embeddings_val.csv'), phase='validation_embeddings', input_type='cxr')
+    run_evaluation_phase(model=best_model, dataloader=data.test_dataloader(), device=device, num_classes=NUM_CLASSES, 
+                         file_path=os.path.join(out_dir_path, 'embeddings_test.csv'), phase='testing_embeddings', input_type='cxr')
     best_model.reset_head()
 
 

@@ -24,13 +24,13 @@ from utils.callback_utils.training_callbacks import TrainLoggingCallback
 # Import global variables
 from config.config_shared import IMAGE_SIZE, CXRFM_EMBEDS_SIZE, NUM_WORKERS, BATCH_SIZE, LEARNING_RATE
 # Import the configuration loader
-from config.loader_config import load_config
+from config.loader_config import load_config, get_dataset_name
 
 DEV_SPLIT = [0.7, 0.3]
 EPOCHS = 40
 AVERAGE_FINALPLATEAU_MSE_TRAIN_LOSS = 0.07545425
 AVERAGE_FINALPLATEAU_COSINESIM_TRAIN_LOSS = 0.008772321
-OUT_DIR_NAME = 'CXR-FMKD_KD-initialisation-MSEandCosineSimWeighted/'
+pre_OUT_DIR_NAME = 'CXR-FMKD_KD-initialisation-MSEandCosineSimWeighted/'
 
 
 
@@ -146,15 +146,20 @@ def main(hparams):
     VAL_RECORDS_CSV = config.VAL_RECORDS_CSV
     MAIN_DIR_PATH = config.MAIN_DIR_PATH
 
+    # Updated OUT_DIR_NAME to include dataset name
+    dataset_name = get_dataset_name(hparams.config)
+    OUT_DIR_NAME = dataset_name + '_' + pre_OUT_DIR_NAME
+
 
     # Create output directory
     formatted_alpha = f"{hparams.alpha:.2f}".replace('.', 'p')
+    KD_TYPE_DIR_NAME = f"KD-MSEandCosineSimWeighted-alpha{formatted_alpha}"
     out_dir_name_w_alphaspec = f"{OUT_DIR_NAME.strip('/')}-alpha{formatted_alpha}"
-    if hparams.multirun_id:
-        inner_out_dir_name = f"{out_dir_name_w_alphaspec}_{hparams.multirun_id}"
-        out_dir_path = os.path.join(MAIN_DIR_PATH, out_dir_name_w_alphaspec, 'multiruns', inner_out_dir_name)
+    if hparams.multirun_seed:
+        inner_out_dir_name = f"{out_dir_name_w_alphaspec}_multirun-seed{hparams.multirun_seed}"
+        out_dir_path = os.path.join(MAIN_DIR_PATH, KD_TYPE_DIR_NAME, out_dir_name_w_alphaspec, 'multiruns', inner_out_dir_name)
     else:
-        out_dir_path = os.path.join(MAIN_DIR_PATH, out_dir_name_w_alphaspec)
+        out_dir_path = os.path.join(MAIN_DIR_PATH, KD_TYPE_DIR_NAME, out_dir_name_w_alphaspec)
     os.makedirs(out_dir_path, exist_ok=True)
     # Create TensorBoard logs directory
     logs_dir_path = os.path.join(out_dir_path, 'lightning_logs/')
@@ -168,7 +173,10 @@ def main(hparams):
 
 
     # Sets seeds for numpy, torch, python.random and PYTHONHASHSEED.
-    seed_everything(42, workers=True)
+    if hparams.multirun_seed:
+        seed_everything(hparams.multirun_seed, workers=True)
+    else:
+        seed_everything(42, workers=True)
 
     # Data
     data = CXRDataModule(image_size=IMAGE_SIZE,
@@ -195,11 +203,11 @@ def main(hparams):
 
     # WandB logger
     project_name = OUT_DIR_NAME.replace('/', '_').lower().strip('_')
-    if hparams.multirun_id:
-        multirun_id = hparams.multirun_id
-        run_name = f'run_{project_name}_{multirun_id}_{datetime.now().strftime("%Y%m%d_%H%M")}' 
+    if hparams.multirun_seed:
+        multirun_seed = hparams.multirun_seed
+        run_name = f'run_{project_name}_alpha{formatted_alpha}_multirun-seed{multirun_seed}_{datetime.now().strftime("%Y%m%d_%H%M")}' 
     else:
-        run_name = f'run_{project_name}_{datetime.now().strftime("%Y%m%d_%H%M")}' 
+        run_name = f'run_{project_name}_alpha{formatted_alpha}_{datetime.now().strftime("%Y%m%d_%H%M")}' 
     wandb_logger = WandbLogger(save_dir=logs_dir_path, 
                                project=project_name,
                                name=run_name, 
@@ -252,7 +260,7 @@ if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument('--gpus', default=1, help='Number of GPUs to use')
     parser.add_argument('--dev', default=0, help='GPU device number')
-    parser.add_argument('--multirun_id', default=None, help='Optional identifier for multi runs')
+    parser.add_argument('--multirun_seed', default=None, help='Seed for initialising randomness in multiruns for reproducibility')
     parser.add_argument('--alpha', type=float, default=0.5, help='Adjust weighted MSE(alpha)&CosineSim(1-alpha) combination')
     parser.add_argument('--config', default='chexpert', choices=['chexpert', 'mimic'], help='Config dataset module to use')
     

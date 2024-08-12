@@ -9,3 +9,11 @@ def load_config(config_name):
     
     return config_module
 
+def get_dataset_name(config_name):
+    """Returns the dataset name based on the configuration key."""
+    if config_name == 'chexpert':
+        return 'CheXpert'
+    elif config_name == 'mimic':
+        return 'MIMIC'
+    else:
+        raise ValueError(f"Unknown configuration dataset key: {config_name}")
