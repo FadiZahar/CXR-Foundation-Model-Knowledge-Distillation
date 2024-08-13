@@ -3,7 +3,7 @@
 #SBATCH --gres=gpu:1             
 #SBATCH --output=/vol/biomedic3/bglocker/mscproj24/fz221/cxr-fmkd/models/slurm_scripts/slurm_logs/cxrfmkd/cxrfmkd_cosinesim/%x.%N.%j.log  
 #SBATCH --time=0-05:00:00 
-#SBATCH --nodelist=luna 
+#SBATCH --nodelist=loki 
 
 #SBATCH --job-name=cxrfmkd_lp_cosinesim
 
@@ -18,4 +18,4 @@ export WANDB_CACHE_DIR=/vol/biomedic3/bglocker/mscproj24/fz221/.wandb_storage/ca
 export WANDB_CONFIG_DIR=/vol/biomedic3/bglocker/mscproj24/fz221/.wandb_storage/config
 
 # Run the Python script
-python /vol/biomedic3/bglocker/mscproj24/fz221/cxr-fmkd/models/disease_prediction__CXR_FMKD__linear_probing.py --kd_type 'CosineSim'
+python /vol/biomedic3/bglocker/mscproj24/fz221/cxr-fmkd/models/disease_prediction__CXR_FMKD__linear_probing.py --kd_type 'CosineSim' --config "$1"

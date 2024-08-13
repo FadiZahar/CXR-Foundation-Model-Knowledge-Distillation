@@ -18,4 +18,4 @@ export WANDB_CACHE_DIR=/vol/biomedic3/bglocker/mscproj24/fz221/.wandb_storage/ca
 export WANDB_CONFIG_DIR=/vol/biomedic3/bglocker/mscproj24/fz221/.wandb_storage/config
 
 # Run the Python script
-python /vol/biomedic3/bglocker/mscproj24/fz221/cxr-fmkd/models/knowledge_distillation/kd_initialisation__CXR_FMKD__CosineSim.py
+python /vol/biomedic3/bglocker/mscproj24/fz221/cxr-fmkd/models/knowledge_distillation/kd_initialisation__CXR_FMKD__CosineSim.py --config "$1"
