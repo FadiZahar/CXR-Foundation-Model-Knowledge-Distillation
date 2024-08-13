@@ -6,14 +6,14 @@ import wandb
 from sklearn.metrics import roc_auc_score, average_precision_score, roc_curve
 
 # Import global variables
-from config.config_shared import LABELS
+from config.config_shared import LABELS, TARGET_FPR
 
 
 
 class MetricTracker:
     def __init__(self, labels):
         self.labels = labels
-        self.target_fpr = 0.2
+        self.target_fpr = TARGET_FPR
         self.current_phase = None
         self.epoch_offset = 0 
         self.ordered_epoch_offsets = []
@@ -118,8 +118,47 @@ class MetricTracker:
 
         plt.close(fig)
 
+    
+    def log_specific_metrics(self, phase, target_fpr):
+        # Indices for specific labels
+        idx_no_finding = self.labels.index('No Finding')
+        idx_pleural_effusion = self.labels.index('Pleural Effusion')
+        other_indices = [i for i, label in enumerate(self.labels) if label not in ['No Finding', 'Pleural Effusion']]
+
+        # Log for 'No Finding'
+        wandb.log({
+            f"AUC-ROC | 'No Finding' ({phase})": self.roc_auc_per_class[idx_no_finding][-1],
+            f"AUC-PR | 'No Finding' ({phase})": self.pr_auc_per_class[idx_no_finding][-1],
+            f"J Index Max | 'No Finding' ({phase})": self.j_index_max_per_class[idx_no_finding][-1],
+            f"J Index at {int(target_fpr*100)}% FPR | 'No Finding' ({phase})": self.j_index_fpr_per_class[idx_no_finding][-1]
+        })
+
+        # Log for 'Pleural Effusion'
+        wandb.log({
+            f"AUC-ROC | 'Pleural Effusion' ({phase})": self.roc_auc_per_class[idx_pleural_effusion][-1],
+            f"AUC-PR | 'Pleural Effusion' ({phase})": self.pr_auc_per_class[idx_pleural_effusion][-1],
+            f"J Index Max | 'Pleural Effusion' ({phase})": self.j_index_max_per_class[idx_pleural_effusion][-1],
+            f"J Index at {int(target_fpr*100)}% FPR | 'Pleural Effusion' ({phase})": self.j_index_fpr_per_class[idx_pleural_effusion][-1]
+        })
+
+        # Log combined metrics for all other labels
+        combined_auc_roc = np.mean([self.roc_auc_per_class[i][-1] for i in other_indices])
+        combined_auc_pr = np.mean([self.pr_auc_per_class[i][-1] for i in other_indices])
+        combined_j_index_max = np.mean([self.j_index_max_per_class[i][-1] for i in other_indices])
+        combined_j_index_fpr = np.mean([self.j_index_fpr_per_class[i][-1] for i in other_indices])
+        wandb.log({
+            f"AUC-ROC | 'Others' ({phase})": combined_auc_roc,
+            f"AUC-PR | 'Others' ({phase})": combined_auc_pr,
+            f"J Index Max | 'Others' ({phase})": combined_j_index_max,
+            f"J Index at {int(target_fpr*100)}% FPR | 'Others' ({phase})": combined_j_index_fpr
+        })
 
 
+
+# ================================================
+# === PERFORMANCE METRICS CALCULATIONS - START ===
+# ================================================
+        
 def calculate_roc_auc(targets, probs):
     """Calculate ROC AUC scores."""
     if not targets.shape == probs.shape:
@@ -167,13 +206,19 @@ def calculate_youden_index(targets, probs, target_fpr):
     
     return j_indices_max, j_indices_target_fpr
 
+# ================================================
+# === PERFORMANCE METRICS CALCULATIONS - END =====
+# ================================================
+
 
 
 # Initialise the tracker
 metric_tracker = MetricTracker(LABELS)
 
 
-def generate_and_log_metrics(targets, probs, out_dir_path, phase, target_fpr=0.2):
+# This function is invoked at the end of each epoch to process and log performance metrics for the epoch. 
+# Data is then reset for next epoch.
+def generate_and_log_metrics(targets, probs, out_dir_path, phase, target_fpr=TARGET_FPR):
     metric_tracker.target_fpr = target_fpr
     metric_tracker.check_phase(phase)
     roc_auc_per_class, roc_auc_macro = calculate_roc_auc(targets, probs)
@@ -184,6 +229,10 @@ def generate_and_log_metrics(targets, probs, out_dir_path, phase, target_fpr=0.2
                           pr_auc_per_class=pr_auc_per_class, pr_auc_macro=pr_auc_macro, 
                           j_indices_max=j_indices_max, j_indices_target_fpr=j_indices_target_fpr)
     metric_tracker.log_to_wandb(out_dir_path=out_dir_path, phase=phase, target_fpr=target_fpr)
+    # Log specific metrics for "Testing" phase
+    if phase == 'Testing':
+        metric_tracker.log_specific_metrics(phase=phase, target_fpr=target_fpr)
+
 
 
 def save_and_plot_all_metrics(out_dir_path):

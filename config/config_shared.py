@@ -20,6 +20,8 @@ LABELS = [
     'Fracture',
     'Support Devices'
     ]
+RACE = ['White', 'Asian', 'Black']
+SEX = ['Male', 'Female']
 
 # Training
 EPOCHS = 20
