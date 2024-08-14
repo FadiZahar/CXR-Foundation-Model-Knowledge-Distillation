@@ -20,8 +20,8 @@ LABELS = [
     'Fracture',
     'Support Devices'
     ]
-RACE = ['White', 'Asian', 'Black']
-SEX = ['Male', 'Female']
+RACES = ['White', 'Asian', 'Black']
+SEXES = ['Male', 'Female']
 
 # Training
 EPOCHS = 20
@@ -31,4 +31,6 @@ LEARNING_RATE = 0.001
 
 # Evaluation
 TARGET_FPR = 0.2
+N_BOOTSTRAP = 2000
+CI_LEVEL = 0.95
 
