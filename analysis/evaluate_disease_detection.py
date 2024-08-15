@@ -12,7 +12,7 @@ from tqdm import tqdm
 from pprint import pprint
 
 # Import global shared variables
-from config.config_shared import TARGET_FPR, N_BOOTSTRAP, CI_LEVEL, LABELS, RACES, SEXES
+from config.config_shared import TARGET_FPR, N_BOOTSTRAP, CI_LEVEL, OUT_DPI, LABELS, RACES, SEXES
 # Import the configuration loader
 from config.loader_config import load_config, get_dataset_name
 
@@ -147,7 +147,7 @@ def plot_metrics(results_df, label, output_dir, dataset_name, metric_name="Youde
     plt.xlabel('Subgroup')
     # plt.xticks(rotation=45)
     plt.tight_layout()
-    plt.savefig(os.path.join(output_dir, f'{dataset_name}__{plot_type}_performance_plot__({label.replace(" ", "_")}).png'), dpi=300)
+    plt.savefig(os.path.join(output_dir, f'{dataset_name}__{plot_type}_performance_plot__({label.replace(" ", "_")}).png'), dpi=OUT_DPI)
     plt.close()
 
 
@@ -185,8 +185,24 @@ def plot_auc_roc_curves(aucroc_metrics_df, label, output_dir, subgroups, lw=1.5,
     ax.spines[['right', 'top']].set_visible(False)
     plt.grid(True, linestyle='-', linewidth=0.5, color='lightgray')
     
-    plt.savefig(os.path.join(output_dir, f'{dataset_name}__roc_curve__({label.replace(" ", "_")}).png'), dpi=300)
+    plt.savefig(os.path.join(output_dir, f'{dataset_name}__roc_curve__({label.replace(" ", "_")}).png'), dpi=OUT_DPI)
     plt.close()
+
+
+def read_csv_file(file_path):
+    try:
+        data = pd.read_csv(file_path)
+        if data.empty:
+            raise ValueError(f"The file '{file_path}' is empty.")
+        return data
+    except FileNotFoundError:
+        raise FileNotFoundError(f"The file '{file_path}' was not found.")
+    except pd.errors.EmptyDataError:
+        raise ValueError(f"The file '{file_path}' is empty.")
+    except pd.errors.ParserError:
+        raise ValueError(f"The file '{file_path}' could not be parsed.")
+    except Exception as e:
+        raise Exception(f"An unexpected error occurred while reading the file '{file_path}': {str(e)}")
 
 
 def parse_args():
@@ -209,8 +225,8 @@ if __name__ == "__main__":
     TEST_RECORDS_CSV = config.TEST_RECORDS_CSV
 
     # Path to outputs and data characteristics files
-    outputs_csv_file = os.path.join(args.outputs_dir, 'outputs_test.csv')
-    model_outputs = pd.read_csv(outputs_csv_file)
+    outputs_csv_filepath = os.path.join(args.outputs_dir, 'outputs_test.csv')
+    model_outputs = read_csv_file(outputs_csv_filepath)
     data_characteristics = pd.read_csv(TEST_RECORDS_CSV)
 
     # Evaluation parameters
