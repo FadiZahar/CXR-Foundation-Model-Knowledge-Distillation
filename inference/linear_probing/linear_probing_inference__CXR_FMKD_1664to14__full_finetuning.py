@@ -9,7 +9,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torchvision
-from torchvision import models
 
 from pytorch_lightning import LightningModule, Trainer, seed_everything
 from pytorch_lightning.loggers import TensorBoardLogger, WandbLogger
@@ -23,47 +22,50 @@ from utils.output_utils.generate_and_save_metrics import generate_and_log_metric
 from utils.callback_utils.training_callbacks import TrainLoggingCallback
 
 # Import global variables
-from config.config_shared import IMAGE_SIZE, NUM_CLASSES, EPOCHS, NUM_WORKERS, BATCH_SIZE, LEARNING_RATE, TARGET_FPR
+from config.config_shared import IMAGE_SIZE, CXRFM_EMBEDS_SIZE, NUM_CLASSES, EPOCHS, NUM_WORKERS, BATCH_SIZE, LEARNING_RATE, TARGET_FPR
 # Import the configuration loader
 from config.loader_config import load_config, get_dataset_name
 
-pre_OUT_DIR_NAME = 'CXR-model_linear-probing/'
+# Model import
+from models.disease_prediction__CXR_FMKD_1664to14__full_finetuning import CXR_FMKD_FullFineTuning
+
+pre_OUT_DIR_NAME = 'CXR-FMKD-1664to14_full-finetuning/'
 
 
 
-class CXRModel_LinearProbing(LightningModule):
-    def __init__(self, num_classes: int, learning_rate: float, out_dir_path:str, target_fpr: float):
+class InferCXR_FMKD_FullFineTuning(LightningModule):
+    def __init__(self, num_classes: int, learning_rate: float, embedding_size: int, 
+                 pretrained_lightning_module: LightningModule, out_dir_path:str, target_fpr: float):
         super().__init__()
         self.num_classes = num_classes
         self.learning_rate = learning_rate
+        self.embedding_size = embedding_size
         self.out_dir_path = out_dir_path
         self.target_fpr = target_fpr
         self.validation_step_outputs = []
         self.testing_step_outputs = []
         self.validation_mode = 'Training'
+        self.pretrained_model =  pretrained_lightning_module.base_model
 
         # log hyperparameters
         self.save_hyperparameters()
-        
-        # DenseNet-169: full finetuning
-        self.model = models.densenet169(weights=models.DenseNet169_Weights.DEFAULT)
-        self.num_features = self.model.classifier.in_features   # in_features: 1664 | out_features: 1000 (ImageNet)
 
-        # Ensure the base model is frozen for linear probing
-        freeze_model(self.model)
-
-        # Replace original classifier with new f.c. layer mapping the 1664 input features to 14 (disease classes), and store it:
+        # Ensure the pretrained model is frozen for linear probing
+        freeze_model(self.pretrained_model)
+         
+        # CXR-FMKD: full finetuning
+        self.num_features = self.pretrained_model.classifier.in_features   # out_features: 1376
         self.classifier = nn.Linear(self.num_features, self.num_classes)
-        self.model.classifier = self.classifier  
+        self.pretrained_model.classifier = self.classifier
 
     def remove_head(self): 
-        self.model.classifier = nn.Identity(self.num_features)
+        self.pretrained_model.classifier = nn.Identity(self.num_features)
     
-    def reset_head(self):
-        self.model.classifier = self.classifier
+    def reset_head(self): 
+        self.pretrained_model.classifier = self.classifier
 
     def forward(self, x):
-        return self.model(x)
+        return self.pretrained_model(x)
 
     def configure_optimizers(self):
         params_to_update = [param for param in self.parameters() if param.requires_grad]
@@ -79,7 +81,7 @@ class CXRModel_LinearProbing(LightningModule):
         probs = torch.sigmoid(logits)
         loss = F.binary_cross_entropy(probs, labels)
         return logits, probs, labels, loss
-    
+
 
     ## Training
     def training_step(self, batch, batch_idx):
@@ -156,27 +158,37 @@ def freeze_model(model):
 
 def main(hparams):
 
-    # Load the configuration dynamically based on the command line argument
-    config = load_config(hparams.config)
-    # Accessing the configuration to import dataset-specific variables
-    CXRS_FILEPATH = config.CXRS_FILEPATH
-    EMBEDDINGS_FILEPATH = config.EMBEDDINGS_FILEPATH
-    TRAIN_RECORDS_CSV = config.TRAIN_RECORDS_CSV
-    VAL_RECORDS_CSV = config.VAL_RECORDS_CSV
-    TEST_RECORDS_CSV = config.TEST_RECORDS_CSV
-    MAIN_DIR_PATH = config.MAIN_DIR_PATH
+    # Decide which dataset's configuration to load for test data and which dataset's checkpoint to use
+    if hparams.inference_on == 'mimic':
+        test_config = load_config('mimic')
+        model_config = load_config('chexpert')
+    else:
+        test_config = load_config('chexpert')
+        model_config = load_config('mimic')
+
+    # From test config:
+    CXRS_FILEPATH = test_config.CXRS_FILEPATH
+    EMBEDDINGS_FILEPATH = test_config.EMBEDDINGS_FILEPATH
+    TRAIN_RECORDS_CSV = test_config.TRAIN_RECORDS_CSV
+    VAL_RECORDS_CSV = test_config.VAL_RECORDS_CSV
+    TEST_RECORDS_CSV = test_config.TEST_RECORDS_CSV
+    INFER_DIR_PATH = test_config.INFER_DIR_PATH
+    # From model config:
+    BEST_CHECKPOINT_PATH = model_config.BEST_CHECKPOINT__CXR_FMKD_1664to14_full_finetuning__FILENAME
+
 
     # Updated OUT_DIR_NAME to include dataset name
-    dataset_name = get_dataset_name(hparams.config)
-    OUT_DIR_NAME = dataset_name + '_' + pre_OUT_DIR_NAME
+    dataset_name = get_dataset_name(hparams.inference_on)
+    OUT_DIR_NAME = 'LPInfer_on_' + dataset_name + '_' + pre_OUT_DIR_NAME
 
 
     # Create output directory
+    KD_TYPE_DIR_NAME = f'KD-{hparams.kd_type}'
     if hparams.multirun_seed:
         inner_out_dir_name = f"{OUT_DIR_NAME.strip('/')}_multirun-seed{hparams.multirun_seed}"
-        out_dir_path = os.path.join(MAIN_DIR_PATH, OUT_DIR_NAME, 'multiruns', inner_out_dir_name)
+        out_dir_path = os.path.join(INFER_DIR_PATH, 'LPInfer', KD_TYPE_DIR_NAME, OUT_DIR_NAME, 'multiruns', inner_out_dir_name)
     else:
-        out_dir_path = os.path.join(MAIN_DIR_PATH, OUT_DIR_NAME)
+        out_dir_path = os.path.join(INFER_DIR_PATH, 'LPInfer', KD_TYPE_DIR_NAME, OUT_DIR_NAME)
     os.makedirs(out_dir_path, exist_ok=True)
     # Create TensorBoard logs directory
     logs_dir_path = os.path.join(out_dir_path, 'lightning_logs/')
@@ -212,19 +224,25 @@ def main(hparams):
         imsave(os.path.join(temp_dir_path, f'sample_{idx}.jpg'), sample['cxr'].astype(np.uint8))
 
     # Model
-    model_type = CXRModel_LinearProbing
-    model = model_type(num_classes=NUM_CLASSES, learning_rate=LEARNING_RATE, out_dir_path=out_dir_path, target_fpr=TARGET_FPR)
+    model_type = InferCXR_FMKD_FullFineTuning
+    pretrained_lightning_module = CXR_FMKD_FullFineTuning.load_from_checkpoint(
+        BEST_CHECKPOINT_PATH, num_classes=NUM_CLASSES, learning_rate=LEARNING_RATE, 
+        embedding_size=CXRFM_EMBEDS_SIZE, out_dir_path=out_dir_path, target_fpr=TARGET_FPR
+        )
+    model = model_type(num_classes=NUM_CLASSES, learning_rate=LEARNING_RATE, embedding_size=CXRFM_EMBEDS_SIZE, 
+                       pretrained_lightning_module=pretrained_lightning_module, out_dir_path=out_dir_path, target_fpr=TARGET_FPR)
 
     # Callback metric logging
     train_logger = TrainLoggingCallback(filename=os.path.join(logs_dir_path, 'val_loss_step.csv'))
 
     # WandB logger
     project_name = OUT_DIR_NAME.replace('/', '_').lower().strip('_')
+    kd_type_suffix = hparams.kd_type
     if hparams.multirun_seed:
         multirun_seed = hparams.multirun_seed
-        run_name = f'run_{project_name}_multirun-seed{multirun_seed}_{datetime.now().strftime("%Y%m%d_%H%M")}' 
+        run_name = f'run_{project_name}_{kd_type_suffix}_multirun-seed{multirun_seed}_{datetime.now().strftime("%Y%m%d_%H%M")}' 
     else:
-        run_name = f'run_{project_name}_{datetime.now().strftime("%Y%m%d_%H%M")}' 
+        run_name = f'run_{project_name}_{kd_type_suffix}_{datetime.now().strftime("%Y%m%d_%H%M")}' 
     wandb_logger = WandbLogger(save_dir=logs_dir_path, 
                                project=project_name,
                                name=run_name, 
@@ -235,7 +253,7 @@ def main(hparams):
         default_root_dir=ckpt_dir_path,
         callbacks=[ModelCheckpoint(monitor='val_loss', 
                                    mode='min', 
-                                   filename='best-checkpoint_CXR-model_lp_{epoch}-{val_loss:.4f}',
+                                   filename='best-checkpoint_lpinfer_CXR-FMKD-1664to14_fft_{epoch}-{val_loss:.4f}',
                                    dirpath=ckpt_dir_path), 
                    TQDMProgressBar(refresh_rate=10),
                    train_logger],
@@ -278,8 +296,9 @@ if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument('--gpus', default=1, help='Number of GPUs to use')
     parser.add_argument('--dev', default=0, help='GPU device number')
+    parser.add_argument('--kd_type', type=str, default='MSE', help='Type of Knowledge Distillation used')
     parser.add_argument('--multirun_seed', default=None, help='Seed for initialising randomness in multiruns for reproducibility')
-    parser.add_argument('--config', default='chexpert', choices=['chexpert', 'mimic'], help='Config dataset module to use')
+    parser.add_argument('--inference_on', default='mimic', choices=['chexpert', 'mimic'], help='Dataset module for inference')
     
     args = parser.parse_args()
 

@@ -13,6 +13,15 @@ BEST_CHECKPOINT_KD_MSEandCosineSimWeighted_alpha0p70_FILENAME = 'lightning_check
 BEST_CHECKPOINT_KD_MSEandCosineSimWeighted_alpha0p80_FILENAME = 'lightning_checkpoints/best-checkpoint_pre-CXR-FMKD_MSEandCosineSimWeighted-alpha0p80_epoch=39_val_loss=1.2486.ckpt' # alpha = 0.8
 BEST_CHECKPOINT_KD_MSEandCosineSimWeighted_alpha0p90_FILENAME = 'lightning_checkpoints/best-checkpoint_pre-CXR-FMKD_MSEandCosineSimWeighted-alpha0p90_epoch=39_val_loss=1.2538.ckpt' # alpha = 0.9
 
+# Models
+BEST_CHECKPOINT__CXR_FM_linear_probing__FILENAME = ''
+BEST_CHECKPOINT__CXR_FMKD_full_finetuning__FILENAME = ''
+BEST_CHECKPOINT__CXR_FMKD_linear_probing__FILENAME = ''
+BEST_CHECKPOINT__CXR_FMKD_1664to14_full_finetuning__FILENAME = ''
+BEST_CHECKPOINT__CXR_FMKD_1664to14_linear_probing__FILENAME = ''
+BEST_CHECKPOINT__CXR_model_full_finetuning__FILENAME = ''
+BEST_CHECKPOINT__CXR_model_linear_probing__FILENAME = ''
+
 # Data Paths
 CXRS_FILEPATH = '/vol/biodata/data/chest_xray/mimic-cxr-jpg-224/data/'
 EMBEDDINGS_FILEPATH = '/vol/biomedic3/bglocker/mscproj24/fz221/data/cxrfm_embeddings/mimic/cxr_numpy'
@@ -20,3 +29,4 @@ TRAIN_RECORDS_CSV = '/vol/biodata/data/chest_xray/mimic-cxr-jpg-224/meta/algorit
 VAL_RECORDS_CSV = '/vol/biodata/data/chest_xray/mimic-cxr-jpg-224/meta/algorithmic_encoding/mimic.sample.val.csv'
 TEST_RECORDS_CSV = '/vol/biodata/data/chest_xray/mimic-cxr-jpg-224/meta/algorithmic_encoding/mimic.resample.test.csv'  # Using resampled test set
 MAIN_DIR_PATH = '/vol/biomedic3/bglocker/mscproj24/fz221/outputs/outputs_mimic/'
+INFER_DIR_PATH = '/vol/biomedic3/bglocker/mscproj24/fz221/inference/inference_on_mimic/'

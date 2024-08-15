@@ -24,10 +24,21 @@ N_SAMPLES = 1000
 ALPHA = 0.6
 MARKER = 'o'
 MARKERSIZE = 40
-FONT_SCALE = 1.6
-COLOR_PALETTE1 = 'tab10'
-COLOR_PALETTE2 = 'viridis'
+FONT_SCALE = 1.2
+COLOR_PALETTE1 = ['deepskyblue', 'darkorange', 'forestgreen', 'darkorchid', 'red']
+COLOR_PALETTE2 = 'plasma_r'
 KIND = 'scatter'
+
+AGE_BINS = {
+    '0-20': (0, 20),
+    '21-30': (21, 30),
+    '31-40': (31, 40),
+    '41-50': (41, 50),
+    '51-60': (51, 60),
+    '61-70': (61, 70),
+    '71-80': (71, 80),
+    '81+': (81, float('inf'))
+}
 
 np.random.seed(42)
 
@@ -77,7 +88,7 @@ def apply_pca(embeds, df, pca_dir_path, n_components=0.99):
     plt.xlabel('Mode', fontsize=12)
     plt.ylabel('Retained Variance', fontsize=12)
     plt.title('PCA Cumulative Explained Variance')
-    plt.xticks([1] + list(range(10, len(cumul_exp_var) + 1, 20)))
+    plt.xticks([1] + list(range(20, len(cumul_exp_var) + 1, 20)))
     
     # Save plot
     plot_path = os.path.join(pca_dir_path, 'pca_cumulative_explained_variance.png')
@@ -120,10 +131,19 @@ def apply_tsne(embeds_pca, df, tsne_dir_path, n_components=2):
     return embeds_tsne
 
 
+def bin_age(age):
+    for label, (low, high) in AGE_BINS.items():
+        if low <= age <= high:
+            return label
+    return 'Unknown' 
+
+
 def sample_by_race(df, n_samples, output_dir, races):
     sampled_dfs = {}
-    for race in races:
-        sampled_dfs[race] = df[df['race'] == race].sample(n=n_samples)
+    for race in tqdm(races, desc="Sampling by race"):
+        sampled_df = df[df['race'] == race].sample(n=n_samples)
+        sampled_df['binned_age'] = sampled_df['age'].apply(bin_age)
+        sampled_dfs[race] = sampled_df
     
     # Concatenate the sampled dataframes
     sample_test = pd.concat(sampled_dfs.values())
@@ -168,11 +188,11 @@ def plot_feature_modes(df, method, mode_indices, xdat, ydat, labels_dict, plots_
         # Marginal KDE plots for x and y
         for axdat, index, axlim in zip([xdat, ydat], mode_indices, [xlim, ylim]):
             fig, ax = plt.subplots(figsize=(10, 3))
-            g = sns.kdeplot(x=axdat, hue=label, fill=True, hue_order=settings['hue_order'], data=df, ax=ax, 
+            p = sns.kdeplot(x=axdat, hue=label, fill=True, hue_order=settings['hue_order'], data=df, ax=ax, 
                             palette=current_palette, common_norm=False)
-            g.get_legend().set_title(None)
-            g.spines[['right', 'top']].set_visible(False)
-            g.set_xlim(axlim)
+            p.get_legend().set_title(None)
+            p.spines[['right', 'top']].set_visible(False)
+            p.set_xlim(axlim)
             method_name = method.split('-')[0]
             marginal_filename = f'{method_name}-{index}-{label}-marginal.{out_format}'
             marginal_filepath = os.path.join(plots_marginal_dir_path, marginal_filename)
@@ -204,7 +224,7 @@ def perform_statistical_tests(df, bias_stats_dir_path, races, sexes, diseases, e
         return results
 
     # Get p-values for each PCA mode
-    pvals = np.array([stats_tests(f'PCA Mode {i+1}', df) for i in range(4)])
+    pvals = np.array([stats_tests(f'PCA Mode {i+1}', df) for i in tqdm(range(4), desc="Performing statistical tests")])
     
     # Adjust p-values using the FDR method (Benjamini-Yekutieli Procedure)
     res = multipletests(pvals.flatten(), alpha=0.05, method='fdr_by', is_sorted=False, returnsorted=False)
@@ -216,31 +236,29 @@ def perform_statistical_tests(df, bias_stats_dir_path, races, sexes, diseases, e
     columns = ['Mode', 'Explained Variance', f'{diseases[0]} vs {diseases[1]}', f'{races[0]} vs {races[1]}', 
                f'{races[0]} vs {races[2]}', f'{races[1]} vs {races[2]}', f'{sexes[0]} vs {sexes[1]}']
     
-    # DataFrame for adjusted p-values
-    adjusted_pvalues_data = {
-        'Mode': modes,
-        'Explained Variance': exp_var[:4]
-    }
+    save_statistical_data(bias_stats_dir_path=bias_stats_dir_path, modes=modes, columns=columns, exp_var=exp_var[:4], 
+                          adjusted_pvals=reshaped_adjusted_pvals, rejected=reshaped_rejected)
+    
+
+def save_statistical_data(bias_stats_dir_path, modes, columns, exp_var, adjusted_pvals, rejected):
+    # Prepare data for adjusted p-values
+    adjusted_pvalues_data = { 'Mode': modes, 'Explained Variance': exp_var }
     for i, label in enumerate(columns[2:]):
-        adjusted_pvalues_data[label] = reshaped_adjusted_pvals[:, i]
+        adjusted_pvalues_data[label] = adjusted_pvals[:, i]
     adjusted_pvalues_df = pd.DataFrame(adjusted_pvalues_data, columns=columns)
     pvalues_csv_path = os.path.join(bias_stats_dir_path, 'statistical_tests_adjusted_pvalues.csv')
     adjusted_pvalues_df.to_csv(pvalues_csv_path, index=False)
-    
-    # DataFrame for rejection results
-    rejection_data = {
-        'Mode': modes,
-        'Explained Variance': exp_var[:4]
-    }
+
+    # Prepare data for rejection results
+    rejection_data = { 'Mode': modes, 'Explained Variance': exp_var }
     for i, label in enumerate(columns[2:]):
-        rejection_data[label] = reshaped_rejected[:, i]
+        rejection_data[label] = rejected[:, i]
     rejection_df = pd.DataFrame(rejection_data, columns=columns)
     rejection_csv_path = os.path.join(bias_stats_dir_path, 'statistical_tests_rejections.csv')
     rejection_df.to_csv(rejection_csv_path, index=False)
 
     print(f"Adjusted p-values saved to: {pvalues_csv_path}")
     print(f"Rejection results saved to: {rejection_csv_path}")
-    return adjusted_pvalues_df, rejection_df
 
 
 
@@ -260,8 +278,7 @@ if __name__ == "__main__":
     config = load_config(args.config)
     # Accessing the configuration to import dataset-specific variables
     dataset_name = get_dataset_name(args.config)
-    # TEST_RECORDS_CSV = config.TEST_RECORDS_CSV
-    TEST_RECORDS_CSV = '/Users/macuser/Desktop/Imperial/70078_MSc_AI_Individual_Project/code/external/biomedia/biodata-data-chext_xray/meta/algorithmic_encoding/chexpert.sample.test.csv'
+    TEST_RECORDS_CSV = config.TEST_RECORDS_CSV
 
     # Path to outputs and data characteristics files
     embeddings_csv_filepath = os.path.join(args.outputs_dir, 'embeddings_test.csv')
@@ -308,7 +325,7 @@ if __name__ == "__main__":
     # Replicate entries for having capital letters in plots
     sample_test['Disease'] = sample_test['disease']
     sample_test['Sex'] = sample_test['sex']
-    sample_test['Age'] = sample_test['age']
+    sample_test['Age'] = sample_test['binned_age']
     sample_test['Race'] = sample_test['race']
 
 
@@ -322,7 +339,7 @@ if __name__ == "__main__":
         'Disease': {'hue_order': args.labels},
         'Sex': {'hue_order': [sex for sex in SEXES]},
         'Race': {'hue_order': [race for race in RACES]},
-        'Age': {'hue_order': None}
+        'Age': {'hue_order': list(AGE_BINS.keys())}
     }
 
     ## Plots
