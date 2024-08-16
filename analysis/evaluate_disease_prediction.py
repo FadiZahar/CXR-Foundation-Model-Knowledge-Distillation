@@ -107,7 +107,7 @@ def compute_relative_changes(df, metric_name="Youden\'s Index"):
     return df_relative.T
 
 
-def plot_metrics(results_df, label, output_dir, dataset_name, metric_name="Youden\'s Index", plot_type='absolute'):
+def plot_metrics(results_df, label, output_dir, metric_name="Youden\'s Index", plot_type='absolute'):
     """Generates and saves plots based on the provided data."""
     plt.figure(figsize=(8, 5))
     y_col = metric_name if plot_type == 'absolute' else f"Relative Change (%) in {metric_name} from Average"
@@ -147,7 +147,8 @@ def plot_metrics(results_df, label, output_dir, dataset_name, metric_name="Youde
     plt.xlabel('Subgroup')
     # plt.xticks(rotation=45)
     plt.tight_layout()
-    plt.savefig(os.path.join(output_dir, f'{dataset_name}__{plot_type}_performance_plot__({label.replace(" ", "_")}).png'), dpi=OUT_DPI)
+    # plt.savefig(os.path.join(output_dir, f'{dataset_name}__{plot_type}_performance_plot__({label.replace(" ", "_")}).png'), dpi=OUT_DPI)
+    plt.savefig(os.path.join(output_dir, f'{plot_type}_performance_plot__({label.replace(" ", "_")}).png'), dpi=OUT_DPI)
     plt.close()
 
 
@@ -185,7 +186,8 @@ def plot_auc_roc_curves(aucroc_metrics_df, label, output_dir, subgroups, lw=1.5,
     ax.spines[['right', 'top']].set_visible(False)
     plt.grid(True, linestyle='-', linewidth=0.5, color='lightgray')
     
-    plt.savefig(os.path.join(output_dir, f'{dataset_name}__roc_curve__({label.replace(" ", "_")}).png'), dpi=OUT_DPI)
+    # plt.savefig(os.path.join(output_dir, f'{dataset_name}__roc_curve__({label.replace(" ", "_")}).png'), dpi=OUT_DPI)
+    plt.savefig(os.path.join(output_dir, f'roc_curve__({label.replace(" ", "_")}).png'), dpi=OUT_DPI)
     plt.close()
 
 
@@ -270,20 +272,23 @@ if __name__ == "__main__":
         results_with_ci_df = pd.DataFrame.from_dict(results_with_ci, orient="index")[columns_as_in_manuscript]
         results_plain_avg_df = pd.DataFrame.from_dict(results_plain_avg, orient="index")[columns_as_in_manuscript]
 
-        results_df.to_csv(os.path.join(performance_tables_dir_path, f'{dataset_name}__all_performance_metrics__({label.replace(" ", "_")}).csv'), index=True)
-        aucroc_metrics_df.to_csv(os.path.join(aucroc_tables_dir_path, f'{dataset_name}__all_aucroc_metrics__({label.replace(" ", "_")}).csv'), index=True)
+        # results_df.to_csv(os.path.join(performance_tables_dir_path, f'{dataset_name}__all_performance_metrics__({label.replace(" ", "_")}).csv'), index=True)
+        results_df.to_csv(os.path.join(performance_tables_dir_path, f'all_performance_metrics__({label.replace(" ", "_")}).csv'), index=True)
+        # aucroc_metrics_df.to_csv(os.path.join(aucroc_tables_dir_path, f'{dataset_name}__all_aucroc_metrics__({label.replace(" ", "_")}).csv'), index=True)
+        aucroc_metrics_df.to_csv(os.path.join(aucroc_tables_dir_path, f'all_aucroc_metrics__({label.replace(" ", "_")}).csv'), index=True)
         
-        results_with_ci_df.to_csv(os.path.join(performance_tables_dir_path, f'{dataset_name}__ci_summary_performance_metrics__({label.replace(" ", "_")}).csv'), index=True)
+        # results_with_ci_df.to_csv(os.path.join(performance_tables_dir_path, f'{dataset_name}__ci_summary_performance_metrics__({label.replace(" ", "_")}).csv'), index=True)
+        results_with_ci_df.to_csv(os.path.join(performance_tables_dir_path, f'ci_summary_performance_metrics__({label.replace(" ", "_")}).csv'), index=True)
         print(f"\nResults for: {label.upper()} ({ci_level * 100:.0f}%-CI with {n_bootstrap} bootstrap samples)")
         print(tabulate(results_with_ci_df, headers=results_with_ci_df.columns))
 
         # Plot Absolute Performance
-        plot_metrics(results_df=results_plain_avg_df, label=label, dataset_name=dataset_name, metric_name=metric_name, 
+        plot_metrics(results_df=results_plain_avg_df, label=label, metric_name=metric_name, 
                      output_dir=absolute_plots_dir_path, plot_type='absolute')
 
         # Compute and plot Relative Performance Changes
         relative_results_df = compute_relative_changes(df=results_plain_avg_df, metric_name=metric_name)
-        plot_metrics(results_df=relative_results_df, label=label, dataset_name=dataset_name, metric_name=metric_name, 
+        plot_metrics(results_df=relative_results_df, label=label, metric_name=metric_name, 
                      output_dir=relative_plots_dir_path, plot_type='relative')
         
         # Plot AUC-ROC curves 
