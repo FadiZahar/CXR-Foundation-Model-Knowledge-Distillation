@@ -1,0 +1,97 @@
+[rank: 0] Seed set to 42
+Loading CXR Records:   0%|          | 0/110280 [00:00<?, ?it/s]Loading CXR Records:   0%|          | 1/110280 [00:00<28:32:46,  1.07it/s]Loading CXR Records:   1%|▏         | 1516/110280 [00:01<00:53, 2014.69it/s]Loading CXR Records:   3%|▎         | 3266/110280 [00:01<00:23, 4485.78it/s]Loading CXR Records:   5%|▍         | 5028/110280 [00:01<00:15, 6923.69it/s]Loading CXR Records:   6%|▌         | 6781/110280 [00:01<00:11, 9146.19it/s]Loading CXR Records:   8%|▊         | 8542/110280 [00:01<00:09, 11095.07it/s]Loading CXR Records:   9%|▉         | 10303/110280 [00:01<00:07, 12708.11it/s]Loading CXR Records:  11%|█         | 12037/110280 [00:01<00:07, 13916.63it/s]Loading CXR Records:  13%|█▎        | 13792/110280 [00:01<00:06, 14902.74it/s]Loading CXR Records:  14%|█▍        | 15554/110280 [00:01<00:06, 15661.75it/s]Loading CXR Records:  16%|█▌        | 17313/110280 [00:01<00:05, 16210.87it/s]Loading CXR Records:  17%|█▋        | 19078/110280 [00:02<00:05, 16624.96it/s]Loading CXR Records:  19%|█▉        | 20840/110280 [00:02<00:05, 16915.14it/s]Loading CXR Records:  20%|██        | 22603/110280 [00:02<00:05, 17122.96it/s]Loading CXR Records:  22%|██▏       | 24372/110280 [00:02<00:04, 17289.64it/s]Loading CXR Records:  24%|██▎       | 26137/110280 [00:02<00:04, 17396.09it/s]Loading CXR Records:  25%|██▌       | 27902/110280 [00:02<00:04, 17470.56it/s]Loading CXR Records:  27%|██▋       | 29664/110280 [00:02<00:04, 17512.55it/s]Loading CXR Records:  28%|██▊       | 31426/110280 [00:02<00:04, 17540.58it/s]Loading CXR Records:  30%|███       | 33192/110280 [00:02<00:04, 17573.44it/s]Loading CXR Records:  32%|███▏      | 34956/110280 [00:02<00:04, 17590.85it/s]Loading CXR Records:  33%|███▎      | 36719/110280 [00:03<00:04, 17594.67it/s]Loading CXR Records:  35%|███▍      | 38481/110280 [00:03<00:04, 17600.68it/s]Loading CXR Records:  36%|███▋      | 40244/110280 [00:03<00:03, 17606.75it/s]Loading CXR Records:  38%|███▊      | 42013/110280 [00:03<00:03, 17631.24it/s]Loading CXR Records:  40%|███▉      | 43777/110280 [00:03<00:03, 17625.82it/s]Loading CXR Records:  41%|████▏     | 45541/110280 [00:03<00:03, 17608.40it/s]Loading CXR Records:  43%|████▎     | 47303/110280 [00:03<00:03, 17570.00it/s]Loading CXR Records:  44%|████▍     | 49063/110280 [00:03<00:03, 17578.08it/s]Loading CXR Records:  46%|████▌     | 50822/110280 [00:03<00:03, 17570.10it/s]Loading CXR Records:  48%|████▊     | 52582/110280 [00:03<00:03, 17578.60it/s]Loading CXR Records:  49%|████▉     | 54340/110280 [00:04<00:03, 17577.34it/s]Loading CXR Records:  51%|█████     | 56102/110280 [00:04<00:03, 17588.26it/s]Loading CXR Records:  52%|█████▏    | 57869/110280 [00:04<00:02, 17611.09it/s]Loading CXR Records:  54%|█████▍    | 59640/110280 [00:04<00:02, 17637.99it/s]Loading CXR Records:  56%|█████▌    | 61409/110280 [00:04<00:02, 17651.91it/s]Loading CXR Records:  57%|█████▋    | 63175/110280 [00:04<00:02, 17645.05it/s]Loading CXR Records:  59%|█████▉    | 64942/110280 [00:04<00:02, 17649.96it/s]Loading CXR Records:  60%|██████    | 66710/110280 [00:04<00:02, 17656.19it/s]Loading CXR Records:  62%|██████▏   | 68476/110280 [00:04<00:02, 17648.76it/s]Loading CXR Records:  64%|██████▎   | 70245/110280 [00:04<00:02, 17658.16it/s]Loading CXR Records:  65%|██████▌   | 72011/110280 [00:05<00:02, 17634.42it/s]Loading CXR Records:  67%|██████▋   | 73779/110280 [00:05<00:02, 17646.70it/s]Loading CXR Records:  69%|██████▊   | 75544/110280 [00:05<00:01, 17637.60it/s]Loading CXR Records:  70%|███████   | 77308/110280 [00:05<00:01, 17565.11it/s]Loading CXR Records:  72%|███████▏  | 79065/110280 [00:05<00:01, 17551.36it/s]Loading CXR Records:  73%|███████▎  | 80821/110280 [00:05<00:01, 17530.07it/s]Loading CXR Records:  75%|███████▍  | 82579/110280 [00:05<00:01, 17542.92it/s]Loading CXR Records:  76%|███████▋  | 84339/110280 [00:05<00:01, 17559.35it/s]Loading CXR Records:  78%|███████▊  | 86095/110280 [00:05<00:01, 17557.14it/s]Loading CXR Records:  80%|███████▉  | 87852/110280 [00:05<00:01, 17560.55it/s]Loading CXR Records:  81%|████████▏ | 89609/110280 [00:06<00:01, 17533.28it/s]Loading CXR Records:  83%|████████▎ | 91363/110280 [00:06<00:01, 17522.93it/s]Loading CXR Records:  84%|████████▍ | 93119/110280 [00:06<00:00, 17533.64it/s]Loading CXR Records:  86%|████████▌ | 94874/110280 [00:06<00:00, 17537.68it/s]Loading CXR Records:  88%|████████▊ | 96633/110280 [00:06<00:00, 17552.95it/s]Loading CXR Records:  89%|████████▉ | 98391/110280 [00:06<00:00, 17559.81it/s]Loading CXR Records:  91%|█████████ | 100147/110280 [00:06<00:00, 17550.06it/s]Loading CXR Records:  92%|█████████▏| 101906/110280 [00:06<00:00, 17560.45it/s]Loading CXR Records:  94%|█████████▍| 103663/110280 [00:06<00:00, 17551.97it/s]Loading CXR Records:  96%|█████████▌| 105419/110280 [00:06<00:00, 17531.34it/s]Loading CXR Records:  97%|█████████▋| 107175/110280 [00:07<00:00, 17538.05it/s]Loading CXR Records:  99%|█████████▉| 108929/110280 [00:07<00:00, 17536.80it/s]Loading CXR Records: 100%|██████████| 110280/110280 [00:07<00:00, 15280.70it/s]
+Loading CXR Records:   0%|          | 0/17665 [00:00<?, ?it/s]Loading CXR Records:   8%|▊         | 1440/17665 [00:00<00:01, 14394.69it/s]Loading CXR Records:  18%|█▊        | 3185/17665 [00:00<00:00, 16188.47it/s]Loading CXR Records:  28%|██▊       | 4939/17665 [00:00<00:00, 16804.12it/s]Loading CXR Records:  38%|███▊      | 6695/17665 [00:00<00:00, 17099.21it/s]Loading CXR Records:  48%|████▊     | 8455/17665 [00:00<00:00, 17277.11it/s]Loading CXR Records:  58%|█████▊    | 10210/17665 [00:00<00:00, 17368.13it/s]Loading CXR Records:  68%|██████▊   | 11968/17665 [00:00<00:00, 17435.78it/s]Loading CXR Records:  78%|███████▊  | 13726/17665 [00:00<00:00, 17479.82it/s]Loading CXR Records:  88%|████████▊ | 15481/17665 [00:00<00:00, 17499.37it/s]Loading CXR Records:  98%|█████████▊| 17231/17665 [00:01<00:00, 17480.33it/s]Loading CXR Records: 100%|██████████| 17665/17665 [00:01<00:00, 17220.96it/s]
+/vol/bitbucket/fz221/fmkd_venv/lib/python3.10/site-packages/lightning_fabric/plugins/environments/slurm.py:204: The `srun` command is available on your system but is not used. HINT: If your intention is to run Lightning on SLURM, prepend your python command with `srun` like so: srun python /vol/biomedic3/bglocker/mscproj24/fz221/cxr-fmkd/mod ...
+GPU available: True (cuda), used: True
+TPU available: False, using: 0 TPU cores
+HPU available: False, using: 0 HPUs
+You are using a CUDA device ('NVIDIA L40S') that has Tensor Cores. To properly utilize them, you should set `torch.set_float32_matmul_precision('medium' | 'high')` which will trade-off precision for performance. For more details, read https://pytorch.org/docs/stable/generated/torch.set_float32_matmul_precision.html#torch.set_float32_matmul_precision
+>> train_set size:  110280
+>> val_set size:    12366
+>> test_set size:   5299
+Traceback (most recent call last):
+  File "/vol/biomedic3/bglocker/mscproj24/fz221/cxr-fmkd/models/knowledge_distillation/kd_initialisation__CXR_FMKD__MSEandCosineSimWeighted.py", line 269, in <module>
+    main(args)
+  File "/vol/biomedic3/bglocker/mscproj24/fz221/cxr-fmkd/models/knowledge_distillation/kd_initialisation__CXR_FMKD__MSEandCosineSimWeighted.py", line 233, in main
+    trainer.fit(model=model, datamodule=data)
+  File "/vol/bitbucket/fz221/fmkd_venv/lib/python3.10/site-packages/pytorch_lightning/trainer/trainer.py", line 543, in fit
+    call._call_and_handle_interrupt(
+  File "/vol/bitbucket/fz221/fmkd_venv/lib/python3.10/site-packages/pytorch_lightning/trainer/call.py", line 44, in _call_and_handle_interrupt
+    return trainer_fn(*args, **kwargs)
+  File "/vol/bitbucket/fz221/fmkd_venv/lib/python3.10/site-packages/pytorch_lightning/trainer/trainer.py", line 579, in _fit_impl
+    self._run(model, ckpt_path=ckpt_path)
+  File "/vol/bitbucket/fz221/fmkd_venv/lib/python3.10/site-packages/pytorch_lightning/trainer/trainer.py", line 948, in _run
+    call._call_setup_hook(self)  # allow user to set up LightningModule in accelerator environment
+  File "/vol/bitbucket/fz221/fmkd_venv/lib/python3.10/site-packages/pytorch_lightning/trainer/call.py", line 88, in _call_setup_hook
+    if hasattr(logger, "experiment"):
+  File "/vol/bitbucket/fz221/fmkd_venv/lib/python3.10/site-packages/lightning_fabric/loggers/logger.py", line 118, in experiment
+    return fn(self)
+  File "/vol/bitbucket/fz221/fmkd_venv/lib/python3.10/site-packages/pytorch_lightning/loggers/wandb.py", line 406, in experiment
+    self._experiment = wandb.init(**self._wandb_init)
+  File "/vol/bitbucket/fz221/fmkd_venv/lib/python3.10/site-packages/wandb/sdk/wandb_init.py", line 1239, in init
+    wandb._sentry.reraise(e)
+  File "/vol/bitbucket/fz221/fmkd_venv/lib/python3.10/site-packages/wandb/analytics/sentry.py", line 155, in reraise
+    raise exc.with_traceback(sys.exc_info()[2])
+  File "/vol/bitbucket/fz221/fmkd_venv/lib/python3.10/site-packages/wandb/sdk/wandb_init.py", line 1224, in init
+    wi.setup(kwargs)
+  File "/vol/bitbucket/fz221/fmkd_venv/lib/python3.10/site-packages/wandb/sdk/wandb_init.py", line 184, in setup
+    self._wl = wandb_setup.setup(settings=setup_settings)
+  File "/vol/bitbucket/fz221/fmkd_venv/lib/python3.10/site-packages/wandb/sdk/wandb_setup.py", line 378, in setup
+    ret = _setup(settings=settings)
+  File "/vol/bitbucket/fz221/fmkd_venv/lib/python3.10/site-packages/wandb/sdk/wandb_setup.py", line 318, in _setup
+    wl = _WandbSetup(settings=settings)
+  File "/vol/bitbucket/fz221/fmkd_venv/lib/python3.10/site-packages/wandb/sdk/wandb_setup.py", line 303, in __init__
+    _WandbSetup._instance = _WandbSetup__WandbSetup(settings=settings, pid=pid)
+  File "/vol/bitbucket/fz221/fmkd_venv/lib/python3.10/site-packages/wandb/sdk/wandb_setup.py", line 114, in __init__
+    self._setup()
+  File "/vol/bitbucket/fz221/fmkd_venv/lib/python3.10/site-packages/wandb/sdk/wandb_setup.py", line 250, in _setup
+    self._setup_manager()
+  File "/vol/bitbucket/fz221/fmkd_venv/lib/python3.10/site-packages/wandb/sdk/wandb_setup.py", line 283, in _setup_manager
+    self._manager = wandb_manager._Manager(settings=self._settings)
+  File "/vol/bitbucket/fz221/fmkd_venv/lib/python3.10/site-packages/wandb/sdk/wandb_manager.py", line 145, in __init__
+    self._service.start()
+  File "/vol/bitbucket/fz221/fmkd_venv/lib/python3.10/site-packages/wandb/sdk/service/service.py", line 253, in start
+    self._launch_server()
+  File "/vol/bitbucket/fz221/fmkd_venv/lib/python3.10/site-packages/wandb/sdk/service/service.py", line 247, in _launch_server
+    _sentry.reraise(e)
+  File "/vol/bitbucket/fz221/fmkd_venv/lib/python3.10/site-packages/wandb/analytics/sentry.py", line 155, in reraise
+    raise exc.with_traceback(sys.exc_info()[2])
+  File "/vol/bitbucket/fz221/fmkd_venv/lib/python3.10/site-packages/wandb/sdk/service/service.py", line 245, in _launch_server
+    self._wait_for_ports(fname, proc=internal_proc)
+  File "/vol/bitbucket/fz221/fmkd_venv/lib/python3.10/site-packages/wandb/sdk/service/service.py", line 134, in _wait_for_ports
+    raise ServiceStartTimeoutError(
+wandb.sdk.service.service.ServiceStartTimeoutError: Timed out waiting for wandb service to start after 30.0 seconds. Try increasing the timeout with the `_service_wait` setting.
+Traceback (most recent call last):
+  File "/usr/lib/python3.10/runpy.py", line 196, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File "/usr/lib/python3.10/runpy.py", line 86, in _run_code
+    exec(code, run_globals)
+  File "/vol/bitbucket/fz221/fmkd_venv/lib/python3.10/site-packages/wandb/__main__.py", line 3, in <module>
+    cli.cli(prog_name="python -m wandb")
+  File "/vol/bitbucket/fz221/fmkd_venv/lib/python3.10/site-packages/click/core.py", line 1157, in __call__
+    return self.main(*args, **kwargs)
+  File "/vol/bitbucket/fz221/fmkd_venv/lib/python3.10/site-packages/click/core.py", line 1078, in main
+    rv = self.invoke(ctx)
+  File "/vol/bitbucket/fz221/fmkd_venv/lib/python3.10/site-packages/click/core.py", line 1688, in invoke
+    return _process_result(sub_ctx.command.invoke(sub_ctx))
+  File "/vol/bitbucket/fz221/fmkd_venv/lib/python3.10/site-packages/click/core.py", line 1434, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+  File "/vol/bitbucket/fz221/fmkd_venv/lib/python3.10/site-packages/click/core.py", line 783, in invoke
+    return __callback(*args, **kwargs)
+  File "/vol/bitbucket/fz221/fmkd_venv/lib/python3.10/site-packages/wandb/cli/cli.py", line 108, in wrapper
+    return func(*args, **kwargs)
+  File "/vol/bitbucket/fz221/fmkd_venv/lib/python3.10/site-packages/wandb/cli/cli.py", line 292, in service
+    server.serve()
+  File "/vol/bitbucket/fz221/fmkd_venv/lib/python3.10/site-packages/wandb/sdk/service/server.py", line 114, in serve
+    self._inform_used_ports(sock_port=sock_port)
+  File "/vol/bitbucket/fz221/fmkd_venv/lib/python3.10/site-packages/wandb/sdk/service/server.py", line 52, in _inform_used_ports
+    pf.write(self._port_fname)
+  File "/vol/bitbucket/fz221/fmkd_venv/lib/python3.10/site-packages/wandb/sdk/service/port_file.py", line 21, in write
+    f = tempfile.NamedTemporaryFile(prefix=bname, dir=dname, mode="w", delete=False)
+  File "/usr/lib/python3.10/tempfile.py", line 714, in NamedTemporaryFile
+    file = _io.open(dir, mode, buffering=buffering,
+  File "/usr/lib/python3.10/tempfile.py", line 711, in opener
+    fd, name = _mkstemp_inner(dir, prefix, suffix, flags, output_type)
+  File "/usr/lib/python3.10/tempfile.py", line 395, in _mkstemp_inner
+    fd = _os.open(file, flags, 0o600)
+FileNotFoundError: [Errno 2] No such file or directory: '/tmp/tmpfcusrmvu/port-554397.txtkz2g6kgl'
