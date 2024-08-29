@@ -1,0 +1,12 @@
+Metric,chexpert--cxrfmkd_kdinit_mse&cosinesimweighted_alpha0p60_multirun-seed41.luna.70012.log,chexpert--cxrfmkd_kdinit_mse&cosinesimweighted_alpha0p60_multirun-seed42.loki.70026.log,chexpert--cxrfmkd_kdinit_mse&cosinesimweighted_alpha0p60_multirun-seed43.loki.70027.log,chexpert--cxrfmkd_kdinit_mse&cosinesimweighted_alpha0p60_multirun-seed44.loki.70028.log,chexpert--cxrfmkd_kdinit_mse&cosinesimweighted_alpha0p60_multirun-seed45.loki.70029.log,mimic--cxrfmkd_kdinit_mse&cosinesimweighted_alpha0p60_multirun-seed41.luna.71614.log,mimic--cxrfmkd_kdinit_mse&cosinesimweighted_alpha0p60_multirun-seed42.luna.71615.log,mimic--cxrfmkd_kdinit_mse&cosinesimweighted_alpha0p60_multirun-seed43.luna.71616.log,mimic--cxrfmkd_kdinit_mse&cosinesimweighted_alpha0p60_multirun-seed44.luna.71617.log,mimic--cxrfmkd_kdinit_mse&cosinesimweighted_alpha0p60_multirun-seed45.luna.71618.log
+epoch,40,40,40,40,40,40,40,40,40,40
+learning_rate,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0
+test_loss_epoch,1.2923,1.22151,1.22316,1.22158,1.24201,1.12156,1.11992,1.11392,1.10561,1.11436
+test_loss_step,1.25787,1.21657,1.23226,1.23767,1.27181,1.1159,1.04425,1.16694,1.06489,1.13799
+train_loss_epoch,1.04198,0.97569,0.97276,0.99349,1.02928,1.00111,0.98009,0.98899,0.97159,0.97735
+train_loss_step,1.07925,0.99255,1.01995,1.01102,1.0626,1.00223,1.02809,1.0143,1.02566,1.00166
+trainer/global_step,23840,23840,23840,23840,23840,34480,34480,34480,34480,34480
+val_final_loss_epoch,1.24754,1.22658,1.22794,1.23982,1.24276,1.12796,1.12583,1.11587,1.11227,1.11064
+val_final_loss_step,1.24163,1.25455,1.28928,1.17472,1.22365,1.08759,1.17739,1.0713,1.09164,1.12183
+val_loss_epoch,1.24754,1.22658,1.22794,1.23993,1.24358,1.12796,1.13302,1.11587,1.11227,1.11364
+val_loss_step,1.24163,1.25455,1.28928,1.17807,1.2268,1.08759,1.23116,1.0713,1.09164,1.12415

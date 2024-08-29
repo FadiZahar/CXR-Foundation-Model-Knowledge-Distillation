@@ -1,0 +1,30 @@
+Metric,chexpert--cxrfmkd_lp_mse_multirun-seed41.luna.70146.log,chexpert--cxrfmkd_lp_mse_multirun-seed42.luna.70147.log,chexpert--cxrfmkd_lp_mse_multirun-seed43.luna.70148.log,chexpert--cxrfmkd_lp_mse_multirun-seed44.luna.70149.log,chexpert--cxrfmkd_lp_mse_multirun-seed45.luna.70150.log
+AUC-PR | 'No Finding' (Testing),0.4099,0.41164,0.40608,0.40822,0.40506
+AUC-PR | 'Others' (Testing),0.31997,0.32067,0.31985,0.32027,0.3166
+AUC-PR | 'Pleural Effusion' (Testing),0.76705,0.7658,0.76623,0.76622,0.7623
+AUC-ROC | 'No Finding' (Testing),0.86133,0.86349,0.86061,0.86367,0.86019
+AUC-ROC | 'Others' (Testing),0.75018,0.74884,0.74491,0.74771,0.74535
+AUC-ROC | 'Pleural Effusion' (Testing),0.84274,0.84267,0.84244,0.84245,0.84011
+J Index Max | 'No Finding' (Testing),0.59389,0.59831,0.59532,0.60205,0.59424
+J Index Max | 'Others' (Testing),0.38947,0.38402,0.37431,0.3851,0.38073
+J Index Max | 'Pleural Effusion' (Testing),0.53286,0.53354,0.53856,0.53543,0.53059
+J Index at 20% FPR | 'No Finding' (Testing),0.58642,0.59334,0.58963,0.59986,0.59284
+J Index at 20% FPR | 'Others' (Testing),0.35479,0.34945,0.34891,0.35093,0.34581
+J Index at 20% FPR | 'Pleural Effusion' (Testing),0.51534,0.51291,0.51556,0.51711,0.51002
+Macro AUC-PR (Testing),0.35833,0.35896,0.35789,0.3584,0.35475
+Macro AUC-PR (Validation - During Training),0.35971,0.35801,0.35763,0.35847,0.35912
+Macro AUC-PR (Validation - Final),0.35784,0.35768,0.35763,0.35798,0.35472
+Macro AUC-ROC (Testing),0.76473,0.76373,0.76014,0.76276,0.76032
+Macro AUC-ROC (Validation - During Training),0.76558,0.76336,0.763,0.76343,0.7641
+Macro AUC-ROC (Validation - Final),0.76376,0.76393,0.763,0.76402,0.76145
+epoch,20,20,20,20,20
+learning_rate,0.001,0.001,0.001,0.001,0.001
+test_loss_epoch,0.29701,0.29755,0.29536,0.29486,0.29581
+test_loss_step,0.25281,0.27133,0.26218,0.22651,0.25551
+train_loss_epoch,0.29745,0.29685,0.29746,0.29701,0.29747
+train_loss_step,0.31339,0.31129,0.28329,0.30277,0.25292
+trainer/global_step,11920,11920,11920,11920,11920
+val_final_loss_epoch,0.29686,0.29724,0.29697,0.2952,0.29561
+val_final_loss_step,0.30804,0.28619,0.24715,0.24391,0.24864
+val_loss_epoch,0.29921,0.30609,0.29697,0.29653,0.29825
+val_loss_step,0.23059,0.31427,0.24715,0.24572,0.20796
