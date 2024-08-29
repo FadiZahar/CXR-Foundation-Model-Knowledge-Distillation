@@ -3,7 +3,7 @@
 #SBATCH --gres=gpu:1             
 #SBATCH --output=/vol/biomedic3/bglocker/mscproj24/fz221/cxr-fmkd/inference/zero_shot/multiruns_slurm_scripts/multiruns_slurm_logs/cxrfmkd/cxrfmkd_mse/cxrfmkd1664to14_lp_mse/%x.%N.%j.log  
 #SBATCH --time=0-05:00:00 
-#SBATCH --nodelist=loki 
+# #SBATCH --nodelist=loki 
 
 # Accepts multirun_seed from the command line; --job-name replaces the %x in --output above
 #SBATCH --job-name=zsinfer_cxrfmkd1664to14_lp_mse_multirun

@@ -3,7 +3,7 @@
 #SBATCH --gres=gpu:1             
 #SBATCH --output=/vol/biomedic3/bglocker/mscproj24/fz221/cxr-fmkd/models/multiruns_slurm_scripts/multiruns_slurm_logs/resnet50_fft/%x.%N.%j.log  
 #SBATCH --time=0-05:00:00 
-#SBATCH --nodelist=luna         
+# #SBATCH --nodelist=luna         
 
 # Accepts multirun_seed from the command line; --job-name replaces the %x in --output above
 #SBATCH --job-name=resnet50_fft_multirun
