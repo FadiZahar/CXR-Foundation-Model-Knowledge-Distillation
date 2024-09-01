@@ -10,11 +10,16 @@ from sklearn.utils import resample
 from tabulate import tabulate
 from tqdm import tqdm
 from pprint import pprint
+from matplotlib import font_manager
 
 # Import global shared variables
 from config.config_shared import TARGET_FPR, N_BOOTSTRAP, CI_LEVEL, OUT_DPI, LABELS, RACES, SEXES
 # Import the configuration loader
 from config.loader_config import load_config, get_dataset_name
+
+# Check if Latin Modern Roman (~LaTeX) is available, and set it; otherwise, use the default font
+if 'Latin Modern Roman' in [f.name for f in font_manager.fontManager.ttflist]:
+    plt.rcParams['font.family'] = 'Latin Modern Roman'
 
 np.random.seed(42)
 

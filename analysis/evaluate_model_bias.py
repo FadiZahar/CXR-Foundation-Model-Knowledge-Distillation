@@ -9,6 +9,14 @@ from sklearn.manifold import TSNE
 from sklearn.decomposition import PCA
 from scipy.stats import ks_2samp
 from statsmodels.stats.multitest import multipletests
+from matplotlib import font_manager
+
+# Check if Latin Modern Roman (~LaTeX) is available, and set it; otherwise, use the default font
+if 'Latin Modern Roman' in [f.name for f in font_manager.fontManager.ttflist]:
+    plt.rcParams['font.family'] = 'Latin Modern Roman'
+
+np.random.seed(42)
+
 
 
 # Import global shared variables

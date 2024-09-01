@@ -1,30 +1,30 @@
-Metric,chexpert--cxrfmkd1664to14_fft_mae_multirun-seed41.luna.70231.log,chexpert--cxrfmkd1664to14_fft_mae_multirun-seed42.luna.70232.log,chexpert--cxrfmkd1664to14_fft_mae_multirun-seed43.luna.70233.log,chexpert--cxrfmkd1664to14_fft_mae_multirun-seed44.luna.70234.log,chexpert--cxrfmkd1664to14_fft_mae_multirun-seed45.luna.70235.log
-AUC-PR | 'No Finding' (Testing),0.43398,0.43486,0.42826,0.42614,0.4313
-AUC-PR | 'Others' (Testing),0.3454,0.35414,0.35459,0.355,0.35055
-AUC-PR | 'Pleural Effusion' (Testing),0.80104,0.80176,0.80308,0.8049,0.80473
-AUC-ROC | 'No Finding' (Testing),0.8757,0.87713,0.87847,0.87677,0.87574
-AUC-ROC | 'Others' (Testing),0.77299,0.77872,0.77908,0.78147,0.77512
-AUC-ROC | 'Pleural Effusion' (Testing),0.86577,0.86555,0.86691,0.86855,0.86521
-J Index Max | 'No Finding' (Testing),0.62629,0.61712,0.62486,0.61938,0.61165
-J Index Max | 'Others' (Testing),0.42338,0.4338,0.43542,0.43967,0.42314
-J Index Max | 'Pleural Effusion' (Testing),0.57219,0.5744,0.5764,0.5792,0.57158
-J Index at 20% FPR | 'No Finding' (Testing),0.61963,0.60986,0.62269,0.61434,0.61048
-J Index at 20% FPR | 'Others' (Testing),0.38534,0.39669,0.39995,0.40621,0.39437
-J Index at 20% FPR | 'Pleural Effusion' (Testing),0.56219,0.56159,0.56879,0.56807,0.55964
-Macro AUC-PR (Testing),0.38427,0.39188,0.39189,0.39222,0.38876
-Macro AUC-PR (Validation - During Training),0.33061,0.33247,0.33443,0.32547,0.32752
-Macro AUC-PR (Validation - Final),0.38631,0.39636,0.39411,0.39352,0.39068
-Macro AUC-ROC (Testing),0.78695,0.79195,0.79245,0.79449,0.78875
-Macro AUC-ROC (Validation - During Training),0.72829,0.73354,0.7383,0.72955,0.72831
-Macro AUC-ROC (Validation - Final),0.78587,0.79201,0.79205,0.79314,0.78923
-epoch,20,20,20,20,20
-learning_rate,0.001,0.001,0.001,0.001,0.001
-test_loss_epoch,0.27836,0.27598,0.27585,0.27603,0.27758
-test_loss_step,0.23941,0.2345,0.21361,0.21783,0.26006
-train_loss_epoch,0.1374,0.13806,0.1374,0.13768,0.13783
-train_loss_step,0.13176,0.12923,0.14561,0.1653,0.14809
-trainer/global_step,11920,11920,11920,11920,11920
-val_final_loss_epoch,0.279,0.27702,0.27723,0.27787,0.27879
-val_final_loss_step,0.24121,0.21289,0.31514,0.25366,0.25216
-val_loss_epoch,0.48171,0.48014,0.41152,0.51629,0.54926
-val_loss_step,0.80668,0.44413,0.38942,0.4741,0.60068
+Metric,chexpert--cxrfmkd1664to14_fft_mae_multirun-seed41.luna.70231.log,chexpert--cxrfmkd1664to14_fft_mae_multirun-seed42.luna.70232.log,chexpert--cxrfmkd1664to14_fft_mae_multirun-seed43.luna.70233.log,chexpert--cxrfmkd1664to14_fft_mae_multirun-seed44.luna.70234.log,chexpert--cxrfmkd1664to14_fft_mae_multirun-seed45.luna.70235.log,mimic--cxrfmkd1664to14_fft_mae_multirun-seed41.mira01.72217.log,mimic--cxrfmkd1664to14_fft_mae_multirun-seed42.mira01.72218.log,mimic--cxrfmkd1664to14_fft_mae_multirun-seed43.loki.72219.log,mimic--cxrfmkd1664to14_fft_mae_multirun-seed44.luna.72220.log,mimic--cxrfmkd1664to14_fft_mae_multirun-seed45.luna.72221.log
+AUC-PR | 'No Finding' (Testing),0.43398,0.43486,0.42826,0.42614,0.4313,0.72742,0.72757,0.72518,0.72569,0.72837
+AUC-PR | 'Others' (Testing),0.3454,0.35414,0.35459,0.355,0.35055,0.30966,0.31122,0.30883,0.30859,0.30894
+AUC-PR | 'Pleural Effusion' (Testing),0.80104,0.80176,0.80308,0.8049,0.80473,0.72525,0.73193,0.72974,0.73152,0.72686
+AUC-ROC | 'No Finding' (Testing),0.8757,0.87713,0.87847,0.87677,0.87574,0.85447,0.85519,0.8538,0.85426,0.85614
+AUC-ROC | 'Others' (Testing),0.77299,0.77872,0.77908,0.78147,0.77512,0.78731,0.78793,0.78525,0.78494,0.78567
+AUC-ROC | 'Pleural Effusion' (Testing),0.86577,0.86555,0.86691,0.86855,0.86521,0.89567,0.89634,0.89573,0.89605,0.89465
+J Index Max | 'No Finding' (Testing),0.62629,0.61712,0.62486,0.61938,0.61165,0.56934,0.56825,0.56992,0.56791,0.56825
+J Index Max | 'Others' (Testing),0.42338,0.4338,0.43542,0.43967,0.42314,0.44694,0.45004,0.44473,0.44479,0.44811
+J Index Max | 'Pleural Effusion' (Testing),0.57219,0.5744,0.5764,0.5792,0.57158,0.64252,0.63461,0.63966,0.64156,0.6296
+J Index at 20% FPR | 'No Finding' (Testing),0.61963,0.60986,0.62269,0.61434,0.61048,0.56739,0.56499,0.56868,0.56137,0.56778
+J Index at 20% FPR | 'Others' (Testing),0.38534,0.39669,0.39995,0.40621,0.39437,0.41515,0.41708,0.41274,0.41079,0.41306
+J Index at 20% FPR | 'Pleural Effusion' (Testing),0.56219,0.56159,0.56879,0.56807,0.55964,0.64204,0.63258,0.63673,0.63824,0.62831
+Macro AUC-PR (Testing),0.38427,0.39188,0.39189,0.39222,0.38876,0.36918,0.37101,0.36863,0.36859,0.36875
+Macro AUC-PR (Validation - During Training),0.33061,0.33247,0.33443,0.32547,0.32752,0.30144,0.31593,0.30526,0.31248,0.30901
+Macro AUC-PR (Validation - Final),0.38631,0.39636,0.39411,0.39352,0.39068,0.36333,0.3668,0.36444,0.36461,0.36348
+Macro AUC-ROC (Testing),0.78695,0.79195,0.79245,0.79449,0.78875,0.79985,0.80047,0.79803,0.79783,0.79849
+Macro AUC-ROC (Validation - During Training),0.72829,0.73354,0.7383,0.72955,0.72831,0.74354,0.75676,0.74798,0.75375,0.75215
+Macro AUC-ROC (Validation - Final),0.78587,0.79201,0.79205,0.79314,0.78923,0.79769,0.80051,0.80066,0.79955,0.79866
+epoch,20,20,20,20,20,20,20,20,20,20
+learning_rate,0.001,0.001,0.001,0.001,0.001,0.001,0.001,0.001,0.001,0.001
+test_loss_epoch,0.27836,0.27598,0.27585,0.27603,0.27758,0.26095,0.26124,0.26235,0.2604,0.26341
+test_loss_step,0.23941,0.2345,0.21361,0.21783,0.26006,0.28758,0.29258,0.29939,0.30157,0.31999
+train_loss_epoch,0.1374,0.13806,0.1374,0.13768,0.13783,0.15318,0.15183,0.15375,0.15182,0.15373
+train_loss_step,0.13176,0.12923,0.14561,0.1653,0.14809,0.14317,0.15874,0.16086,0.15284,0.16021
+trainer/global_step,11920,11920,11920,11920,11920,17240,17240,17240,17240,17240
+val_final_loss_epoch,0.279,0.27702,0.27723,0.27787,0.27879,0.26174,0.26158,0.26267,0.26044,0.26239
+val_final_loss_step,0.24121,0.21289,0.31514,0.25366,0.25216,0.27581,0.29495,0.27991,0.28244,0.28506
+val_loss_epoch,0.48171,0.48014,0.41152,0.51629,0.54926,0.40019,0.41054,0.37689,0.41744,0.40694
+val_loss_step,0.80668,0.44413,0.38942,0.4741,0.60068,0.30343,0.33997,0.24668,0.32699,0.14081
