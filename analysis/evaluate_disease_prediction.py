@@ -2,15 +2,24 @@ import os
 import argparse
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 import seaborn as sns
 from collections import defaultdict
-from sklearn.metrics import auc, recall_score, roc_auc_score, roc_curve
+from sklearn.metrics import recall_score, roc_auc_score, roc_curve
 from sklearn.utils import resample
 from tabulate import tabulate
 from tqdm import tqdm
 from pprint import pprint
+import pickle
+
 from matplotlib import font_manager
+import matplotlib.pyplot as plt
+import matplotlib.image as mpimg
+import matplotlib.patches as patches
+import matplotlib.lines as mlines
+import matplotlib.colors as mcolors
+from matplotlib.legend_handler import HandlerBase
+import matplotlib.gridspec as gridspec
+
 
 # Import global shared variables
 from config.config_shared import TARGET_FPR, N_BOOTSTRAP, CI_LEVEL, OUT_DPI, LABELS, RACES, SEXES
@@ -21,9 +30,215 @@ from config.loader_config import load_config, get_dataset_name
 if 'Latin Modern Roman' in [f.name for f in font_manager.fontManager.ttflist]:
     plt.rcParams['font.family'] = 'Latin Modern Roman'
 
+# Global Variables
+BAR_EDGE_COLOUR = (0.45, 0.45, 0.45)
+ERROR_EDGE_COLOUR = (0.25, 0.25, 0.25)
+LINE_WIDTH=0.8
+
 np.random.seed(42)
 
 
+
+
+# ========================================================
+# ==== PERFORMANCE ANALYSIS - UTILS FUNCTIONS - START ====
+# ========================================================
+
+## Section for plot generation:
+
+class DiagonalColorHandler(HandlerBase):
+    def create_artists(self, legend, orig_handle, xdescent, ydescent, width, height, fontsize, trans):
+        # Extract the two colors stored in the custom attribute of the original legend handle
+        color1, color2 = orig_handle.custom_colors 
+        patch = patches.FancyBboxPatch((xdescent, ydescent), width, height, 
+                                       boxstyle="square,pad=-1", facecolor=color1, edgecolor=BAR_EDGE_COLOUR, linewidth=LINE_WIDTH, transform=trans)
+        patch.set_clip_path(patches.Polygon([[xdescent, ydescent + height], [xdescent + width, ydescent], 
+                                             [xdescent + width, ydescent + height]], closed=True, transform=trans))
+        patch2 = patches.FancyBboxPatch((xdescent, ydescent), width, height, 
+                                        boxstyle="square,pad=-1", facecolor=color2, edgecolor=BAR_EDGE_COLOUR, linewidth=LINE_WIDTH, transform=trans)
+        patch2.set_clip_path(patches.Polygon([[xdescent, ydescent], [xdescent + width, ydescent], 
+                                              [xdescent, ydescent + height]], closed=True, transform=trans))
+        return [patch, patch2]
+
+
+def set_plot_labels(ax, label, metric, plot_type, font_size, title_pad, label_pad, title_font_delta, axis_font_delta, dataset_name):
+    title = get_plot_title(metric, plot_type, dataset_name)
+    if plot_type == 'absolute':
+        if "AUC-ROC" in metric:
+            ax.set_title(f"{title} — {label}", fontsize=font_size+title_font_delta, pad=title_pad)
+            ax.set_ylabel("AUC-ROC", fontsize=font_size+axis_font_delta, labelpad=label_pad)
+        elif "Youden's Index" in metric:
+            ax.set_title(f"{title} — {label}", fontsize=font_size+title_font_delta, pad=title_pad)
+            ax.set_ylabel("Youden's J Statistic", fontsize=font_size+axis_font_delta, labelpad=label_pad)
+    else:
+        if "AUC-ROC" in metric:
+            ax.set_title(f"{title} — {label}", fontsize=font_size+title_font_delta, pad=title_pad)
+            ax.set_ylabel("Difference from Average (%)\nAUC-ROC", fontsize=font_size+axis_font_delta, labelpad=label_pad)
+        elif "Youden's Index" in metric:
+            ax.set_title(f"{title} — {label}", fontsize=font_size+title_font_delta, pad=title_pad)
+            ax.set_ylabel("Difference from Average (%)\nYouden's J Statistic", fontsize=font_size+axis_font_delta, labelpad=label_pad)
+
+
+def get_plot_title(metric, plot_type, dataset_name):
+    if plot_type == 'absolute':
+        if "AUC-ROC" in metric:
+            title = f"{dataset_name} | AUC-ROC (Absolute)"
+        elif "Youden's Index" in metric:
+            title = f"{dataset_name} | Youden's J Statistic (Absolute)"
+    else:
+        if "AUC-ROC" in metric:
+            title = f"{dataset_name} | AUC-ROC (Relative)"
+        elif "Youden's Index" in metric:
+            title = f"{dataset_name} | Youden's J Statistic (Relative)"
+    return title  
+
+
+def create_custom_legend(ax, models, full_cmap, plot_type, bar_edge_colour, error_bar_colour, font_size, line_width):
+    legend_elements = []
+    for i in range(len(models)):
+        if plot_type == 'absolute':
+            # Use diagonal colors for the absolute plot type
+            patch = patches.Patch(label=models[i]["shortname"])
+            patch.custom_colors = (full_cmap[i*4+3], full_cmap[i*4+2])
+        else:
+            # Use a single color for non-absolute plot types
+            patch = patches.Patch(label=models[i]["shortname"], facecolor=full_cmap[i*4+3], 
+                                edgecolor=bar_edge_colour, linewidth=line_width)
+        legend_elements.append(patch)
+
+    # Add a custom legend entry for error bars (95% CI)
+    error_bar_legend = mlines.Line2D([], [], color=error_bar_colour, marker='o', linestyle='-', markersize=4, 
+                                    label='95% CI (2000 Bootstrap Samples)', markerfacecolor=error_bar_colour, 
+                                    markeredgewidth=1, markeredgecolor=error_bar_colour, linewidth=line_width)
+
+    # Combine both custom legend elements
+    legend_elements.append(error_bar_legend)
+
+    # Update the legend with custom elements
+    ax.legend(handles=legend_elements, 
+              handler_map={patches.Patch: DiagonalColorHandler()} if plot_type == 'absolute' else None,
+              loc='upper center', bbox_to_anchor=(0.5, -0.13), fontsize=font_size-1, ncol=len(models) + 1)
+
+    # Extract handles and labels from the legend_elements for later use
+    legend_handles = [el for el in legend_elements]
+    legend_labels = [el.get_label() for el in legend_elements]
+
+    return legend_handles, legend_labels
+
+
+def lighten_color(color, amount=0.5):
+    """
+    Lighten the given color by blending it with white.
+    
+    Parameters:
+    - color: RGB tuple or hex string of the color to lighten.
+    - amount: Fraction by which to lighten the color (0 is no change, 1 is white).
+    
+    Returns:
+    - A lighter RGB color.
+    """
+    try:
+        c = mcolors.cnames[color]
+    except:
+        c = color
+    c = mcolors.to_rgb(c)
+    return [(1.0 - amount) * c[i] + amount for i in range(3)]
+
+
+def save_figs_and_axes(figs_and_axes, output_dir, filename="saved_plots.pkl"):
+    """Save the figure and axes data in a pickle file."""
+    with open(os.path.join(output_dir, filename), 'wb') as f:
+        pickle.dump(figs_and_axes, f)
+        
+
+def load_figs_and_axes(output_dir, filename="saved_plots.pkl"):
+    """Load the figure and axes data later."""
+    with open(os.path.join(output_dir, filename), 'rb') as f:
+        figs_and_axes = pickle.load(f)
+    return figs_and_axes
+
+
+def save_legend_image(legend_handles, legend_labels, output_dir, plot_type='absolute', filename="legend.png", font_size=12):
+    fig, ax = plt.subplots(figsize=(1, 1))  # Dummy figure for legend
+    ax.axis('off')
+    
+    # Save the legend
+    legend = ax.legend(legend_handles, legend_labels, loc='center', ncol=len(legend_handles), fontsize=font_size,
+                       handler_map={patches.Patch: DiagonalColorHandler()} if plot_type == 'absolute' else None)
+    fig.canvas.draw()
+    
+    # Save as image
+    legend_filename = os.path.join(output_dir, filename)
+    plt.savefig(legend_filename, dpi=OUT_DPI, bbox_inches='tight')
+    plt.close()
+
+
+## Section for further handling of the generated dataframes:
+
+def create_dataframe(data, columns, model_name):
+    # Convert the results dictionary to DataFrame
+    results_df = pd.DataFrame.from_dict(data, orient='index')[columns]
+    results_df.index.name = 'Metric'
+    # Insert 'Model' column as the first column
+    results_df.insert(0, 'Model', model_name)
+    return results_df
+
+
+def update_global_metric_ranges(combined_results_df, focus_metrics, models, combined_groups, global_metric_ranges):
+    all_relevant_metrics = [metric for metric in combined_results_df['Metric'].unique()
+                        if any(focus in metric for focus in focus_metrics)]
+    # Initialise global metric ranges if not all metrics are present
+    if not set(all_relevant_metrics).issubset(global_metric_ranges.keys()):
+        global_metric_ranges = {metric: [float('inf'), -float('inf')] for metric in all_relevant_metrics} 
+
+    for model in models:
+        for metric in all_relevant_metrics:
+            data = combined_results_df[(combined_results_df['Model'] == model["fullname"]) & (combined_results_df['Metric'] == metric)]
+            for group in combined_groups:
+                # Fetch CI upper and lower values
+                ci_lower = data[group].apply(lambda x: x['ci'][0]).values
+                ci_upper = data[group].apply(lambda x: x['ci'][1]).values 
+
+                # Update metric range, including some margin
+                global_metric_ranges[metric] = (min(global_metric_ranges[metric][0], ci_lower), 
+                                                max(global_metric_ranges[metric][1], ci_upper))
+
+    # Add margins to the y-axis ranges and round values for cleaner axis limits
+    for metric, (min_val, max_val) in global_metric_ranges.items():
+        range_margin = (max_val - min_val) * 0.05  # 5% margin on each side
+        adjusted_min = min_val - range_margin
+        adjusted_max = max_val + range_margin
+        # Apply floor to the adjusted minimum and ceiling to the adjusted maximum, rounding to nearest 0.05
+        floored_min = np.floor(adjusted_min * 20) / 20
+        ceiled_max = np.ceil(adjusted_max * 20) / 20
+        # Update the metric ranges
+        global_metric_ranges[metric] = (floored_min, ceiled_max)
+
+
+def read_csv_file(file_path):
+    try:
+        data = pd.read_csv(file_path)
+        if data.empty:
+            raise ValueError(f"The file '{file_path}' is empty.")
+        return data
+    except FileNotFoundError:
+        raise FileNotFoundError(f"The file '{file_path}' was not found.")
+    except pd.errors.EmptyDataError:
+        raise ValueError(f"The file '{file_path}' is empty.")
+    except pd.errors.ParserError:
+        raise ValueError(f"The file '{file_path}' could not be parsed.")
+    except Exception as e:
+        raise Exception(f"An unexpected error occurred while reading the file '{file_path}': {str(e)}")
+
+# ========================================================
+# ===== PERFORMANCE ANALYSIS - UTILS FUNCTIONS - END =====
+# ========================================================
+
+
+
+# ========================================================
+# ======= BOOTSTRAPPING USING 2000 SAMPLES - START =======
+# ========================================================
 
 def bootstrap_ci(targets: np.ndarray, probs: np.ndarray, races: np.ndarray, sexes: np.ndarray, 
                  n_bootstrap: int = 2000, target_fpr: float = 0.2):
@@ -60,6 +275,7 @@ def bootstrap_ci(targets: np.ndarray, probs: np.ndarray, races: np.ndarray, sexe
             update_metrics(metrics=metrics, aucroc_metrics=aucroc_metrics if n == 0 else None, group_name=sex, 
                            group_targets=sex_targets, group_probs=sex_probs, optimal_thresh=optimal_threshold)
 
+    finalise_metrics(metrics)
     return metrics, aucroc_metrics
 
 
@@ -74,151 +290,320 @@ def update_metrics(metrics, aucroc_metrics, group_name, group_targets, group_pro
 
         # Update metrics:
         metrics["AUC-ROC"][group_name].append(auc_roc)
-        metrics["TPR at threshold"][group_name].append(tpr_global_thres)
-        metrics["FPR at threshold"][group_name].append(fpr_global_thres)
-        metrics["Youden\'s Index"][group_name].append(tpr_global_thres - fpr_global_thres)
+        metrics["TPR at global threshold"][group_name].append(tpr_global_thres)
+        metrics["FPR at global threshold"][group_name].append(fpr_global_thres)
+        metrics["Youden\'s Index at global threshold"][group_name].append(tpr_global_thres - fpr_global_thres)
 
-        # Update aucroc_metrics for the first iteration only (no resampling):
+        # Update aucroc_metrics for the first iteration only (no resampling), to be used for AUC-ROC plots
         if aucroc_metrics is not None:
+            aucroc_metrics["AUC-ROC"][group_name] = auc_roc
             aucroc_metrics["TPRs"][group_name] = tpr
             aucroc_metrics["FPRs"][group_name] = fpr
             aucroc_metrics["TPR at threshold"][group_name] = tpr_global_thres
             aucroc_metrics["FPR at threshold"][group_name] = fpr_global_thres
-            aucroc_metrics["AUC-ROC"][group_name] = auc_roc
+            aucroc_metrics["Youden\'s Index at threshold"][group_name] = tpr_global_thres - fpr_global_thres
 
 
-def summarise_metrics(metrics, ci_level=0.95, return_ci=True):
+def calculate_subgroups_averages(metrics):
+    subgroup_names = [group for group in metrics["AUC-ROC"].keys() if group != "All"]  # i.e., RACES + SEXES
+    for metric_name in metrics.keys():
+        for iteration in range(len(metrics[metric_name]["All"])):  # e.g., 'All' has entries for each bootstrap iteration
+            # Compute the average value across the subgroups for this bootstrap iteration
+            average = np.mean([metrics[metric_name][subgroup][iteration] for subgroup in subgroup_names])
+            metrics[metric_name]["Average"].append(average)  # Effectively creates an 'Average' column (metrics is a defaultdict)
+
+
+def calculate_relative_changes(metrics):
+    # Copy the metric names to avoid modifying the dictionary while iterating
+    absolute_metrics = list(metrics.keys())
+    for metric_name in absolute_metrics:
+        if "Average" in metrics[metric_name]:
+            average_values = metrics[metric_name]["Average"]
+            relative_metric_name = f"Relative {metric_name}"
+            for subgroup in metrics[metric_name].keys():
+                subgroup_values = metrics[metric_name][subgroup]
+                relative_changes = [(subgroup_value - average) / average * 100 if average != 0 else 0
+                                    for subgroup_value, average in zip(subgroup_values, average_values)]
+                metrics[relative_metric_name][subgroup] = relative_changes
+
+
+def finalise_metrics(metrics):
+    """This function is to be called after the main bootstrap loop"""
+    # Calculate averages for subgroups
+    calculate_subgroups_averages(metrics)
+    # Calculate relative changes compared to the subgroups averages
+    calculate_relative_changes(metrics)
+
+
+def aggregate_metrics_with_ci(metrics, ci_level=0.95, compact=False):
     summary = {}
     alpha = (1 - ci_level) / 2
     for metric, groups in metrics.items():
         summary[metric] = {}
         for group, values in groups.items():
-            flat_values = np.concatenate(values) if isinstance(values[0], np.ndarray) else values
-            if return_ci:
-                ci_lower = np.quantile(values, alpha)
-                ci_upper = np.quantile(values, 1 - alpha)
-                summary[metric][group] = f"{values[0]:.2f} ({ci_lower:.2f}-{ci_upper:.2f})"
-            else:
-                summary[metric][group] = np.mean(flat_values)
+            if len(values) > 1:  # Check that there's more than the initial value to calculate CI
+                original_estimate = values[0]
+                ci_lower = np.quantile(values[1:], alpha)
+                ci_upper = np.quantile(values[1:], 1 - alpha)
+                if compact:
+                    summary[metric][group] = f"{original_estimate:.2f} ({ci_lower:.2f}-{ci_upper:.2f})"
+                else:
+                    summary[metric][group] = {
+                        "estimate": original_estimate,
+                        "ci": (ci_lower, ci_upper)
+                    }
+            else:  # Handling cases with insufficient data
+                summary[metric][group] = {
+                    "estimate": values[0],
+                    "ci": (None, None)
+                } if not compact else f"{values[0]:.2f} (N/A)"
     return summary
 
-
-def compute_relative_changes(df, metric_name="Youden\'s Index"):
-    """Calculates the relative change from the 'all' average baseline as a percentage."""
-    overall_avg = df.loc[metric_name, 'All'] 
-    df_temp = df.T  # Transpose to make metrics columns
-    df_temp[f"Relative Change (%) in {metric_name} from Average"] = ((df_temp[metric_name] - overall_avg) / overall_avg) * 100
-    df_relative = df_temp[df_temp.index != 'All'].copy()
-    return df_relative.T
+# ========================================================
+# ======== BOOTSTRAPPING USING 2000 SAMPLES - END ========
+# ========================================================
 
 
-def plot_metrics(results_df, label, output_dir, metric_name="Youden\'s Index", plot_type='absolute'):
+
+# >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+# ==== ABSOLUTE & RELATIVE PERFORMANCES PLOTS - START ====
+# >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+def plot_metrics(results_df, label, focus_metrics, y_limits, plot_type='absolute', models=None, RACES=None, SEXES=None, for_grid=False,
+                 ci_capsize=4, ci_markersize=4, font_size=18, fig_size=(16,7), title_font_delta=4, axis_font_delta=1, line_width=0.8, 
+                 y_xaxis_annotation=-28, title_pad = 12.5, label_pad=12.5, bars_cluster_width=0.7, output_dir=None, dataset_name='CheXpert'):
     """Generates and saves plots based on the provided data."""
-    plt.figure(figsize=(8, 5))
-    y_col = metric_name if plot_type == 'absolute' else f"Relative Change (%) in {metric_name} from Average"
-    title = f"{label} - {plot_type.capitalize()} Performance"
-    
-    # Transpose the DataFrame for plotting
-    results_df = results_df.T
+    # Concatenate tab20b and tab20c color maps
+    cmap_b = plt.get_cmap('tab20').colors
+    cmap_c = plt.get_cmap('tab20c').colors
+    full_cmap = list(cmap_b) + list(cmap_c)  # Concatenated colormap
+    # Lighten every odd-numbered color in full_cmap
+    for i in range(0, len(full_cmap), 2):
+        full_cmap[i] = lighten_color(full_cmap[i], amount=0.2)  # Lighten by 20%
 
-    # Create a color palette
-    race_cmap = plt.get_cmap('Blues')
-    sex_cmap = plt.get_cmap('Greens')
-    all_cmap = plt.get_cmap('Oranges')
-    # Generate colors from the colormap
-    race_colors = [race_cmap(0.65 + i*0.25 / (len(RACES))) for i in range(len(RACES))]
-    sex_colors = [sex_cmap(0.65 + i*0.25 / (len(SEXES))) for i in range(len(SEXES))]
-    all_color = [all_cmap(0.65)]
-    # Map colors to groups
-    color_map = {group: race_colors[i] for i, group in enumerate(RACES)}
-    color_map.update({group: sex_colors[i] for i, group in enumerate(SEXES)})
-    color_map['All'] = all_color[0]
-    palette = [color_map[group] for group in results_df.index if group in color_map]
-
-    # Plot
-    ax = sns.barplot(x=results_df.index, y=y_col, data=results_df, palette=palette, edgecolor='black', linewidth=1)
-    # Adjust bar width
-    bar_width = 0.4
-    for bar in ax.patches:
-        bar.set_width(bar_width)
-        bar.set_x(bar.get_x() + bar_width/2)
+    # Determine which metrics and subgroups to plot based on plot_type
     if plot_type == 'absolute':
-        plt.ylim(0, 0.7)
-    ax.axhline(0, color='black', linewidth=1.5) 
-    ax.yaxis.grid(True, linestyle='--', which='major', color='gray', alpha=0.7)  
+        metrics_to_plot = [metric for metric in results_df['Metric'].unique()
+                           if any(focus in metric for focus in focus_metrics) and "Relative" not in metric]
+        subgroups = RACES + SEXES + ['Average']
+        all_group = ['All']  # Separate category for 'All'
+    else:
+        metrics_to_plot = [metric for metric in results_df['Metric'].unique()
+                           if any(focus in metric for focus in focus_metrics) and "Relative" in metric]
+        subgroups = RACES + SEXES  # No 'Average' or 'All'
+        all_group = []
+    combined_groups = subgroups + all_group
 
-    plt.title(title)
-    plt.ylabel(y_col)
-    plt.xlabel('Subgroup')
-    # plt.xticks(rotation=45)
-    plt.tight_layout()
-    # plt.savefig(os.path.join(output_dir, f'{dataset_name}__{plot_type}_performance_plot__({label.replace(" ", "_")}).png'), dpi=OUT_DPI)
-    plt.savefig(os.path.join(output_dir, f'{plot_type}_performance_plot__({label.replace(" ", "_")}).png'), dpi=OUT_DPI)
-    plt.close()
+    # List to store figures and axes for later use
+    figs_and_axes = []
 
+    for metric in metrics_to_plot:
+        fig, ax = plt.subplots(figsize=fig_size)
+        plot_bars(ax, results_df, metric, models, combined_groups, full_cmap, bars_cluster_width, line_width, ci_capsize, ci_markersize, font_size)
 
-def plot_auc_roc_curves(aucroc_metrics_df, label, output_dir, subgroups, lw=1.5, alpha=0.8, markersize=10):
-    fig, ax = plt.subplots(figsize=(8, 5))
-    original_cmap = plt.get_cmap('Dark2')
-    # colors = [original_cmap(i) for i in range(original_cmap.N)]
-    # colors[3] = 'crimson'  # Replace the fourth color pink (index 3)
-    colors = list(original_cmap(np.linspace(0, 1, len(subgroups))))
-    colors[2] = 'mediumvioletred'
+        # Adjust plot aesthetics
+        ax.set_ylim(*y_limits[metric])
+        set_plot_labels(ax, label, metric, plot_type, font_size, title_pad, label_pad, title_font_delta, axis_font_delta, dataset_name)
+        legend_handles, legend_labels = create_custom_legend(ax, models, full_cmap, plot_type, BAR_EDGE_COLOUR, ERROR_EDGE_COLOUR, 
+                                                             font_size, line_width)
 
-    for idx, subgroup in enumerate(subgroups):
-        fprs = aucroc_metrics_df.loc['FPRs', subgroup]
-        tprs = aucroc_metrics_df.loc['TPRs', subgroup]
-        auc_score = aucroc_metrics_df.loc['AUC-ROC', subgroup]
-        plt.plot(fprs, tprs, lw=lw, alpha=alpha, label=f'{subgroup} AUC-ROC={auc_score:.2f}', color=colors[idx])
-
-    plt.gca().set_prop_cycle(None)
+        # Annotation for Subgroups
+        midpoint = len(subgroups) / 2 - 0.5 
+        ax.annotate('Subgroups', xy=(midpoint, ax.get_ylim()[0]), xycoords='data',
+            xytext=(0, y_xaxis_annotation), textcoords='offset points', ha='center', va='top', fontsize=font_size+axis_font_delta)
         
-    for idx, subgroup in enumerate(subgroups):
-        # Plotting the global threshold point
-        tpr_global_thresh = aucroc_metrics_df.loc['TPR at threshold', subgroup]
-        fpr_global_thresh = aucroc_metrics_df.loc['FPR at threshold', subgroup]
-        plt.plot(fpr_global_thresh, tpr_global_thresh, marker='X', linestyle='None', alpha=alpha, markersize=markersize,
-                    label=f'{subgroup} TPR={tpr_global_thresh:.2f}, FPR={fpr_global_thresh:.2f}', color=colors[idx])
+        # Annotation for All group
+        if "All" in combined_groups:
+            width = bars_cluster_width / len(models)
+            ax.annotate('All', xy=(len(subgroups) + width, ax.get_ylim()[0]), xycoords='data',
+                xytext=(0, y_xaxis_annotation), textcoords='offset points', ha='center', va='top', fontsize=font_size+axis_font_delta)
 
-    plt.plot([0, 1], [0, 1], linestyle='--', lw=1, color='midnightblue', alpha=alpha)
-    plt.annotate('Random Classifier', xy=(0.5, 0.54), fontsize=11, color='midnightblue', rotation=32)
+        ax.tick_params(axis='both', which='major', labelsize=font_size)
+        ax.yaxis.grid(True, linestyle='--', linewidth=0.5, color='gray', alpha=0.5, zorder=1)
+
+        # Save individual plot
+        if for_grid:
+            plot_filename = f"{plot_type}_gridready__{metric.replace(' ', '_').lower()}__({dataset_name}--{label.replace(' ', '_')}).png"
+            ax.legend_.remove()
+            ax.set_title(f"{label}", fontsize=font_size+title_font_delta)
+        else:
+            plot_filename = f"{plot_type}__{metric.replace(' ', '_').lower()}__({dataset_name}--{label.replace(' ', '_')}).png"
+        plt.tight_layout()
+        plt.savefig(os.path.join(output_dir, plot_filename), dpi=OUT_DPI)
+        plt.close()
+
+        figs_and_axes.append((fig, ax))
+
+    save_figs_and_axes(figs_and_axes, output_dir, filename=f"{plot_type}_figs_and_axes__({dataset_name}--{label.replace(' ', '_')})")
+
+    # Return the list of figures and axes, and the shared legend
+    return metrics_to_plot, legend_handles, legend_labels
+
+
+def plot_bars(ax, results_df, metric, models, groups, full_cmap, bars_cluster_width, line_width, ci_capsize, ci_markersize, font_size):
+    # Grouping bars for each model within each subgroup
+    width = bars_cluster_width / len(models)  # width of each bar in group of bars, distributed among models
+    margin = 1*width
+    xticks_positions = np.linspace(0, len(groups)-1, len(groups))
+    if "All" in groups:
+        xticks_positions[-1] += margin
     
-    plt.xlabel('False Positive Rate (FPR)', fontsize=13)
-    plt.ylabel('True Positive Rate (TPR)', fontsize=13)
-    plt.title(f"{label} - ROC Curve", fontsize=14)
-    ax.set(xlim=[-0.05, 1.05], ylim=[-0.05, 1.05])
-    plt.legend(loc='lower right', fontsize=11, ncol=2)
-    ax.spines[['right', 'top']].set_visible(False)
-    plt.grid(True, linestyle='-', linewidth=0.5, color='lightgray')
-    
-    # plt.savefig(os.path.join(output_dir, f'{dataset_name}__roc_curve__({label.replace(" ", "_")}).png'), dpi=OUT_DPI)
-    plt.savefig(os.path.join(output_dir, f'roc_curve__({label.replace(" ", "_")}).png'), dpi=OUT_DPI)
-    plt.close()
+    for i, model in enumerate(models):
+        # Filter data for each model
+        model_data = results_df[(results_df['Model'] == model["fullname"]) & (results_df['Metric'] == metric)]
+        # Initialise lists to store the extracted values and confidence intervals
+        values = []
+        ci_errors = []
+        
+        # Extract estimate and confidence intervals for each subgroup
+        for group in groups:
+            group_data = model_data.iloc[0][group]  # Assuming single row per model and metric
+            values.append(group_data['estimate'])
+            ci_lower, ci_upper = group_data['ci']
+            ci_errors.append([group_data['estimate'] - ci_lower, ci_upper - group_data['estimate']])
+
+        # Convert lists to numpy arrays for plotting
+        values = np.array(values)
+        ci_errors = np.array(ci_errors).T  # Transpose to fit expected shape for error bars
+
+        # Define colour scheme per model based on concatenated colormap
+        model_colours = full_cmap[i*4:(i+1)*4]  # Extract 4 colors for each model
+        # Correct colour order for subgroups
+        model_colours = [model_colours[3]] * len(RACES) + [model_colours[3]] * len(SEXES) + [model_colours[2]] + [model_colours[2]]
+        
+        # Set position for each bar
+        positions = xticks_positions + i * width - (width * (len(models) - 1) / 2)
+        # Plot each bar
+        ax.bar(positions, values, width=width, label=model["shortname"], color=model_colours, edgecolor=BAR_EDGE_COLOUR, linewidth=line_width, zorder=3)
+
+        # Plot error bars separately
+        for pos, val, err in zip(positions, values, ci_errors.T):
+            ax.errorbar(pos, val, yerr=[[err[0]], [err[1]]], fmt='none', ecolor=ERROR_EDGE_COLOUR, capsize=ci_capsize, elinewidth=line_width, zorder=3)
+            ax.plot(pos, val, 'o', color=ERROR_EDGE_COLOUR, markersize=ci_markersize, zorder=4)
+
+    # Add vertical dotted line if 'All' is part of the groups
+    if 'All' in groups:
+        line_position = len(groups) - 1.5 + margin/2
+        ax.axvline(x=line_position, color='black', linestyle='dashed', dashes=(6, 8), linewidth=line_width, zorder=2)
+
+    # Formatting the plot
+    ax.set_xticks(xticks_positions)
+    ax.set_xticklabels(groups[:-1]+[""], fontsize=font_size) if 'All' in groups else ax.set_xticklabels(groups, fontsize=font_size)
 
 
-def read_csv_file(file_path):
-    try:
-        data = pd.read_csv(file_path)
-        if data.empty:
-            raise ValueError(f"The file '{file_path}' is empty.")
-        return data
-    except FileNotFoundError:
-        raise FileNotFoundError(f"The file '{file_path}' was not found.")
-    except pd.errors.EmptyDataError:
-        raise ValueError(f"The file '{file_path}' is empty.")
-    except pd.errors.ParserError:
-        raise ValueError(f"The file '{file_path}' could not be parsed.")
-    except Exception as e:
-        raise Exception(f"An unexpected error occurred while reading the file '{file_path}': {str(e)}")
+def aggregate_plots_into_grid(output_dir, metrics_to_plot, labels, plot_type, grid_shape=(2, 2), figsize=(16, 8), font_size=12, 
+                              title_font_delta=4, legend_image_path=None, legend_height_fraction=0.15, wspace=-0.15, hspace=0.05, 
+                              dataset_name='CheXpert', auc_roc=False):
+    """Aggregates the figures into a grid and displays them."""
+    for i, metric in enumerate(metrics_to_plot):
+        if legend_image_path:
+            nrows = grid_shape[0] + 1  # Adding an extra row for the legend
+            height_ratios = [1] * grid_shape[0] + [legend_height_fraction]
+        else:
+            nrows = grid_shape[0]
+            height_ratios = [1] * grid_shape[0]
+
+        fig = plt.figure(figsize=figsize)
+        gs = gridspec.GridSpec(nrows=nrows, 
+                               ncols=grid_shape[1], 
+                               width_ratios=[1] * grid_shape[1], 
+                               height_ratios=height_ratios)
+
+        axes = [fig.add_subplot(gs[row, col]) for row in range(grid_shape[0]) for col in range(grid_shape[1])]
+
+        # Add title
+        title = f"{dataset_name} - ROC Curve" if auc_roc else get_plot_title(metric, plot_type, dataset_name)
+        fig.suptitle(title, fontsize=font_size+title_font_delta)
+
+        for j, label in enumerate(labels):
+            # Calculate the row and column of the subplot in the grid based on the index `j`
+            ax_subplot = axes[j]
+
+            # Construct the filename for the grid-ready plot
+            plot_filename_grid = f"{plot_type}_gridready__{metric.replace(' ', '_').lower()}__({dataset_name}--{label.replace(' ', '_')}).png"
+            plot_filepath = os.path.join(output_dir, plot_filename_grid)
+
+            # Load the image and display it in the subplot
+            img = mpimg.imread(plot_filepath)
+            ax_subplot.imshow(img)
+            ax_subplot.axis('off')
+ 
+        # Load and add the legend as an image (if available)
+        if legend_image_path:
+            ax_legend = fig.add_subplot(gs[-1, :])  # Last row, spanning all columns
+            ax_legend.axis('off')
+            img_legend = mpimg.imread(legend_image_path)
+            ax_legend.imshow(img_legend)
+        
+        grid_plot_filename = f"{plot_type}_grid_combined__{metric.replace(' ', '_').lower()}__({dataset_name}).png"
+        plt.tight_layout()
+        plt.subplots_adjust(wspace=wspace)
+        plt.subplots_adjust(hspace=hspace)
+        plt.savefig(os.path.join(output_dir, grid_plot_filename), dpi=OUT_DPI)
+        plt.close()
+
+# <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+# ===== ABSOLUTE & RELATIVE PERFORMANCES PLOTS - END =====
+# <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+
+
+# >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+# =============== ROC CURVE PLOTS - START ================
+# >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+def plot_auc_roc_curves(aucroc_metrics_df, label, output_dir, subgroups, models=None, dataset_name='CheXpert', lw=1.5, alpha=0.8, 
+                        markersize=12, fig_size=(8, 5), font_size=12, title_font_delta=2, axis_font_delta=1):
+    for model in models:
+        model_data = aucroc_metrics_df[(aucroc_metrics_df['Model'] == model['fullname'])]
+        _, ax = plt.subplots(figsize=fig_size)
+        original_cmap = plt.get_cmap('Dark2')
+        colors = list(original_cmap(np.linspace(0, 1, len(subgroups))))
+        colors[2] = 'mediumvioletred'  # Replace third colour
+
+        for idx, subgroup in enumerate(subgroups):
+            fprs = model_data.loc['FPRs', subgroup]
+            tprs = model_data.loc['TPRs', subgroup]
+            auc_score = model_data.loc['AUC-ROC', subgroup]
+            plt.plot(fprs, tprs, lw=lw, alpha=alpha, label=f'{subgroup} AUC-ROC={auc_score:.2f}', color=colors[idx])
+
+        plt.gca().set_prop_cycle(None)
+            
+        for idx, subgroup in enumerate(subgroups):
+            # Plotting the global threshold point
+            tpr_global_thresh = model_data.loc['TPR at threshold', subgroup]
+            fpr_global_thresh = model_data.loc['FPR at threshold', subgroup]
+            plt.plot(fpr_global_thresh, tpr_global_thresh, marker='*', linestyle='None', alpha=alpha, markersize=markersize,
+                        label=f'{subgroup} TPR={tpr_global_thresh:.2f}, FPR={fpr_global_thresh:.2f}', color=colors[idx])
+
+        plt.plot([0, 1], [0, 1], linestyle='--', lw=1, color='midnightblue', alpha=alpha)
+        plt.annotate('Random Classifier', xy=(0.5, 0.52), fontsize=11.5, color='midnightblue', rotation=32)
+        
+        plt.xlabel('False Positive Rate (FPR)', fontsize=font_size + axis_font_delta)
+        plt.ylabel('True Positive Rate (TPR)', fontsize=font_size + axis_font_delta)
+        plt.title(f"{model['shortname']}\n{dataset_name} | ROC Curve — {label}", fontsize=font_size + title_font_delta)
+        ax.set(xlim=[-0.05, 1.05], ylim=[-0.05, 1.05])
+        plt.legend(loc='lower right', fontsize=font_size - axis_font_delta, ncol=2)
+        ax.spines[['right', 'top']].set_visible(False)
+        plt.grid(True, linestyle='-', linewidth=0.5, color='lightgray')
+        
+        plt.savefig(os.path.join(output_dir, f'roc_curve__({dataset_name}--{label.replace(" ", "_")}).png'), dpi=OUT_DPI)
+        plt.close()
+
+# <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+# ================ ROC CURVE PLOTS - END =================
+# <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
 
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Calculate performance metrics for classification model.")
-    parser.add_argument('--outputs_dir', type=str, required=True, help='Path to outputs directory')
+    parser.add_argument('--models_dir', nargs='+', required=True, help='List ot paths to outputs directory from the different mdels we want to compare')
+    parser.add_argument('--models_shortnames', nargs='+', required=True, help='List of short names of the models corresponding to the directories')
     parser.add_argument('--config', default='chexpert', choices=['chexpert', 'mimic'], help='Config dataset module to use')
-    parser.add_argument('--labels', nargs='+', default=["No Finding", "Cardiomegaly", "Pneumothorax", "Pleural Effusion"], 
-                        help='List of labels to process')
-    parser.add_argument('--focus_metric', default="Youden\'s Index", help='Performance metric to focus on for comparative analysis')
+    parser.add_argument('--labels', nargs='+', default=["Pleural Effusion", "No Finding", "Cardiomegaly", "Pneumothorax"], help='List of labels to process')
+    parser.add_argument('--focus_metrics', default=["Youden\'s Index", "AUC-ROC"], help='Performance metrics to focus on for comparative analysis')
+    parser.add_argument('--local_execution', type=bool, default=True, help='Boolean to check whether the code is run locally or remotely')
     return parser.parse_args()
 
 
@@ -229,11 +614,18 @@ if __name__ == "__main__":
     config = load_config(args.config)
     # Accessing the configuration to import dataset-specific variables
     dataset_name = get_dataset_name(args.config)
-    TEST_RECORDS_CSV = config.TEST_RECORDS_CSV
 
-    # Path to outputs and data characteristics files
-    outputs_csv_filepath = os.path.join(args.outputs_dir, 'outputs_test.csv')
-    model_outputs = read_csv_file(outputs_csv_filepath)
+    if args.local_execution:
+        # Construct local file path dynamically based on the dataset name
+        local_base_path = '/Users/macuser/Desktop/Imperial/70078_MSc_AI_Individual_Project/code/Test_Resample_Records'
+        local_dataset_path = os.path.join(local_base_path, dataset_name)
+        local_filename = os.path.basename(config.TEST_RECORDS_CSV)  # Extracts filename from the config path
+        TEST_RECORDS_CSV = os.path.join(local_dataset_path, local_filename)
+    else:
+        TEST_RECORDS_CSV = config.TEST_RECORDS_CSV
+
+    # Path to base output directory and data characteristics files
+    base_output_path = os.getcwd()  # Use the current working directory for outputs
     data_characteristics = pd.read_csv(TEST_RECORDS_CSV)
 
     # Evaluation parameters
@@ -242,7 +634,7 @@ if __name__ == "__main__":
     ci_level = CI_LEVEL
 
     # Directories to save analysis outputs
-    disease_detection_dir_path = os.path.join(args.outputs_dir, 'analysis', 'disease_detection')
+    disease_detection_dir_path = os.path.join(base_output_path, 'analysis', 'disease_prediction')
     performance_tables_dir_path = os.path.join(disease_detection_dir_path, 'performance_tables/')
     absolute_plots_dir_path = os.path.join(disease_detection_dir_path, 'performance_plots_absolute/')
     relative_plots_dir_path = os.path.join(disease_detection_dir_path, 'performance_plots_relative/')
@@ -256,48 +648,157 @@ if __name__ == "__main__":
     os.makedirs(aucroc_tables_dir_path, exist_ok=True)
 
 
-    # Focus is on Youden's Index
-    metric_name = args.focus_metric
+    # Focus is on Youden's Index and AUC-ROC metrics
+    focus_metrics = args.focus_metrics
+    # Define all groups to be analysed
+    all_combined_groups = RACES + SEXES + ["Average", "All"]
+    all_combined_groups_noavg = RACES + SEXES + ["All"]
 
+    # Initial empty dictionaries for storing combined dataframes and global metric ranges
+    all_combined_results = {}
+    all_combined_aucroc = {}
+    all_combined_results_with_ci = {}
+    all_combined_results_with_ci_compact = {}
+    global_metric_ranges = {}
+
+    # List to store models info
+    models = []
+    for model_dir, model_shortname in zip(args.models_dir, args.models_shortnames):
+        model_fullname = os.path.basename(model_dir)
+        models.append({
+            "directory": model_dir,
+            "fullname" : model_fullname,
+            "shortname": model_shortname
+        })
+
+
+    # Iterate over each label of interest
     for label in args.labels:
-        label_index = LABELS.index(label)
-        probs = model_outputs[f"prob_class_{label_index+1}"]
-        targets = np.array(model_outputs[f"target_class_{label_index+1}"])
-        races = data_characteristics.race.values
-        sexes = data_characteristics.sex.values
+        all_results_df = []
+        all_aucroc_metrics_df = []
+        all_results_with_ci_df = []
+        all_results_with_ci_compact_df = []
 
-        results, aucroc_metrics = bootstrap_ci(targets=targets, probs=probs, races=races, sexes=sexes, 
-                                               n_bootstrap=n_bootstrap, target_fpr=target_fpr)
-        results_with_ci = summarise_metrics(results, ci_level, return_ci=True)
-        results_plain_avg = summarise_metrics(results, ci_level, return_ci=False)
+        # For each label, iterate over each of the models for an aggregate comparison
+        for model in models:
+            outputs_csv_filepath = os.path.join(model["directory"], 'outputs_test.csv')
+            model_outputs = read_csv_file(outputs_csv_filepath)
 
-        columns_as_in_manuscript = [race for race in RACES] + [sex for sex in SEXES] + ["All"]
-        results_df = pd.DataFrame.from_dict(results, orient="index")[columns_as_in_manuscript]
-        aucroc_metrics_df = pd.DataFrame.from_dict(aucroc_metrics, orient="index")[columns_as_in_manuscript]
-        results_with_ci_df = pd.DataFrame.from_dict(results_with_ci, orient="index")[columns_as_in_manuscript]
-        results_plain_avg_df = pd.DataFrame.from_dict(results_plain_avg, orient="index")[columns_as_in_manuscript]
+            label_index = LABELS.index(label)
+            probs = model_outputs[f"prob_class_{label_index+1}"]
+            targets = np.array(model_outputs[f"target_class_{label_index+1}"])
+            races = data_characteristics.race.values
+            sexes = data_characteristics.sex.values
 
-        # results_df.to_csv(os.path.join(performance_tables_dir_path, f'{dataset_name}__all_performance_metrics__({label.replace(" ", "_")}).csv'), index=True)
-        results_df.to_csv(os.path.join(performance_tables_dir_path, f'all_performance_metrics__({label.replace(" ", "_")}).csv'), index=True)
-        # aucroc_metrics_df.to_csv(os.path.join(aucroc_tables_dir_path, f'{dataset_name}__all_aucroc_metrics__({label.replace(" ", "_")}).csv'), index=True)
-        aucroc_metrics_df.to_csv(os.path.join(aucroc_tables_dir_path, f'all_aucroc_metrics__({label.replace(" ", "_")}).csv'), index=True)
-        
-        # results_with_ci_df.to_csv(os.path.join(performance_tables_dir_path, f'{dataset_name}__ci_summary_performance_metrics__({label.replace(" ", "_")}).csv'), index=True)
-        results_with_ci_df.to_csv(os.path.join(performance_tables_dir_path, f'ci_summary_performance_metrics__({label.replace(" ", "_")}).csv'), index=True)
+            # Calculate metrics
+            results, aucroc_metrics = bootstrap_ci(targets=targets, probs=probs, races=races, sexes=sexes, 
+                                                n_bootstrap=n_bootstrap, target_fpr=target_fpr)
+            results_with_ci = aggregate_metrics_with_ci(results, ci_level, compact=False)
+            results_with_ci_compact = aggregate_metrics_with_ci(results, ci_level, compact=True)
+            
+            # Convert the result dictionnaries to DataFrame and add 'Model' column
+            results_df = create_dataframe(data=results, columns=all_combined_groups, model_name=model["fullname"])
+            aucroc_metrics_df = create_dataframe(data=aucroc_metrics, columns=all_combined_groups, model_name=model["fullname"])
+            results_with_ci_df = create_dataframe(data=results_with_ci, columns=all_combined_groups, model_name=model["fullname"])
+            results_with_ci_compact_df = create_dataframe(data=results_with_ci_compact, columns=all_combined_groups, model_name=model["fullname"])
+
+            # Append dataframes to later ocncatenate them for all models
+            all_results_df.append(results_df)
+            all_aucroc_metrics_df.append(aucroc_metrics_df)
+            all_results_with_ci_df.append(results_with_ci_df)
+            all_results_with_ci_compact_df.append(results_with_ci_compact_df)
+
+        # Combine dataframes for all models
+        combined_results_df = pd.concat(all_results_df)
+        combined_aucroc_metrics_df = pd.concat(all_aucroc_metrics_df)
+        combined_results_with_ci_df = pd.concat(all_results_with_ci_df)
+        combined_results_with_ci_compact_df = pd.concat(all_results_with_ci_compact_df)
+
+        # Store combined dataframes in dedicated dictionaries
+        all_combined_results[label] = combined_results_df
+        all_combined_aucroc[label] = combined_aucroc_metrics_df
+        all_combined_results_with_ci[label] = combined_results_with_ci_df
+        all_combined_results_with_ci_compact[label] = combined_results_with_ci_compact_df
+
+        # Store Performance Table:
+        combined_results_df.to_csv(os.path.join(performance_tables_dir_path, f'all_performance_metrics__({dataset_name}--{label.replace(" ", "_")}).csv'), index=True)
+        combined_results_with_ci_compact_df.to_csv(os.path.join(performance_tables_dir_path, f'ci_performance_metrics__({dataset_name}--{label.replace(" ", "_")}).csv'), index=True)
         print(f"\nResults for: {label.upper()} ({ci_level * 100:.0f}%-CI with {n_bootstrap} bootstrap samples)")
-        print(tabulate(results_with_ci_df, headers=results_with_ci_df.columns))
+        print(tabulate(combined_results_with_ci_compact_df, headers=combined_results_with_ci_compact_df.columns))
 
-        # Plot Absolute Performance
-        plot_metrics(results_df=results_plain_avg_df, label=label, metric_name=metric_name, 
-                     output_dir=absolute_plots_dir_path, plot_type='absolute')
+        # Store AUC-ROC Table:
+        combined_aucroc_metrics_df.to_csv(os.path.join(aucroc_tables_dir_path, f'all_aucroc_metrics__({dataset_name}--{label.replace(" ", "_")}).csv'), index=True)
 
-        # Compute and plot Relative Performance Changes
-        relative_results_df = compute_relative_changes(df=results_plain_avg_df, metric_name=metric_name)
-        plot_metrics(results_df=relative_results_df, label=label, metric_name=metric_name, 
-                     output_dir=relative_plots_dir_path, plot_type='relative')
+        # Update global metric ranges:
+        update_global_metric_ranges(combined_results_df=combined_results_df, focus_metrics=focus_metrics, models=models,
+                                    combined_groups=all_combined_groups, global_metric_ranges=global_metric_ranges)
         
-        # Plot AUC-ROC curves 
-        plot_auc_roc_curves(aucroc_metrics_df=aucroc_metrics_df, label=label, output_dir=aucroc_plots_dir_path, 
-                            subgroups=columns_as_in_manuscript)
+
+    # >>>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<
+    # Generate plots for each label (for all metrics in focus_metrics): Plot for individual use
+    for label in args.labels:
+        # Plot Absolute Performance
+        _, _, _ = plot_metrics(
+            results_df=all_combined_results_with_ci[label], label=label, focus_metrics=focus_metrics, y_limits=global_metric_ranges, 
+            plot_type='absolute', models=models, RACES=RACES, SEXES=SEXES, for_grid=False, ci_capsize=4, ci_markersize=4, font_size=18, 
+            fig_size=(16,7), title_font_delta=4, axis_font_delta=1, line_width=0.8, y_xaxis_annotation=-28, title_pad = 12.5, 
+            label_pad=12.5, bars_cluster_width=0.7, output_dir=absolute_plots_dir_path, dataset_name=dataset_name
+            )
+        # Plot Relative Performance
+        _, _, _ = plot_metrics(
+            results_df=all_combined_results_with_ci[label], label=label, focus_metrics=focus_metrics, y_limits=global_metric_ranges, 
+            plot_type='relative', models=models, RACES=RACES, SEXES=SEXES, for_grid=False, ci_capsize=4, ci_markersize=4, font_size=18, 
+            fig_size=(16,7), title_font_delta=4, axis_font_delta=1, line_width=0.8, y_xaxis_annotation=-28, title_pad = 12.5, 
+            label_pad=12.5, bars_cluster_width=0.7, output_dir=relative_plots_dir_path, dataset_name=dataset_name
+            )
+        # Plot AUC-ROC curves
+        plot_auc_roc_curves(aucroc_metrics_df=all_combined_aucroc[label], label=label, output_dir=aucroc_plots_dir_path,
+                            subgroups=all_combined_groups_noavg, models=models, dataset_name=dataset_name)
 
 
+    # >>>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<
+    # Generate plots for each label (for all metrics in focus_metrics): Plot for 2x2 grid use
+    font_size_plotforgrid = 20
+    fig_size_plotforgrid = (10,6)
+    title_font_delta = 4
+    for label in args.labels:
+        # Plot Absolute Performance
+        metrics_to_plot_abs, legend_handles_abs, legend_labels_abs = plot_metrics(
+            results_df=all_combined_results_with_ci[label], label=label, focus_metrics=focus_metrics, y_limits=global_metric_ranges, 
+            plot_type='absolute', models=models, RACES=RACES, SEXES=SEXES, for_grid=True, ci_capsize=3, ci_markersize=4, 
+            font_size=font_size_plotforgrid, fig_size=fig_size_plotforgrid, title_font_delta=title_font_delta, axis_font_delta=1, 
+            line_width=0.8, y_xaxis_annotation=-28, title_pad = 20, label_pad=12.5, bars_cluster_width=0.7, 
+            output_dir=absolute_plots_dir_path, dataset_name=dataset_name
+            )
+        # Plot Relative Performance
+        metrics_to_plot_rel, legend_handles_rel, legend_labels_rel = plot_metrics(
+            results_df=all_combined_results_with_ci[label], label=label, focus_metrics=focus_metrics, y_limits=global_metric_ranges, 
+            plot_type='relative', models=models, RACES=RACES, SEXES=SEXES, for_grid=True, ci_capsize=3, ci_markersize=4, 
+            font_size=font_size_plotforgrid, fig_size=fig_size_plotforgrid, title_font_delta=title_font_delta, axis_font_delta=1, 
+            line_width=0.8, y_xaxis_annotation=-28, title_pad = 20, label_pad=12.5, bars_cluster_width=0.7, 
+            output_dir=relative_plots_dir_path, dataset_name=dataset_name
+            )
+        # Plot AUC-ROC curves
+        plot_auc_roc_curves(aucroc_metrics_df=all_combined_aucroc[label], label=label, output_dir=aucroc_plots_dir_path,
+                            subgroups=all_combined_groups_noavg, models=models, dataset_name=dataset_name)
+        
+
+    # >>>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<
+    # Save the legend as an image
+    legend_image_path_abs = save_legend_image(legend_handles=legend_handles_abs, legend_labels=legend_labels_abs, output_dir=absolute_plots_dir_path, 
+                                        plot_type='absolute', filename="legend_abs__({dataset_name}).png", font_size=font_size_plotforgrid)
+    legend_image_path_rel = save_legend_image(legend_handles=legend_handles_rel, legend_labels=legend_labels_rel, output_dir=relative_plots_dir_path, 
+                                        plot_type='relative', filename="legend_rel__({dataset_name}).png", font_size=font_size_plotforgrid)
+    
+    # Combine related plots (come by 4) into a single 2x2 grid
+    # Absolute Performance Grid
+    aggregate_plots_into_grid(
+        output_dir=absolute_plots_dir_path, metrics_to_plot=metrics_to_plot_abs, labels=args.labels, plot_type='absolute', grid_shape=(2, 2), 
+        font_size=font_size_plotforgrid, figsize=(fig_size_plotforgrid[0]*2, fig_size_plotforgrid[1]*2), title_font_delta=title_font_delta+2, 
+        legend_image_path=legend_image_path_abs, legend_height_fraction=0.15, wspace=-0.15, hspace=0)
+    # Relative Performance Grid
+    aggregate_plots_into_grid(
+        output_dir=relative_plots_dir_path, metrics_to_plot=metrics_to_plot_rel, labels=args.labels, plot_type='relative', grid_shape=(2, 2), 
+        font_size=font_size_plotforgrid, figsize=(fig_size_plotforgrid[0]*2, fig_size_plotforgrid[1]*2), title_font_delta=title_font_delta+2, 
+        legend_image_path=legend_image_path_rel, legend_height_fraction=0.15, wspace=-0.15, hspace=0)
+ 

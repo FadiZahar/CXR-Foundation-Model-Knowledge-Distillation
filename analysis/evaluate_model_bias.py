@@ -276,6 +276,7 @@ def parse_args():
     parser.add_argument('--config', default='chexpert', choices=['chexpert', 'mimic'], help='Config dataset module to use')
     parser.add_argument('--labels', nargs='+', default=['Pleural Effusion', 'Other', 'No Finding'], 
                         help='List of labels to process')
+    parser.add_argument('--local_execution', type=bool, default=True, help='Boolean to check whether the code is run locally or remotely')
     return parser.parse_args()
 
 
@@ -286,7 +287,16 @@ if __name__ == "__main__":
     config = load_config(args.config)
     # Accessing the configuration to import dataset-specific variables
     dataset_name = get_dataset_name(args.config)
-    TEST_RECORDS_CSV = config.TEST_RECORDS_CSV
+
+    if args.local_execution:
+        # Construct local file path dynamically based on the dataset name
+        local_base_path = '/Users/macuser/Desktop/Imperial/70078_MSc_AI_Individual_Project/code/Test_Resample_Records'
+        local_dataset_path = os.path.join(local_base_path, dataset_name)
+        local_filename = os.path.basename(config.TEST_RECORDS_CSV)  # Extracts filename from the config path
+        TEST_RECORDS_CSV = os.path.join(local_dataset_path, local_filename)
+        # TEST_RECORDS_CSV = "/Users/macuser/Desktop/Imperial/70078_MSc_AI_Individual_Project/code/external/biomedia/biodata-data-chext_xray/meta/algorithmic_encoding/chexpert.sample.test.csv"
+    else:
+        TEST_RECORDS_CSV = config.TEST_RECORDS_CSV
 
     # Path to outputs and data characteristics files
     embeddings_csv_filepath = os.path.join(args.outputs_dir, 'embeddings_test.csv')
