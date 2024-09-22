@@ -20,6 +20,22 @@ LABELS = [
     'Fracture',
     'Support Devices'
     ]
+LABELS_BY_RELEVANCE = [
+    'Pleural Effusion',
+    'No Finding',
+    'Cardiomegaly',
+    'Pneumothorax',
+    'Atelectasis',
+    'Consolidation',
+    'Edema',
+    'Pleural Other',
+    'Enlarged Cardiomediastinum',
+    'Pneumonia',
+    'Lung Lesion',
+    'Lung Opacity',
+    'Fracture',
+    'Support Devices'
+    ]
 RACES = ['White', 'Asian', 'Black']
 SEXES = ['Male', 'Female']
 

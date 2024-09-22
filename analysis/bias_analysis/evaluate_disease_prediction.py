@@ -2,13 +2,11 @@ import os
 import argparse
 import numpy as np
 import pandas as pd
-import seaborn as sns
 from collections import defaultdict
 from sklearn.metrics import recall_score, roc_auc_score, roc_curve
 from sklearn.utils import resample
 from tabulate import tabulate
 from tqdm import tqdm
-from pprint import pprint
 import pickle
 
 from matplotlib import font_manager
@@ -62,34 +60,33 @@ class DiagonalColorHandler(HandlerBase):
 
 
 def set_plot_labels(ax, label, metric, plot_type, font_size, title_pad, label_pad, title_font_delta, axis_font_delta, dataset_name):
-    title = get_plot_title(metric, plot_type, dataset_name)
     if plot_type == 'absolute':
         if "AUC-ROC" in metric:
-            ax.set_title(f"{title} — {label}", fontsize=font_size+title_font_delta, pad=title_pad)
+            ax.set_title(f"AUC-ROC (Absolute) — {label} | {dataset_name}", fontsize=font_size+title_font_delta, pad=title_pad)
             ax.set_ylabel("AUC-ROC", fontsize=font_size+axis_font_delta, labelpad=label_pad)
         elif "Youden's Index" in metric:
-            ax.set_title(f"{title} — {label}", fontsize=font_size+title_font_delta, pad=title_pad)
+            ax.set_title(f"Youden's J Statistic (Absolute) — {label} | {dataset_name}", fontsize=font_size+title_font_delta, pad=title_pad)
             ax.set_ylabel("Youden's J Statistic", fontsize=font_size+axis_font_delta, labelpad=label_pad)
     else:
         if "AUC-ROC" in metric:
-            ax.set_title(f"{title} — {label}", fontsize=font_size+title_font_delta, pad=title_pad)
+            ax.set_title(f"AUC-ROC (Relative) — {label} | {dataset_name}", fontsize=font_size+title_font_delta, pad=title_pad)
             ax.set_ylabel("Difference from Average (%)\nAUC-ROC", fontsize=font_size+axis_font_delta, labelpad=label_pad)
         elif "Youden's Index" in metric:
-            ax.set_title(f"{title} — {label}", fontsize=font_size+title_font_delta, pad=title_pad)
+            ax.set_title(f"Youden's J Statistic (Relative) — {label} | {dataset_name}", fontsize=font_size+title_font_delta, pad=title_pad)
             ax.set_ylabel("Difference from Average (%)\nYouden's J Statistic", fontsize=font_size+axis_font_delta, labelpad=label_pad)
 
 
 def get_plot_title(metric, plot_type, dataset_name):
     if plot_type == 'absolute':
         if "AUC-ROC" in metric:
-            title = f"{dataset_name} | AUC-ROC (Absolute)"
+            title = f"AUC-ROC (Absolute) | {dataset_name}"
         elif "Youden's Index" in metric:
-            title = f"{dataset_name} | Youden's J Statistic (Absolute)"
+            title = f"Youden's J Statistic (Absolute) | {dataset_name}"
     else:
         if "AUC-ROC" in metric:
-            title = f"{dataset_name} | AUC-ROC (Relative)"
+            title = f"AUC-ROC (Relative) | {dataset_name}"
         elif "Youden's Index" in metric:
-            title = f"{dataset_name} | Youden's J Statistic (Relative)"
+            title = f"Youden's J Statistic (Relative) | {dataset_name}"
     return title  
 
 
@@ -114,10 +111,13 @@ def create_custom_legend(ax, models, full_cmap, plot_type, bar_edge_colour, erro
     # Combine both custom legend elements
     legend_elements.append(error_bar_legend)
 
+    # Legend is made out of 6 elements, the last 3 are lengthy in writing: use 3 columns (i.e., 2 rows)
+    num_columns = 3
+
     # Update the legend with custom elements
     ax.legend(handles=legend_elements, 
               handler_map={patches.Patch: DiagonalColorHandler()} if plot_type == 'absolute' else None,
-              loc='upper center', bbox_to_anchor=(0.5, -0.13), fontsize=font_size-1, ncol=len(models) + 1)
+              loc='upper center', bbox_to_anchor=(0.5, -0.15), fontsize=font_size-1, ncol=num_columns)
 
     # Extract handles and labels from the legend_elements for later use
     legend_handles = [el for el in legend_elements]
@@ -161,9 +161,12 @@ def load_figs_and_axes(output_dir, filename="saved_plots.pkl"):
 def save_legend_image(legend_handles, legend_labels, output_dir, plot_type='absolute', filename="legend.png", font_size=12):
     fig, ax = plt.subplots(figsize=(1, 1))  # Dummy figure for legend
     ax.axis('off')
+
+    # Legend is made out of 6 elements, the last 3 are lengthy in writing: use 3 columns (i.e., 2 rows)
+    num_columns = 3
     
     # Save the legend
-    legend = ax.legend(legend_handles, legend_labels, loc='center', ncol=len(legend_handles), fontsize=font_size,
+    legend = ax.legend(legend_handles, legend_labels, loc='center', ncol=num_columns, fontsize=font_size,
                        handler_map={patches.Patch: DiagonalColorHandler()} if plot_type == 'absolute' else None)
     fig.canvas.draw()
     
@@ -172,13 +175,16 @@ def save_legend_image(legend_handles, legend_labels, output_dir, plot_type='abso
     plt.savefig(legend_filename, dpi=OUT_DPI, bbox_inches='tight')
     plt.close()
 
+    return legend_filename
+
 
 ## Section for further handling of the generated dataframes:
 
 def create_dataframe(data, columns, model_name):
     # Convert the results dictionary to DataFrame
     results_df = pd.DataFrame.from_dict(data, orient='index')[columns]
-    results_df.index.name = 'Metric'
+    results_df.reset_index(inplace=True)  # Makes 'Metric' a column
+    results_df.rename(columns={'index': 'Metric'}, inplace=True)  # Renames the new column to 'Metric'
     # Insert 'Model' column as the first column
     results_df.insert(0, 'Model', model_name)
     return results_df
@@ -186,33 +192,41 @@ def create_dataframe(data, columns, model_name):
 
 def update_global_metric_ranges(combined_results_df, focus_metrics, models, combined_groups, global_metric_ranges):
     all_relevant_metrics = [metric for metric in combined_results_df['Metric'].unique()
-                        if any(focus in metric for focus in focus_metrics)]
-    # Initialise global metric ranges if not all metrics are present
-    if not set(all_relevant_metrics).issubset(global_metric_ranges.keys()):
-        global_metric_ranges = {metric: [float('inf'), -float('inf')] for metric in all_relevant_metrics} 
+                            if any(focus in metric for focus in focus_metrics)]
+    
+    # Initialise global metric ranges at the first call of this function
+    new_metrics = [metric for metric in all_relevant_metrics if metric not in global_metric_ranges.keys()]
+    for metric in new_metrics:
+        global_metric_ranges[metric] = (float('inf'), -float('inf'))
+    
+    # Initialise local metric ranges, to be later compared to our glocal metric ranges
+    local_metric_ranges = {metric: (float('inf'), -float('inf')) for metric in all_relevant_metrics}
 
     for model in models:
         for metric in all_relevant_metrics:
             data = combined_results_df[(combined_results_df['Model'] == model["fullname"]) & (combined_results_df['Metric'] == metric)]
             for group in combined_groups:
                 # Fetch CI upper and lower values
-                ci_lower = data[group].apply(lambda x: x['ci'][0]).values
-                ci_upper = data[group].apply(lambda x: x['ci'][1]).values 
-
+                ci_data = data[group].apply(lambda x: x['ci']).iloc[0]
+                ci_lower = ci_data[0]
+                ci_upper = ci_data[1] 
                 # Update metric range, including some margin
-                global_metric_ranges[metric] = (min(global_metric_ranges[metric][0], ci_lower), 
-                                                max(global_metric_ranges[metric][1], ci_upper))
+                local_metric_ranges[metric] = (min(local_metric_ranges[metric][0], ci_lower), 
+                                               max(local_metric_ranges[metric][1], ci_upper))                
 
     # Add margins to the y-axis ranges and round values for cleaner axis limits
-    for metric, (min_val, max_val) in global_metric_ranges.items():
+    for metric, (min_val, max_val) in local_metric_ranges.items():
         range_margin = (max_val - min_val) * 0.05  # 5% margin on each side
         adjusted_min = min_val - range_margin
         adjusted_max = max_val + range_margin
-        # Apply floor to the adjusted minimum and ceiling to the adjusted maximum, rounding to nearest 0.05
-        floored_min = np.floor(adjusted_min * 20) / 20
-        ceiled_max = np.ceil(adjusted_max * 20) / 20
-        # Update the metric ranges
-        global_metric_ranges[metric] = (floored_min, ceiled_max)
+        # Dynamic rounding based on the order of magnitude of the range margin
+        magnitude = -np.floor(np.log10(range_margin)) + 1
+        rounding_factor = np.power(10, magnitude)
+        floored_min = np.floor(adjusted_min * rounding_factor) / rounding_factor
+        ceiled_max = np.ceil(adjusted_max * rounding_factor) / rounding_factor
+        # Update the global metric ranges
+        global_metric_ranges[metric] = (min(global_metric_ranges[metric][0], floored_min), 
+                                        max(global_metric_ranges[metric][1], ceiled_max))
 
 
 def read_csv_file(file_path):
@@ -493,7 +507,7 @@ def plot_bars(ax, results_df, metric, models, groups, full_cmap, bars_cluster_wi
 
 def aggregate_plots_into_grid(output_dir, metrics_to_plot, labels, plot_type, grid_shape=(2, 2), figsize=(16, 8), font_size=12, 
                               title_font_delta=4, legend_image_path=None, legend_height_fraction=0.15, wspace=-0.15, hspace=0.05, 
-                              dataset_name='CheXpert', auc_roc=False):
+                              dataset_name='CheXpert'):
     """Aggregates the figures into a grid and displays them."""
     for i, metric in enumerate(metrics_to_plot):
         if legend_image_path:
@@ -512,7 +526,7 @@ def aggregate_plots_into_grid(output_dir, metrics_to_plot, labels, plot_type, gr
         axes = [fig.add_subplot(gs[row, col]) for row in range(grid_shape[0]) for col in range(grid_shape[1])]
 
         # Add title
-        title = f"{dataset_name} - ROC Curve" if auc_roc else get_plot_title(metric, plot_type, dataset_name)
+        title = get_plot_title(metric, plot_type, dataset_name)
         fig.suptitle(title, fontsize=font_size+title_font_delta)
 
         for j, label in enumerate(labels):
@@ -537,8 +551,7 @@ def aggregate_plots_into_grid(output_dir, metrics_to_plot, labels, plot_type, gr
         
         grid_plot_filename = f"{plot_type}_grid_combined__{metric.replace(' ', '_').lower()}__({dataset_name}).png"
         plt.tight_layout()
-        plt.subplots_adjust(wspace=wspace)
-        plt.subplots_adjust(hspace=hspace)
+        plt.subplots_adjust(wspace=wspace, hspace=hspace)
         plt.savefig(os.path.join(output_dir, grid_plot_filename), dpi=OUT_DPI)
         plt.close()
 
@@ -553,7 +566,8 @@ def aggregate_plots_into_grid(output_dir, metrics_to_plot, labels, plot_type, gr
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 def plot_auc_roc_curves(aucroc_metrics_df, label, output_dir, subgroups, models=None, dataset_name='CheXpert', lw=1.5, alpha=0.8, 
-                        markersize=12, fig_size=(8, 5), font_size=12, title_font_delta=2, axis_font_delta=1):
+                        markersize=12, fig_size=(8, 5), font_size=12, title_font_delta=2, axis_font_delta=1, legend_font_delta=-1, 
+                        for_grid=False):
     for model in models:
         model_data = aucroc_metrics_df[(aucroc_metrics_df['Model'] == model['fullname'])]
         _, ax = plt.subplots(figsize=fig_size)
@@ -562,32 +576,84 @@ def plot_auc_roc_curves(aucroc_metrics_df, label, output_dir, subgroups, models=
         colors[2] = 'mediumvioletred'  # Replace third colour
 
         for idx, subgroup in enumerate(subgroups):
-            fprs = model_data.loc['FPRs', subgroup]
-            tprs = model_data.loc['TPRs', subgroup]
-            auc_score = model_data.loc['AUC-ROC', subgroup]
+            fprs = model_data[model_data['Metric'] == 'FPRs'][subgroup].iloc[0]
+            tprs = model_data[model_data['Metric'] == 'TPRs'][subgroup].iloc[0]
+            auc_score = model_data[model_data['Metric'] == 'AUC-ROC'][subgroup].iloc[0]
             plt.plot(fprs, tprs, lw=lw, alpha=alpha, label=f'{subgroup} AUC-ROC={auc_score:.2f}', color=colors[idx])
 
         plt.gca().set_prop_cycle(None)
             
         for idx, subgroup in enumerate(subgroups):
             # Plotting the global threshold point
-            tpr_global_thresh = model_data.loc['TPR at threshold', subgroup]
-            fpr_global_thresh = model_data.loc['FPR at threshold', subgroup]
+            tpr_global_thresh = model_data[model_data['Metric'] == 'TPR at threshold'][subgroup].iloc[0]
+            fpr_global_thresh = model_data[model_data['Metric'] == 'FPR at threshold'][subgroup].iloc[0]
             plt.plot(fpr_global_thresh, tpr_global_thresh, marker='*', linestyle='None', alpha=alpha, markersize=markersize,
                         label=f'{subgroup} TPR={tpr_global_thresh:.2f}, FPR={fpr_global_thresh:.2f}', color=colors[idx])
 
         plt.plot([0, 1], [0, 1], linestyle='--', lw=1, color='midnightblue', alpha=alpha)
-        plt.annotate('Random Classifier', xy=(0.5, 0.52), fontsize=11.5, color='midnightblue', rotation=32)
+        plt.annotate('Random Classifier', xy=(0.5, 0.52), fontsize=font_size-0.5, color='midnightblue', rotation=32)
         
         plt.xlabel('False Positive Rate (FPR)', fontsize=font_size + axis_font_delta)
         plt.ylabel('True Positive Rate (TPR)', fontsize=font_size + axis_font_delta)
-        plt.title(f"{model['shortname']}\n{dataset_name} | ROC Curve — {label}", fontsize=font_size + title_font_delta)
+
+        model_shortname = model['shortname'].replace(' ', '_')
+        model_aucroc_dir_path = os.path.join(output_dir, model_shortname)
+        os.makedirs(model_aucroc_dir_path, exist_ok=True)
+
+        if for_grid:
+            title = f"{label}"
+            filename_suffix = "roc_curve_gridready"
+        else:
+            title = f"{model['shortname']}\nROC Curve — {label} | {dataset_name}"
+            filename_suffix = "roc_curve"
+
+        plt.title(title, fontsize=font_size + title_font_delta)
         ax.set(xlim=[-0.05, 1.05], ylim=[-0.05, 1.05])
-        plt.legend(loc='lower right', fontsize=font_size - axis_font_delta, ncol=2)
+        plt.legend(loc='lower right', fontsize=font_size + legend_font_delta, ncol=2)
         ax.spines[['right', 'top']].set_visible(False)
         plt.grid(True, linestyle='-', linewidth=0.5, color='lightgray')
         
-        plt.savefig(os.path.join(output_dir, f'roc_curve__({dataset_name}--{label.replace(" ", "_")}).png'), dpi=OUT_DPI)
+        filepath = os.path.join(model_aucroc_dir_path, f'{model_shortname}__{filename_suffix}__({dataset_name}--{label.replace(" ", "_")}).png')
+        plt.savefig(filepath, dpi=OUT_DPI)
+        plt.close()
+
+
+def aggregate_roccurves_into_grid(output_dir, models, labels, grid_shape=(2, 2), figsize=(16, 8), font_size=12, 
+                                  title_font_delta=4, wspace=-0.15, hspace=0.05, dataset_name='CheXpert'):
+    """Aggregates the roc curves into a grid and displays them."""
+    for i, model in enumerate(models):
+        fig = plt.figure(figsize=figsize)
+        gs = gridspec.GridSpec(nrows=grid_shape[0], 
+                               ncols=grid_shape[1], 
+                               width_ratios=[1] * grid_shape[1], 
+                               height_ratios=[1] * grid_shape[0])
+
+        axes = [fig.add_subplot(gs[row, col]) for row in range(grid_shape[0]) for col in range(grid_shape[1])]
+
+        model_shortname = model['shortname'].replace(' ', '_')
+        model_aucroc_dir_path = os.path.join(output_dir, model_shortname)
+
+        # Add title
+        title = f"{model['shortname']}\nROC Curve | {dataset_name}"
+        fig.suptitle(title, fontsize=font_size+title_font_delta)
+
+        for j, label in enumerate(labels):
+            # Calculate the row and column of the subplot in the grid based on the index `j`
+            ax_subplot = axes[j]
+
+            # Construct the filename for the grid-ready plot
+            roccurve_filename_grid = f'{model_shortname}__roc_curve_gridready__({dataset_name}--{label.replace(" ", "_")}).png'
+            roccurve_filepath = os.path.join(model_aucroc_dir_path, roccurve_filename_grid)
+
+            # Load the image and display it in the subplot
+            img = mpimg.imread(roccurve_filepath)
+            ax_subplot.imshow(img)
+            ax_subplot.axis('off')
+        
+        grid_plot_filename = f'{model_shortname}__roc_curves_grid_combined__({dataset_name}--{label.replace(" ", "_")}).png'
+        plt.tight_layout()
+        plt.subplots_adjust(wspace=wspace, hspace=hspace)
+        plt.savefig(os.path.join(output_dir, grid_plot_filename), dpi=OUT_DPI)
         plt.close()
 
 # <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
@@ -634,7 +700,7 @@ if __name__ == "__main__":
     ci_level = CI_LEVEL
 
     # Directories to save analysis outputs
-    disease_detection_dir_path = os.path.join(base_output_path, 'analysis', 'disease_prediction')
+    disease_detection_dir_path = os.path.join(base_output_path, 'bias_analysis', f'performance_for_bias--{dataset_name}')
     performance_tables_dir_path = os.path.join(disease_detection_dir_path, 'performance_tables/')
     absolute_plots_dir_path = os.path.join(disease_detection_dir_path, 'performance_plots_absolute/')
     relative_plots_dir_path = os.path.join(disease_detection_dir_path, 'performance_plots_relative/')
@@ -670,7 +736,7 @@ if __name__ == "__main__":
             "fullname" : model_fullname,
             "shortname": model_shortname
         })
-
+    
 
     # Iterate over each label of interest
     for label in args.labels:
@@ -698,7 +764,7 @@ if __name__ == "__main__":
             
             # Convert the result dictionnaries to DataFrame and add 'Model' column
             results_df = create_dataframe(data=results, columns=all_combined_groups, model_name=model["fullname"])
-            aucroc_metrics_df = create_dataframe(data=aucroc_metrics, columns=all_combined_groups, model_name=model["fullname"])
+            aucroc_metrics_df = create_dataframe(data=aucroc_metrics, columns=all_combined_groups_noavg, model_name=model["fullname"])
             results_with_ci_df = create_dataframe(data=results_with_ci, columns=all_combined_groups, model_name=model["fullname"])
             results_with_ci_compact_df = create_dataframe(data=results_with_ci_compact, columns=all_combined_groups, model_name=model["fullname"])
 
@@ -722,7 +788,8 @@ if __name__ == "__main__":
 
         # Store Performance Table:
         combined_results_df.to_csv(os.path.join(performance_tables_dir_path, f'all_performance_metrics__({dataset_name}--{label.replace(" ", "_")}).csv'), index=True)
-        combined_results_with_ci_compact_df.to_csv(os.path.join(performance_tables_dir_path, f'ci_performance_metrics__({dataset_name}--{label.replace(" ", "_")}).csv'), index=True)
+        combined_results_with_ci_df.to_csv(os.path.join(performance_tables_dir_path, f'ci_performance_metrics--full__({dataset_name}--{label.replace(" ", "_")}).csv'), index=True)
+        combined_results_with_ci_compact_df.to_csv(os.path.join(performance_tables_dir_path, f'ci_performance_metrics--compact__({dataset_name}--{label.replace(" ", "_")}).csv'), index=True)
         print(f"\nResults for: {label.upper()} ({ci_level * 100:.0f}%-CI with {n_bootstrap} bootstrap samples)")
         print(tabulate(combined_results_with_ci_compact_df, headers=combined_results_with_ci_compact_df.columns))
 
@@ -730,9 +797,9 @@ if __name__ == "__main__":
         combined_aucroc_metrics_df.to_csv(os.path.join(aucroc_tables_dir_path, f'all_aucroc_metrics__({dataset_name}--{label.replace(" ", "_")}).csv'), index=True)
 
         # Update global metric ranges:
-        update_global_metric_ranges(combined_results_df=combined_results_df, focus_metrics=focus_metrics, models=models,
+        update_global_metric_ranges(combined_results_df=combined_results_with_ci_df, focus_metrics=focus_metrics, models=models,
                                     combined_groups=all_combined_groups, global_metric_ranges=global_metric_ranges)
-        
+                
 
     # >>>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<
     # Generate plots for each label (for all metrics in focus_metrics): Plot for individual use
@@ -752,8 +819,10 @@ if __name__ == "__main__":
             label_pad=12.5, bars_cluster_width=0.7, output_dir=relative_plots_dir_path, dataset_name=dataset_name
             )
         # Plot AUC-ROC curves
-        plot_auc_roc_curves(aucroc_metrics_df=all_combined_aucroc[label], label=label, output_dir=aucroc_plots_dir_path,
-                            subgroups=all_combined_groups_noavg, models=models, dataset_name=dataset_name)
+        plot_auc_roc_curves(aucroc_metrics_df=all_combined_aucroc[label], label=label, output_dir=aucroc_plots_dir_path, 
+                            subgroups=all_combined_groups_noavg, models=models, dataset_name=dataset_name, lw=1.5, alpha=0.8, 
+                            markersize=12, fig_size=(8, 5), font_size=12, title_font_delta=2, axis_font_delta=1, 
+                            legend_font_delta=-1, for_grid=False)
 
 
     # >>>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<
@@ -761,12 +830,14 @@ if __name__ == "__main__":
     font_size_plotforgrid = 20
     fig_size_plotforgrid = (10,6)
     title_font_delta = 4
+    font_size_roccurveforgrid = 16
+    fig_size_roccurveforgrid = (8,5)
     for label in args.labels:
         # Plot Absolute Performance
         metrics_to_plot_abs, legend_handles_abs, legend_labels_abs = plot_metrics(
             results_df=all_combined_results_with_ci[label], label=label, focus_metrics=focus_metrics, y_limits=global_metric_ranges, 
             plot_type='absolute', models=models, RACES=RACES, SEXES=SEXES, for_grid=True, ci_capsize=3, ci_markersize=4, 
-            font_size=font_size_plotforgrid, fig_size=fig_size_plotforgrid, title_font_delta=title_font_delta, axis_font_delta=1, 
+            font_size=font_size_plotforgrid, fig_size=fig_size_plotforgrid, title_font_delta=title_font_delta, axis_font_delta=1.5, 
             line_width=0.8, y_xaxis_annotation=-28, title_pad = 20, label_pad=12.5, bars_cluster_width=0.7, 
             output_dir=absolute_plots_dir_path, dataset_name=dataset_name
             )
@@ -774,31 +845,40 @@ if __name__ == "__main__":
         metrics_to_plot_rel, legend_handles_rel, legend_labels_rel = plot_metrics(
             results_df=all_combined_results_with_ci[label], label=label, focus_metrics=focus_metrics, y_limits=global_metric_ranges, 
             plot_type='relative', models=models, RACES=RACES, SEXES=SEXES, for_grid=True, ci_capsize=3, ci_markersize=4, 
-            font_size=font_size_plotforgrid, fig_size=fig_size_plotforgrid, title_font_delta=title_font_delta, axis_font_delta=1, 
+            font_size=font_size_plotforgrid, fig_size=fig_size_plotforgrid, title_font_delta=title_font_delta, axis_font_delta=1.5, 
             line_width=0.8, y_xaxis_annotation=-28, title_pad = 20, label_pad=12.5, bars_cluster_width=0.7, 
             output_dir=relative_plots_dir_path, dataset_name=dataset_name
             )
         # Plot AUC-ROC curves
-        plot_auc_roc_curves(aucroc_metrics_df=all_combined_aucroc[label], label=label, output_dir=aucroc_plots_dir_path,
-                            subgroups=all_combined_groups_noavg, models=models, dataset_name=dataset_name)
+        plot_auc_roc_curves(aucroc_metrics_df=all_combined_aucroc[label], label=label, output_dir=aucroc_plots_dir_path, 
+                            subgroups=all_combined_groups_noavg, models=models, dataset_name=dataset_name, lw=1.5, alpha=0.8, 
+                            markersize=12, fig_size=fig_size_roccurveforgrid, font_size=font_size_roccurveforgrid, 
+                            title_font_delta=2, axis_font_delta=1, legend_font_delta=-4, for_grid=True)
         
 
     # >>>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<
     # Save the legend as an image
     legend_image_path_abs = save_legend_image(legend_handles=legend_handles_abs, legend_labels=legend_labels_abs, output_dir=absolute_plots_dir_path, 
-                                        plot_type='absolute', filename="legend_abs__({dataset_name}).png", font_size=font_size_plotforgrid)
+                                        plot_type='absolute', filename=f"legend_abs__({dataset_name}).png", font_size=font_size_plotforgrid)
     legend_image_path_rel = save_legend_image(legend_handles=legend_handles_rel, legend_labels=legend_labels_rel, output_dir=relative_plots_dir_path, 
-                                        plot_type='relative', filename="legend_rel__({dataset_name}).png", font_size=font_size_plotforgrid)
+                                        plot_type='relative', filename=f"legend_rel__({dataset_name}).png", font_size=font_size_plotforgrid)
     
     # Combine related plots (come by 4) into a single 2x2 grid
     # Absolute Performance Grid
     aggregate_plots_into_grid(
         output_dir=absolute_plots_dir_path, metrics_to_plot=metrics_to_plot_abs, labels=args.labels, plot_type='absolute', grid_shape=(2, 2), 
         font_size=font_size_plotforgrid, figsize=(fig_size_plotforgrid[0]*2, fig_size_plotforgrid[1]*2), title_font_delta=title_font_delta+2, 
-        legend_image_path=legend_image_path_abs, legend_height_fraction=0.15, wspace=-0.15, hspace=0)
+        legend_image_path=legend_image_path_abs, legend_height_fraction=0.2, wspace=-0.15, hspace=0, dataset_name=dataset_name
+        )
     # Relative Performance Grid
     aggregate_plots_into_grid(
         output_dir=relative_plots_dir_path, metrics_to_plot=metrics_to_plot_rel, labels=args.labels, plot_type='relative', grid_shape=(2, 2), 
         font_size=font_size_plotforgrid, figsize=(fig_size_plotforgrid[0]*2, fig_size_plotforgrid[1]*2), title_font_delta=title_font_delta+2, 
-        legend_image_path=legend_image_path_rel, legend_height_fraction=0.15, wspace=-0.15, hspace=0)
+        legend_image_path=legend_image_path_rel, legend_height_fraction=0.2, wspace=-0.15, hspace=0, dataset_name=dataset_name
+        )
+    # ROC Curves Grid
+    aggregate_roccurves_into_grid(
+        output_dir=aucroc_plots_dir_path, models=models, labels=args.labels, grid_shape=(2, 2), title_font_delta=4, wspace=-0.2, hspace=0,
+        figsize=(fig_size_roccurveforgrid[0]*2, fig_size_roccurveforgrid[1]*2), font_size=font_size_roccurveforgrid, dataset_name=dataset_name
+        )
  
