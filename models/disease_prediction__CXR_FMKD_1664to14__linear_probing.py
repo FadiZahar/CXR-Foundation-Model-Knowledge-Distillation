@@ -61,7 +61,7 @@ class CXR_FMKD_LinearProbing(LightningModule):
         freeze_model(self.base_model)
          
         # CXR-FMKD: linear probing
-        self.num_features = self.base_model.classifier.in_features   # out_features: 1376
+        self.num_features = self.base_model.classifier.in_features   # in_features: 1664, out_features: 1376
         self.classifier = nn.Linear(self.num_features, self.num_classes)
         self.base_model.classifier = self.classifier
 

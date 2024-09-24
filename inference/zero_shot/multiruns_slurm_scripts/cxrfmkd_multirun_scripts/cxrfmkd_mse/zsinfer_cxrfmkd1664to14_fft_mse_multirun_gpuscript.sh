@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --partition=gpus48       
 #SBATCH --gres=gpu:1             
-#SBATCH --output=/vol/biomedic3/bglocker/mscproj24/fz221/cxr-fmkd/inference/zero_shot/multiruns_slurm_scripts/multiruns_slurm_logs/cxrfmkd/cxrfmkd_mse/cxrfmkd1664to14_fft_mse/%x.%N.%j.log  
+#SBATCH --output=/vol/biomedic3/bglocker/mscproj24/fz221/cxr-fmkd/inference/zero_shot/multiruns_slurm_scripts/multiruns_slurm_logs/zsinfer_cxrfmkd/cxrfmkd_mse/cxrfmkd1664to14_fft_mse/%x.%N.%j.log  
 #SBATCH --time=0-05:00:00
 # #SBATCH --nodelist=luna 
 

@@ -1,12 +1,12 @@
 #!/bin/bash
 #SBATCH --partition=gpus48       
 #SBATCH --gres=gpu:1             
-#SBATCH --output=/vol/biomedic3/bglocker/mscproj24/fz221/cxr-fmkd/inference/zero_shot/multiruns_slurm_scripts/multiruns_slurm_logs/cxrfm_lp/%x.%N.%j.log  
-#SBATCH --time=0-05:00:00  
-# #SBATCH --nodelist=loki      
+#SBATCH --output=/vol/biomedic3/bglocker/mscproj24/fz221/cxr-fmkd/inference/zero_shot/multiruns_slurm_scripts/multiruns_slurm_logs/zsinfer_cxrmod_fft/%x.%N.%j.log  
+#SBATCH --time=0-05:00:00 
+# #SBATCH --nodelist=luna         
 
 # Accepts multirun_seed from the command line; --job-name replaces the %x in --output above
-#SBATCH --job-name=zsinfer_cxrfm_lp_multirun
+#SBATCH --job-name=zsinfer_cxrmod_fft_multirun
 
 # Activate the Python virtual environment (fmkd_venv)
 source /vol/bitbucket/fz221/fmkd_venv/bin/activate
@@ -19,4 +19,4 @@ export WANDB_CACHE_DIR=/vol/biomedic3/bglocker/mscproj24/fz221/.wandb_storage/ca
 export WANDB_CONFIG_DIR=/vol/biomedic3/bglocker/mscproj24/fz221/.wandb_storage/config
 
 # Run the Python script
-python /vol/biomedic3/bglocker/mscproj24/fz221/cxr-fmkd/inference/zero_shot/zero_shot_inference__CXR_FM__linear_probing.py --multirun_seed "$1" --inference_on "$2"
+python /vol/biomedic3/bglocker/mscproj24/fz221/cxr-fmkd/inference/zero_shot/zero_shot_inference__CXR_model__full_finetuning.py --multirun_seed "$1" --inference_on "$2"

@@ -51,7 +51,7 @@ class InferCXRModel_FullFineTuning(LightningModule):
         self.save_hyperparameters()
          
         # CXR-FMKD: full finetuning
-        self.num_features = self.pretrained_model.classifier.in_features   # out_features: 1376
+        self.num_features = self.pretrained_model.classifier.in_features   # in_features: 1664
         self.classifier = nn.Linear(self.num_features, self.num_classes)
         self.pretrained_model.classifier = self.classifier
 
@@ -171,12 +171,17 @@ def main(hparams):
     TEST_RECORDS_CSV = test_config.TEST_RECORDS_CSV
     INFER_DIR_PATH = test_config.INFER_DIR_PATH
     # From model config:
-    BEST_CHECKPOINT_PATH = model_config.BEST_CHECKPOINT__CXR_model_full_finetuning__FILENAME
+    MAIN_DIR_PATH = model_config.MAIN_DIR_PATH
+    BEST_CHECKPOINT_FILEPATH = model_config.BEST_CHECKPOINT__CXR_model_full_finetuning__FILEPATH
 
 
     # Updated OUT_DIR_NAME to include dataset name
     dataset_name = get_dataset_name(hparams.inference_on)
-    OUT_DIR_NAME = 'FFTInfer_on_' + dataset_name + '_' + pre_OUT_DIR_NAME
+    prev_OUT_DIR_NAME = dataset_name + '_' + pre_OUT_DIR_NAME
+    OUT_DIR_NAME = 'ZSInfer_on_' + prev_OUT_DIR_NAME
+
+    # Get model checkpiont full path
+    BEST_CHECKPOINT_FULLPATH = os.path.join(MAIN_DIR_PATH, prev_OUT_DIR_NAME, BEST_CHECKPOINT_FILEPATH)
 
 
     # Create output directory
@@ -223,7 +228,7 @@ def main(hparams):
     # Model
     model_type = InferCXRModel_FullFineTuning
     pretrained_lightning_module = CXRModel_FullFineTuning.load_from_checkpoint(
-        BEST_CHECKPOINT_PATH, num_classes=NUM_CLASSES, learning_rate=LEARNING_RATE, 
+        BEST_CHECKPOINT_FULLPATH, num_classes=NUM_CLASSES, learning_rate=LEARNING_RATE, 
         embedding_size=CXRFM_EMBEDS_SIZE, out_dir_path=out_dir_path, target_fpr=TARGET_FPR
         )
     model = model_type(num_classes=NUM_CLASSES, learning_rate=LEARNING_RATE, embedding_size=CXRFM_EMBEDS_SIZE, 

@@ -46,12 +46,17 @@ def main(hparams):
     TEST_RECORDS_CSV = test_config.TEST_RECORDS_CSV
     INFER_DIR_PATH = test_config.INFER_DIR_PATH
     # From model config:
-    BEST_CHECKPOINT_PATH = model_config.BEST_CHECKPOINT__CXR_model_linear_probing__FILENAME
+    MAIN_DIR_PATH = model_config.MAIN_DIR_PATH
+    BEST_CHECKPOINT_FILEPATH = model_config.BEST_CHECKPOINT__CXR_model_linear_probing__FILEPATH
 
 
     # Updated OUT_DIR_NAME to include dataset name
     dataset_name = get_dataset_name(hparams.inference_on)
-    OUT_DIR_NAME = 'ZSInfer_on_' + dataset_name + '_' + pre_OUT_DIR_NAME
+    prev_OUT_DIR_NAME = dataset_name + '_' + pre_OUT_DIR_NAME
+    OUT_DIR_NAME = 'ZSInfer_on_' + prev_OUT_DIR_NAME
+
+    # Get model checkpiont full path
+    BEST_CHECKPOINT_FULLPATH = os.path.join(MAIN_DIR_PATH, prev_OUT_DIR_NAME, BEST_CHECKPOINT_FILEPATH)
 
 
     # Create output directory
@@ -95,7 +100,7 @@ def main(hparams):
         imsave(os.path.join(temp_dir_path, f'sample_{idx}.jpg'), sample['cxr'].astype(np.uint8))
 
     # Model
-    model = CXRModel_LinearProbing.load_from_checkpoint(BEST_CHECKPOINT_PATH, num_classes=NUM_CLASSES, learning_rate=LEARNING_RATE,
+    model = CXRModel_LinearProbing.load_from_checkpoint(BEST_CHECKPOINT_FULLPATH, num_classes=NUM_CLASSES, learning_rate=LEARNING_RATE,
                                                         out_dir_path=out_dir_path, target_fpr=TARGET_FPR)
 
 

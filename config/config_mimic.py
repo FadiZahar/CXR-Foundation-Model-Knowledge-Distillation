@@ -1,6 +1,6 @@
 # Configuration for MIMIC-CXR settings
 
-# Knowledge Distillation
+## Knowledge Distillation
 BEST_CHECKPOINT_KD_MSE_FILENAME = 'multiruns/MIMIC_CXR-FMKD_KD-initialisation-MSE_multirun-seed44/lightning_checkpoints/best-checkpoint_pre-CXR-FMKD_MSE_epoch=39-val_loss=0.0810.ckpt'
 BEST_CHECKPOINT_KD_MAE_FILENAME = 'multiruns/MIMIC_CXR-FMKD_KD-initialisation-MAE_multirun-seed42/lightning_checkpoints/best-checkpoint_pre-CXR-FMKD_MAE_epoch=39-val_loss=0.2214.ckpt'
 BEST_CHECKPOINT_KD_HuberLoss_FILENAME = 'multiruns/MIMIC_CXR-FMKD_KD-initialisation-HuberLoss_multirun-seed43/lightning_checkpoints/best-checkpoint_pre-CXR-FMKD_HuberLoss_epoch=39-val_loss=0.0404.ckpt'
@@ -13,16 +13,30 @@ BEST_CHECKPOINT_KD_MSEandCosineSimWeighted_alpha0p70_FILENAME = 'multiruns/MIMIC
 BEST_CHECKPOINT_KD_MSEandCosineSimWeighted_alpha0p80_FILENAME = 'multiruns/MIMIC_CXR-FMKD_KD-initialisation-MSEandCosineSimWeighted-alpha0p80_multirun-seed43/lightning_checkpoints/best-checkpoint_pre-CXR-FMKD_MSEandCosineSimWeighted-alpha0p80_epoch=39_val_loss=1.0822.ckpt' # alpha = 0.8
 BEST_CHECKPOINT_KD_MSEandCosineSimWeighted_alpha0p90_FILENAME = 'multiruns/MIMIC_CXR-FMKD_KD-initialisation-MSEandCosineSimWeighted-alpha0p90_multirun-seed43/lightning_checkpoints/best-checkpoint_pre-CXR-FMKD_MSEandCosineSimWeighted-alpha0p90_epoch=39_val_loss=1.0792.ckpt' # alpha = 0.9
 
-# Models
-BEST_CHECKPOINT__CXR_FM_linear_probing__FILENAME = ''
-BEST_CHECKPOINT__CXR_FMKD_full_finetuning__FILENAME = ''
-BEST_CHECKPOINT__CXR_FMKD_linear_probing__FILENAME = ''
-BEST_CHECKPOINT__CXR_FMKD_1664to14_full_finetuning__FILENAME = ''
-BEST_CHECKPOINT__CXR_FMKD_1664to14_linear_probing__FILENAME = ''
-BEST_CHECKPOINT__CXR_model_full_finetuning__FILENAME = ''
-BEST_CHECKPOINT__CXR_model_linear_probing__FILENAME = ''
+## Models
+BEST_CHECKPOINT__CXR_FM_linear_probing__FILEPATH = ''
+BEST_CHECKPOINT__CXR_model_full_finetuning__FILEPATH = ''
+BEST_CHECKPOINT__CXR_model_linear_probing__FILEPATH = ''
+# MSE:
+ORIGINAL_MSE_KD_TYPE_DIR_NAME = 'KD-MSE'
+BEST_CHECKPOINT__CXR_FMKD_full_finetuning__MSE__FILEPATH = ''
+BEST_CHECKPOINT__CXR_FMKD_linear_probing__MSE__FILEPATH = ''
+BEST_CHECKPOINT__CXR_FMKD_1664to14_full_finetuning__MSE__FILEPATH = ''
+BEST_CHECKPOINT__CXR_FMKD_1664to14_linear_probing__MSE__FILEPATH = ''
+# CS:
+ORIGINAL_CS_KD_TYPE_DIR_NAME = 'KD-CosineSim'
+BEST_CHECKPOINT__CXR_FMKD_full_finetuning__CS__FILEPATH = ''
+BEST_CHECKPOINT__CXR_FMKD_linear_probing__CS__FILEPATH = ''
+BEST_CHECKPOINT__CXR_FMKD_1664to14_full_finetuning__CS__FILEPATH = ''
+BEST_CHECKPOINT__CXR_FMKD_1664to14_linear_probing__CS__FILEPATH = ''
+# MSE&CS Combination:
+ORIGINAL_MSEandCS_KD_TYPE_DIR_NAME = 'KD-MSEandCosineSimWeighted-alpha0p90'
+BEST_CHECKPOINT__CXR_FMKD_full_finetuning__MSEandCS__FILEPATH = ''
+BEST_CHECKPOINT__CXR_FMKD_linear_probing__MSEandCS__FILEPATH = ''
+BEST_CHECKPOINT__CXR_FMKD_1664to14_full_finetuning__MSEandCS__FILEPATH = ''
+BEST_CHECKPOINT__CXR_FMKD_1664to14_linear_probing__MSEandCS__FILEPATH = ''
 
-# Data Paths
+## Data Paths
 CXRS_FILEPATH = '/vol/biodata/data/chest_xray/mimic-cxr-jpg-224/data/'
 EMBEDDINGS_FILEPATH = '/vol/biomedic3/bglocker/mscproj24/fz221/data/cxrfm_embeddings/mimic/cxr_numpy'
 TRAIN_RECORDS_CSV = '/vol/biodata/data/chest_xray/mimic-cxr-jpg-224/meta/algorithmic_encoding/mimic.sample.train.csv'

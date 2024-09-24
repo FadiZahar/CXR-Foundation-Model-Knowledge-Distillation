@@ -38,6 +38,24 @@ def main(hparams):
         test_config = load_config('chexpert')
         model_config = load_config('mimic')
 
+
+    # Mapping of KD types to their checkpoint filenames and original kd-type dir names
+    kd_mapping = {
+        'MSE': {
+            'original_kd_type_dir_name': model_config.ORIGINAL_MSE_KD_TYPE_DIR_NAME,
+            'checkpoint_filepath': model_config.BEST_CHECKPOINT__CXR_FMKD_full_finetuning__MSE__FILEPATH
+        },
+        'CS': {
+            'original_kd_type_dir_name': model_config.ORIGINAL_CS_KD_TYPE_DIR_NAME,
+            'checkpoint_filepath': model_config.BEST_CHECKPOINT__CXR_FMKD_full_finetuning__CS__FILEPATH
+        },
+        'MSEandCS': {
+            'original_kd_type_dir_name': model_config.ORIGINAL_MSEandCS_KD_TYPE_DIR_NAME,
+            'checkpoint_filepath': model_config.BEST_CHECKPOINT__CXR_FMKD_full_finetuning__MSEandCS__FILEPATH
+        }
+    }
+    kd_info = kd_mapping[hparams.kd_type]
+
     # From test config:
     CXRS_FILEPATH = test_config.CXRS_FILEPATH
     EMBEDDINGS_FILEPATH = test_config.EMBEDDINGS_FILEPATH
@@ -46,12 +64,18 @@ def main(hparams):
     TEST_RECORDS_CSV = test_config.TEST_RECORDS_CSV
     INFER_DIR_PATH = test_config.INFER_DIR_PATH
     # From model config:
-    BEST_CHECKPOINT_PATH = model_config.BEST_CHECKPOINT__CXR_FMKD_full_finetuning__FILENAME
+    MAIN_DIR_PATH = model_config.MAIN_DIR_PATH
+    BEST_CHECKPOINT_FILEPATH = kd_info['checkpoint_filepath']
 
 
     # Updated OUT_DIR_NAME to include dataset name
     dataset_name = get_dataset_name(hparams.inference_on)
-    OUT_DIR_NAME = 'ZSInfer_on_' + dataset_name + '_' + pre_OUT_DIR_NAME
+    prev_OUT_DIR_NAME = dataset_name + '_' + pre_OUT_DIR_NAME
+    OUT_DIR_NAME = 'ZSInfer_on_' + prev_OUT_DIR_NAME
+
+    # Get model checkpiont full path
+    original_kd_type_dir_name = kd_info['original_kd_type_dir_name']
+    BEST_CHECKPOINT_FULLPATH = os.path.join(MAIN_DIR_PATH, original_kd_type_dir_name, prev_OUT_DIR_NAME, BEST_CHECKPOINT_FILEPATH)
 
 
     # Create output directory
@@ -96,7 +120,7 @@ def main(hparams):
         imsave(os.path.join(temp_dir_path, f'sample_{idx}.jpg'), sample['cxr'].astype(np.uint8))
 
     # Model
-    model = CXR_FMKD_FullFineTuning.load_from_checkpoint(BEST_CHECKPOINT_PATH, num_classes=NUM_CLASSES, learning_rate=LEARNING_RATE,
+    model = CXR_FMKD_FullFineTuning.load_from_checkpoint(BEST_CHECKPOINT_FULLPATH, num_classes=NUM_CLASSES, learning_rate=LEARNING_RATE,
                                                          embedding_size=CXRFM_EMBEDS_SIZE, out_dir_path=out_dir_path, target_fpr=TARGET_FPR)
 
 

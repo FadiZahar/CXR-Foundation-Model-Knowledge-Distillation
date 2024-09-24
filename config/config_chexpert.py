@@ -1,6 +1,6 @@
 # Configuration for CheXpert settings
 
-# Knowledge Distillation
+## Knowledge Distillation
 BEST_CHECKPOINT_KD_MSE_FILENAME = 'multiruns/CheXpert_CXR-FMKD_KD-initialisation-MSE_multirun-seed44/lightning_checkpoints/best-checkpoint_pre-CXR-FMKD_MSE_epoch=38-val_loss=0.0940.ckpt'
 BEST_CHECKPOINT_KD_MAE_FILENAME = 'multiruns/CheXpert_CXR-FMKD_KD-initialisation-MAE_multirun-seed44/lightning_checkpoints/best-checkpoint_pre-CXR-FMKD_MAE_epoch=39-val_loss=0.2395.ckpt'
 BEST_CHECKPOINT_KD_HuberLoss_FILENAME = 'multiruns/CheXpert_CXR-FMKD_KD-initialisation-HuberLoss_multirun-seed44/lightning_checkpoints/best-checkpoint_pre-CXR-FMKD_HuberLoss_epoch=38-val_loss=0.0469.ckpt'
@@ -13,16 +13,30 @@ BEST_CHECKPOINT_KD_MSEandCosineSimWeighted_alpha0p70_FILENAME = 'multiruns/CheXp
 BEST_CHECKPOINT_KD_MSEandCosineSimWeighted_alpha0p80_FILENAME = 'multiruns/CheXpert_CXR-FMKD_KD-initialisation-MSEandCosineSimWeighted-alpha0p80_multirun-seed44/lightning_checkpoints/best-checkpoint_pre-CXR-FMKD_MSEandCosineSimWeighted-alpha0p80_epoch=38_val_loss=1.2419.ckpt' # alpha = 0.8
 BEST_CHECKPOINT_KD_MSEandCosineSimWeighted_alpha0p90_FILENAME = 'multiruns/CheXpert_CXR-FMKD_KD-initialisation-MSEandCosineSimWeighted-alpha0p90_multirun-seed44/lightning_checkpoints/best-checkpoint_pre-CXR-FMKD_MSEandCosineSimWeighted-alpha0p90_epoch=38_val_loss=1.2418.ckpt' # alpha = 0.9
 
-# Models
-BEST_CHECKPOINT__CXR_FM_linear_probing__FILENAME = ''
-BEST_CHECKPOINT__CXR_FMKD_full_finetuning__FILENAME = ''
-BEST_CHECKPOINT__CXR_FMKD_linear_probing__FILENAME = ''
-BEST_CHECKPOINT__CXR_FMKD_1664to14_full_finetuning__FILENAME = ''
-BEST_CHECKPOINT__CXR_FMKD_1664to14_linear_probing__FILENAME = ''
-BEST_CHECKPOINT__CXR_model_full_finetuning__FILENAME = ''
-BEST_CHECKPOINT__CXR_model_linear_probing__FILENAME = ''
+## Models
+BEST_CHECKPOINT__CXR_FM_linear_probing__FILEPATH = 'multiruns/CheXpert_CXR-FM_linear-probing_multirun-seed45/lightning_checkpoints/best-checkpoint_CXR-FM_lp_epoch=11-val_loss=0.3005.ckpt'
+BEST_CHECKPOINT__CXR_model_full_finetuning__FILEPATH = 'multiruns/CheXpert_CXR-model_full-finetuning_multirun-seed44/lightning_checkpoints/best-checkpoint_CheXpert-model_fft_epoch=14-val_loss=0.2862.ckpt'
+BEST_CHECKPOINT__CXR_model_linear_probing__FILEPATH = ''
+# MSE:
+ORIGINAL_MSE_KD_TYPE_DIR_NAME = 'KD-MSE'
+BEST_CHECKPOINT__CXR_FMKD_full_finetuning__MSE__FILEPATH = ''
+BEST_CHECKPOINT__CXR_FMKD_linear_probing__MSE__FILEPATH = ''
+BEST_CHECKPOINT__CXR_FMKD_1664to14_full_finetuning__MSE__FILEPATH = ''
+BEST_CHECKPOINT__CXR_FMKD_1664to14_linear_probing__MSE__FILEPATH = ''
+# CS:
+ORIGINAL_CS_KD_TYPE_DIR_NAME = 'KD-CosineSim'
+BEST_CHECKPOINT__CXR_FMKD_full_finetuning__CS__FILEPATH = ''
+BEST_CHECKPOINT__CXR_FMKD_linear_probing__CS__FILEPATH = ''
+BEST_CHECKPOINT__CXR_FMKD_1664to14_full_finetuning__CS__FILEPATH = ''
+BEST_CHECKPOINT__CXR_FMKD_1664to14_linear_probing__CS__FILEPATH = ''
+# MSE&CS Combination:
+ORIGINAL_MSEandCS_KD_TYPE_DIR_NAME = 'KD-MSEandCosineSimWeighted-alpha0p60'
+BEST_CHECKPOINT__CXR_FMKD_full_finetuning__MSEandCS__FILEPATH = ''
+BEST_CHECKPOINT__CXR_FMKD_linear_probing__MSEandCS__FILEPATH = ''
+BEST_CHECKPOINT__CXR_FMKD_1664to14_full_finetuning__MSEandCS__FILEPATH = ''
+BEST_CHECKPOINT__CXR_FMKD_1664to14_linear_probing__MSEandCS__FILEPATH = ''
 
-# Data Paths
+## Data Paths
 CXRS_FILEPATH = '/vol/biodata/data/chest_xray/CheXpert-v1.0/'
 EMBEDDINGS_FILEPATH = '/vol/biomedic3/bglocker/mscproj24/fz221/data/cxrfm_embeddings/chexpert/cxr_numpy'
 TRAIN_RECORDS_CSV = '/vol/biodata/data/chest_xray/CheXpert-v1.0/meta/algorithmic_encoding/chexpert.sample.train.csv'
