@@ -158,10 +158,14 @@ def main(hparams):
     # Decide which dataset's configuration to load for test data and which dataset's checkpoint to use
     if hparams.inference_on == 'mimic':
         test_config = load_config('mimic')
+        test_dataset_name = get_dataset_name('mimic')
         model_config = load_config('chexpert')
+        model_dataset_name = get_dataset_name('chexpert')
     else:
         test_config = load_config('chexpert')
+        test_dataset_name = get_dataset_name('chexpert')
         model_config = load_config('mimic')
+        model_dataset_name = get_dataset_name('mimic')
 
     # From test config:
     CXRS_FILEPATH = test_config.CXRS_FILEPATH
@@ -176,21 +180,20 @@ def main(hparams):
 
 
     # Updated OUT_DIR_NAME to include dataset name
-    dataset_name = get_dataset_name(hparams.inference_on)
-    prev_OUT_DIR_NAME = dataset_name + '_' + pre_OUT_DIR_NAME
-    OUT_DIR_NAME = 'ZSInfer_on_' + prev_OUT_DIR_NAME
+    test_prev_OUT_DIR_NAME = test_dataset_name + '_' + pre_OUT_DIR_NAME
+    OUT_DIR_NAME = 'FFTInfer_on_' + test_prev_OUT_DIR_NAME
 
     # Get model checkpiont full path
-    BEST_CHECKPOINT_FULLPATH = os.path.join(MAIN_DIR_PATH, prev_OUT_DIR_NAME, BEST_CHECKPOINT_FILEPATH)
+    model_prev_OUT_DIR_NAME = model_dataset_name + '_' + pre_OUT_DIR_NAME
+    BEST_CHECKPOINT_FULLPATH = os.path.join(MAIN_DIR_PATH, model_prev_OUT_DIR_NAME, BEST_CHECKPOINT_FILEPATH)
 
 
     # Create output directory
-    KD_TYPE_DIR_NAME = f'KD-{hparams.kd_type}'
     if hparams.multirun_seed:
         inner_out_dir_name = f"{OUT_DIR_NAME.strip('/')}_multirun-seed{hparams.multirun_seed}"
-        out_dir_path = os.path.join(INFER_DIR_PATH, 'FFTInfer', KD_TYPE_DIR_NAME, OUT_DIR_NAME, 'multiruns', inner_out_dir_name)
+        out_dir_path = os.path.join(INFER_DIR_PATH, 'FFTInfer', OUT_DIR_NAME, 'multiruns', inner_out_dir_name)
     else:
-        out_dir_path = os.path.join(INFER_DIR_PATH, 'FFTInfer', KD_TYPE_DIR_NAME, OUT_DIR_NAME)
+        out_dir_path = os.path.join(INFER_DIR_PATH, 'FFTInfer', OUT_DIR_NAME)
     os.makedirs(out_dir_path, exist_ok=True)
     # Create TensorBoard logs directory
     logs_dir_path = os.path.join(out_dir_path, 'lightning_logs/')
@@ -298,7 +301,6 @@ if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument('--gpus', default=1, help='Number of GPUs to use')
     parser.add_argument('--dev', default=0, help='GPU device number')
-    parser.add_argument('--kd_type', type=str, default='MSE', help='Type of Knowledge Distillation used')
     parser.add_argument('--multirun_seed', default=None, help='Seed for initialising randomness in multiruns for reproducibility')
     parser.add_argument('--inference_on', default='mimic', choices=['chexpert', 'mimic'], help='Dataset module for inference')
     

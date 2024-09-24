@@ -33,10 +33,14 @@ def main(hparams):
     # Decide which dataset's configuration to load for test data and which dataset's checkpoint to use
     if hparams.inference_on == 'mimic':
         test_config = load_config('mimic')
+        test_dataset_name = get_dataset_name('mimic')
         model_config = load_config('chexpert')
+        model_dataset_name = get_dataset_name('chexpert')
     else:
         test_config = load_config('chexpert')
+        test_dataset_name = get_dataset_name('chexpert')
         model_config = load_config('mimic')
+        model_dataset_name = get_dataset_name('mimic')
 
     
     # Mapping of KD types to their checkpoint filenames and original kd-type dir names
@@ -69,13 +73,13 @@ def main(hparams):
 
 
     # Updated OUT_DIR_NAME to include dataset name
-    dataset_name = get_dataset_name(hparams.inference_on)
-    prev_OUT_DIR_NAME = dataset_name + '_' + pre_OUT_DIR_NAME
-    OUT_DIR_NAME = 'ZSInfer_on_' + prev_OUT_DIR_NAME
+    test_prev_OUT_DIR_NAME = test_dataset_name + '_' + pre_OUT_DIR_NAME
+    OUT_DIR_NAME = 'ZSInfer_on_' + test_prev_OUT_DIR_NAME
 
     # Get model checkpiont full path
     original_kd_type_dir_name = kd_info['original_kd_type_dir_name']
-    BEST_CHECKPOINT_FULLPATH = os.path.join(MAIN_DIR_PATH, original_kd_type_dir_name, prev_OUT_DIR_NAME, BEST_CHECKPOINT_FILEPATH)
+    model_prev_OUT_DIR_NAME = model_dataset_name + '_' + pre_OUT_DIR_NAME
+    BEST_CHECKPOINT_FULLPATH = os.path.join(MAIN_DIR_PATH, original_kd_type_dir_name, model_prev_OUT_DIR_NAME, BEST_CHECKPOINT_FILEPATH)
 
 
     # Create output directory
