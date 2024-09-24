@@ -245,12 +245,11 @@ def main(hparams):
 
     # WandB logger
     project_name = OUT_DIR_NAME.replace('/', '_').lower().strip('_')
-    kd_type_suffix = hparams.kd_type
     if hparams.multirun_seed:
         multirun_seed = hparams.multirun_seed
-        run_name = f'run_{project_name}_{kd_type_suffix}_multirun-seed{multirun_seed}_{datetime.now().strftime("%Y%m%d_%H%M")}' 
+        run_name = f'run_{project_name}_multirun-seed{multirun_seed}_{datetime.now().strftime("%Y%m%d_%H%M")}' 
     else:
-        run_name = f'run_{project_name}_{kd_type_suffix}_{datetime.now().strftime("%Y%m%d_%H%M")}' 
+        run_name = f'run_{project_name}_{datetime.now().strftime("%Y%m%d_%H%M")}' 
     wandb_logger = WandbLogger(save_dir=logs_dir_path, 
                                project=project_name,
                                name=run_name, 
