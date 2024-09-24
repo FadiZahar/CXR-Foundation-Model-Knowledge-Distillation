@@ -14,27 +14,27 @@ BEST_CHECKPOINT_KD_MSEandCosineSimWeighted_alpha0p80_FILENAME = 'multiruns/MIMIC
 BEST_CHECKPOINT_KD_MSEandCosineSimWeighted_alpha0p90_FILENAME = 'multiruns/MIMIC_CXR-FMKD_KD-initialisation-MSEandCosineSimWeighted-alpha0p90_multirun-seed43/lightning_checkpoints/best-checkpoint_pre-CXR-FMKD_MSEandCosineSimWeighted-alpha0p90_epoch=39_val_loss=1.0792.ckpt' # alpha = 0.9
 
 ## Models
-BEST_CHECKPOINT__CXR_FM_linear_probing__FILEPATH = ''
-BEST_CHECKPOINT__CXR_model_full_finetuning__FILEPATH = ''
-BEST_CHECKPOINT__CXR_model_linear_probing__FILEPATH = ''
+BEST_CHECKPOINT__CXR_FM_linear_probing__FILEPATH = 'multiruns/MIMIC_CXR-FM_linear-probing_multirun-seed43/lightning_checkpoints/best-checkpoint_CXR-FM_lp_epoch=7-val_loss=0.2826.ckpt'
+BEST_CHECKPOINT__CXR_model_full_finetuning__FILEPATH = 'multiruns/MIMIC_CXR-model_full-finetuning_multirun-seed45/lightning_checkpoints/best-checkpoint_CXR-model_fft_epoch=9-val_loss=0.2644.ckpt'
+BEST_CHECKPOINT__CXR_model_linear_probing__FILEPATH = 'multiruns/MIMIC_CXR-model_linear-probing_multirun-seed41/lightning_checkpoints/best-checkpoint_CXR-model_lp_epoch=16-val_loss=0.2967.ckpt'
 # MSE:
 ORIGINAL_MSE_KD_TYPE_DIR_NAME = 'KD-MSE'
-BEST_CHECKPOINT__CXR_FMKD_full_finetuning__MSE__FILEPATH = ''
-BEST_CHECKPOINT__CXR_FMKD_linear_probing__MSE__FILEPATH = ''
-BEST_CHECKPOINT__CXR_FMKD_1664to14_full_finetuning__MSE__FILEPATH = ''
-BEST_CHECKPOINT__CXR_FMKD_1664to14_linear_probing__MSE__FILEPATH = ''
+BEST_CHECKPOINT__CXR_FMKD_full_finetuning__MSE__FILEPATH = 'multiruns/MIMIC_CXR-FMKD_full-finetuning_multirun-seed42/lightning_checkpoints/best-checkpoint_CXR-FMKD_fft_epoch=1-val_loss=0.2632.ckpt'
+BEST_CHECKPOINT__CXR_FMKD_linear_probing__MSE__FILEPATH = 'multiruns/MIMIC_CXR-FMKD_linear-probing_multirun-seed41/lightning_checkpoints/best-checkpoint_CXR-FMKD_lp_epoch=9-val_loss=0.2784.ckpt'
+BEST_CHECKPOINT__CXR_FMKD_1664to14_full_finetuning__MSE__FILEPATH = 'multiruns/MIMIC_CXR-FMKD-1664to14_full-finetuning_multirun-seed42/lightning_checkpoints/best-checkpoint_CXR-FMKD-1664to14_fft_epoch=4-val_loss=0.2625.ckpt'
+BEST_CHECKPOINT__CXR_FMKD_1664to14_linear_probing__MSE__FILEPATH = 'multiruns/MIMIC_CXR-FMKD-1664to14_linear-probing_multirun-seed41/lightning_checkpoints/best-checkpoint_CXR-FMKD-1664to14_lp_epoch=19-val_loss=0.2737.ckpt'
 # CS:
 ORIGINAL_CS_KD_TYPE_DIR_NAME = 'KD-CosineSim'
-BEST_CHECKPOINT__CXR_FMKD_full_finetuning__CS__FILEPATH = ''
-BEST_CHECKPOINT__CXR_FMKD_linear_probing__CS__FILEPATH = ''
-BEST_CHECKPOINT__CXR_FMKD_1664to14_full_finetuning__CS__FILEPATH = ''
-BEST_CHECKPOINT__CXR_FMKD_1664to14_linear_probing__CS__FILEPATH = ''
+BEST_CHECKPOINT__CXR_FMKD_full_finetuning__CS__FILEPATH = 'multiruns/MIMIC_CXR-FMKD_full-finetuning_multirun-seed45/lightning_checkpoints/best-checkpoint_CXR-FMKD_fft_epoch=5-val_loss=0.2665.ckpt'
+BEST_CHECKPOINT__CXR_FMKD_linear_probing__CS__FILEPATH = 'multiruns/MIMIC_CXR-FMKD_linear-probing_multirun-seed42/lightning_checkpoints/best-checkpoint_CXR-FMKD_lp_epoch=15-val_loss=9.6979.ckpt'
+BEST_CHECKPOINT__CXR_FMKD_1664to14_full_finetuning__CS__FILEPATH = 'multiruns/MIMIC_CXR-FMKD-1664to14_full-finetuning_multirun-seed45/lightning_checkpoints/best-checkpoint_CXR-FMKD-1664to14_fft_epoch=1-val_loss=0.2614.ckpt'
+BEST_CHECKPOINT__CXR_FMKD_1664to14_linear_probing__CS__FILEPATH = 'multiruns/MIMIC_CXR-FMKD-1664to14_linear-probing_multirun-seed41/lightning_checkpoints/best-checkpoint_CXR-FMKD-1664to14_lp_epoch=6-val_loss=0.2730.ckpt'
 # MSE&CS Combination:
 ORIGINAL_MSEandCS_KD_TYPE_DIR_NAME = 'KD-MSEandCosineSimWeighted-alpha0p90'
-BEST_CHECKPOINT__CXR_FMKD_full_finetuning__MSEandCS__FILEPATH = ''
-BEST_CHECKPOINT__CXR_FMKD_linear_probing__MSEandCS__FILEPATH = ''
-BEST_CHECKPOINT__CXR_FMKD_1664to14_full_finetuning__MSEandCS__FILEPATH = ''
-BEST_CHECKPOINT__CXR_FMKD_1664to14_linear_probing__MSEandCS__FILEPATH = ''
+BEST_CHECKPOINT__CXR_FMKD_full_finetuning__MSEandCS__FILEPATH = 'multiruns/MIMIC_CXR-FMKD_full-finetuning_multirun-seed41/lightning_checkpoints/best-checkpoint_CXR-FMKD_fft_epoch=2-val_loss=0.2651.ckpt'
+BEST_CHECKPOINT__CXR_FMKD_linear_probing__MSEandCS__FILEPATH = 'multiruns/MIMIC_CXR-FMKD_linear-probing_multirun-seed43/lightning_checkpoints/best-checkpoint_CXR-FMKD_lp_epoch=8-val_loss=0.2770.ckpt'
+BEST_CHECKPOINT__CXR_FMKD_1664to14_full_finetuning__MSEandCS__FILEPATH = 'multiruns/MIMIC_CXR-FMKD-1664to14_full-finetuning_multirun-seed45/lightning_checkpoints/best-checkpoint_CXR-FMKD-1664to14_fft_epoch=3-val_loss=0.2626.ckpt'
+BEST_CHECKPOINT__CXR_FMKD_1664to14_linear_probing__MSEandCS__FILEPATH = 'multiruns/MIMIC_CXR-FMKD-1664to14_linear-probing_multirun-seed42/lightning_checkpoints/best-checkpoint_CXR-FMKD-1664to14_lp_epoch=19-val_loss=0.2734.ckpt'
 
 ## Data Paths
 CXRS_FILEPATH = '/vol/biodata/data/chest_xray/mimic-cxr-jpg-224/data/'
