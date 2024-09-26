@@ -27,9 +27,9 @@ from config.config_shared import IMAGE_SIZE, CXRFM_EMBEDS_SIZE, NUM_CLASSES, EPO
 from config.loader_config import load_config, get_dataset_name
 
 # Model import
-from models.disease_prediction__CXR_FMKD_1664to14__full_finetuning import CXR_FMKD_FullFineTuning
+from models.disease_prediction__CXR_FMKD__full_finetuning import CXR_FMKD_FullFineTuning
 
-pre_OUT_DIR_NAME = 'CXR-FMKD-1664to14_full-finetuning/'
+pre_OUT_DIR_NAME = 'CXR-FMKD_full-finetuning/'
 
 
 
@@ -172,15 +172,15 @@ def main(hparams):
     kd_mapping = {
         'MSE': {
             'original_kd_type_dir_name': model_config.ORIGINAL_MSE_KD_TYPE_DIR_NAME,
-            'checkpoint_filepath': model_config.BEST_CHECKPOINT__CXR_FMKD_1664to14_full_finetuning__MSE__FILEPATH
+            'checkpoint_filepath': model_config.BEST_CHECKPOINT__CXR_FMKD_full_finetuning__MSE__FILEPATH
         },
         'CS': {
             'original_kd_type_dir_name': model_config.ORIGINAL_CS_KD_TYPE_DIR_NAME,
-            'checkpoint_filepath': model_config.BEST_CHECKPOINT__CXR_FMKD_1664to14_full_finetuning__CS__FILEPATH
+            'checkpoint_filepath': model_config.BEST_CHECKPOINT__CXR_FMKD_full_finetuning__CS__FILEPATH
         },
         'MSEandCS': {
             'original_kd_type_dir_name': model_config.ORIGINAL_MSEandCS_KD_TYPE_DIR_NAME,
-            'checkpoint_filepath': model_config.BEST_CHECKPOINT__CXR_FMKD_1664to14_full_finetuning__MSEandCS__FILEPATH
+            'checkpoint_filepath': model_config.BEST_CHECKPOINT__CXR_FMKD_full_finetuning__MSEandCS__FILEPATH
         }
     }
     kd_info = kd_mapping[hparams.kd_type]
@@ -278,7 +278,7 @@ def main(hparams):
         default_root_dir=ckpt_dir_path,
         callbacks=[ModelCheckpoint(monitor='val_loss', 
                                    mode='min', 
-                                   filename='best-checkpoint_fftinfer_CXR-FMKD-1664to14_fft_{epoch}-{val_loss:.4f}',
+                                   filename='best-checkpoint_fftinfer_CXR-FMKD_fft_{epoch}-{val_loss:.4f}',
                                    dirpath=ckpt_dir_path), 
                    TQDMProgressBar(refresh_rate=10),
                    train_logger],

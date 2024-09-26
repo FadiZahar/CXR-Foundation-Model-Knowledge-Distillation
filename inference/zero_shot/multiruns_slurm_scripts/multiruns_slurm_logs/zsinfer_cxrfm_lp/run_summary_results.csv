@@ -1,0 +1,23 @@
+Metric,zsinfer_on_mimic--cxrfm_lp_multirun-seed41.luna.76161.log,zsinfer_on_mimic--cxrfm_lp_multirun-seed42.luna.76162.log,zsinfer_on_mimic--cxrfm_lp_multirun-seed43.luna.76163.log,zsinfer_on_mimic--cxrfm_lp_multirun-seed44.luna.76164.log,zsinfer_on_mimic--cxrfm_lp_multirun-seed45.luna.76165.log
+AUC-PR | 'No Finding' (Testing),0.66186,0.66186,0.66186,0.66186,0.66186
+AUC-PR | 'Others' (Testing),0.22336,0.22336,0.22336,0.22336,0.22336
+AUC-PR | 'Pleural Effusion' (Testing),0.63492,0.63492,0.63492,0.63492,0.63492
+AUC-ROC | 'No Finding' (Testing),0.81771,0.81771,0.81771,0.81771,0.81771
+AUC-ROC | 'Others' (Testing),0.68612,0.68612,0.68612,0.68612,0.68612
+AUC-ROC | 'Pleural Effusion' (Testing),0.84776,0.84776,0.84776,0.84776,0.84776
+J Index Max | 'No Finding' (Testing),0.50279,0.50279,0.50279,0.50279,0.50279
+J Index Max | 'Others' (Testing),0.28684,0.28684,0.28684,0.28684,0.28684
+J Index Max | 'Pleural Effusion' (Testing),0.53926,0.53926,0.53926,0.53926,0.53926
+J Index at 20% FPR | 'No Finding' (Testing),0.4946,0.4946,0.4946,0.4946,0.4946
+J Index at 20% FPR | 'Others' (Testing),0.24264,0.24264,0.24264,0.24264,0.24264
+J Index at 20% FPR | 'Pleural Effusion' (Testing),0.52845,0.52845,0.52845,0.52845,0.52845
+Macro AUC-PR (Testing),0.28408,0.28408,0.28408,0.28408,0.28408
+Macro AUC-PR (Validation - Final),0.2799,0.2799,0.2799,0.2799,0.2799
+Macro AUC-ROC (Testing),0.70707,0.70707,0.70707,0.70707,0.70707
+Macro AUC-ROC (Validation - Final),0.70626,0.70626,0.70626,0.70626,0.70626
+epoch,0,0,0,0,0
+test_loss_epoch,0.32246,0.32246,0.32246,0.32246,0.32246
+test_loss_step,0.34039,0.34039,0.34039,0.34039,0.34039
+trainer/global_step,0,0,0,0,0
+val_final_loss_epoch,0.32384,0.32384,0.32384,0.32384,0.32384
+val_final_loss_step,0.19264,0.19264,0.19264,0.19264,0.19264

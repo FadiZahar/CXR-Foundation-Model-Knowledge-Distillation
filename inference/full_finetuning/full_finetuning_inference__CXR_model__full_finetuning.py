@@ -50,7 +50,7 @@ class InferCXRModel_FullFineTuning(LightningModule):
         # log hyperparameters
         self.save_hyperparameters()
          
-        # CXR-FMKD: full finetuning
+        # Replace classifier
         self.num_features = self.pretrained_model.classifier.in_features   # in_features: 1664
         self.classifier = nn.Linear(self.num_features, self.num_classes)
         self.pretrained_model.classifier = self.classifier

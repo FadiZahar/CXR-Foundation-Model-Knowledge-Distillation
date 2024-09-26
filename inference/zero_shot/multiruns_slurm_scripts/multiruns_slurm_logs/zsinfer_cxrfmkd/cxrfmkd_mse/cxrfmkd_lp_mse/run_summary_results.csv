@@ -1,0 +1,23 @@
+Metric,zsinfer_on_mimic--cxrfmkd_lp_mse_multirun-seed41.deepmedic3.76177.log,zsinfer_on_mimic--cxrfmkd_lp_mse_multirun-seed42.loki.76178.log,zsinfer_on_mimic--cxrfmkd_lp_mse_multirun-seed43.loki.76179.log,zsinfer_on_mimic--cxrfmkd_lp_mse_multirun-seed44.luna.76180.log,zsinfer_on_mimic--cxrfmkd_lp_mse_multirun-seed45.luna.76181.log
+AUC-PR | 'No Finding' (Testing),0.66276,0.66276,0.66276,0.66276,0.66276
+AUC-PR | 'Others' (Testing),0.22501,0.22501,0.22501,0.22501,0.22501
+AUC-PR | 'Pleural Effusion' (Testing),0.65101,0.65101,0.65101,0.65101,0.65101
+AUC-ROC | 'No Finding' (Testing),0.81422,0.81422,0.81422,0.81422,0.81422
+AUC-ROC | 'Others' (Testing),0.68557,0.68557,0.68557,0.68557,0.68557
+AUC-ROC | 'Pleural Effusion' (Testing),0.85305,0.85306,0.85306,0.85306,0.85306
+J Index Max | 'No Finding' (Testing),0.5006,0.5006,0.5006,0.5006,0.5006
+J Index Max | 'Others' (Testing),0.28848,0.28849,0.28849,0.28849,0.28849
+J Index Max | 'Pleural Effusion' (Testing),0.56096,0.56096,0.56096,0.56096,0.56096
+J Index at 20% FPR | 'No Finding' (Testing),0.49052,0.49052,0.49052,0.49052,0.49052
+J Index at 20% FPR | 'Others' (Testing),0.24694,0.24694,0.24694,0.24694,0.24694
+J Index at 20% FPR | 'Pleural Effusion' (Testing),0.55732,0.55732,0.55732,0.55732,0.55732
+Macro AUC-PR (Testing),0.28671,0.28671,0.28671,0.28671,0.28671
+Macro AUC-PR (Validation - Final),0.28578,0.28578,0.28578,0.28578,0.28578
+Macro AUC-ROC (Testing),0.70673,0.70673,0.70673,0.70673,0.70673
+Macro AUC-ROC (Validation - Final),0.71245,0.71245,0.71245,0.71245,0.71245
+epoch,0,0,0,0,0
+test_loss_epoch,0.31748,0.31748,0.31748,0.31748,0.31748
+test_loss_step,0.32049,0.32049,0.32049,0.32049,0.32049
+trainer/global_step,0,0,0,0,0
+val_final_loss_epoch,0.31783,0.31783,0.31783,0.31783,0.31783
+val_final_loss_step,0.18602,0.18601,0.18601,0.18601,0.18601

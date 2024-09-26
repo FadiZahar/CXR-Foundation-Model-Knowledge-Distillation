@@ -345,12 +345,108 @@ def prepare_and_rearrange_metrics(model_outputs, model_tracked_metrics, tracked_
     return targets, probs, model_tracked_metrics_rearranged
 
 
-def main():
-    # Parse command-line arguments
-    args = parse_args()
+def main_for_zsinfer(args):
+    # Retrieve dataset name from configuration based on the provided dataset type
+    dataset_name = args.inference + "_on_" + get_dataset_name(args.config)
 
+    # Determine the base output path based on the argument
+    if args.save_in_current_dir:
+        base_output_path = os.getcwd()  # Use the current working directory for outputs
+    else:
+        base_output_path = os.path.abspath(os.path.join(args.models_gate_dir, os.pardir))  # Use the parent directory of models_gate_dir
+    
+    # Setup paths for output directories
+    output_dir_name = f"aggregated_seed_results--{args.main_model_name}--{dataset_name}"
+    aggregated_seed_results_dir_path = os.path.join(base_output_path, output_dir_name)
+    os.makedirs(aggregated_seed_results_dir_path, exist_ok=True)
+
+    # List all directories within the specified path and get the models names
+    models_dirs = sorted(
+        [os.path.join(args.models_gate_dir, dir) for dir in os.listdir(args.models_gate_dir)
+         if os.path.isdir(os.path.join(args.models_gate_dir, dir)) and
+            os.path.join(args.models_gate_dir, dir) != aggregated_seed_results_dir_path]
+    )
+    models_names = [os.path.basename(dir) for dir in models_dirs]
+
+    # rearranged_indices shows the new positions of elements from the original list to match the rearranged order
+    rearranged_indices = [LABELS.index(label) for label in LABELS_BY_RELEVANCE]
+    # Get focus_labels indices w.r.t. LABELS_BY_RELEVANCE
+    focus_labels_indices = [LABELS_BY_RELEVANCE.index(label) for label in args.focus_labels]
+    focus_classes = [f"Class {i+1} [{LABELS_BY_RELEVANCE[i]}]" for i in focus_labels_indices]
+    other_classes_indices = [i for i in range(len(LABELS_BY_RELEVANCE)) if i not in focus_labels_indices]
+    other_classes = [f"Class {i+1} [{LABELS_BY_RELEVANCE[i]}]" for i in other_classes_indices]
+
+
+    # Initialise dataframes for tracking overall results and detailed metrics.
+    results_df, _ = initialise_dataframes(metrics=METRICS, classes=CLASSES, metrics_actions=METRICS_EPOCH_ACTIONS, 
+                                                    models_names=models_names)
+
+
+    # Process each model directory to compute metrics and rearrange data
+    for model_dir in models_dirs:
+        # Get model name and raw outputs
+        model_name = os.path.basename(model_dir)
+        outputs_csv_filepath = os.path.join(model_dir, 'outputs_test.csv')
+        model_outputs = read_csv_file(outputs_csv_filepath)
+
+
+        ## Initialise arrays for storing target labels and probabilities
+        n_samples = model_outputs.shape[0]
+        n_classes = len(rearranged_indices)
+        # targets and probs are of size (n_samples, n_classes) matching expected sklearn.metrics computation parameters
+        targets = np.zeros((n_samples, n_classes))
+        probs = np.zeros((n_samples, n_classes))
+
+        # Populate targets and probs arrays, matching rearranged indices following LABELS_BY_RELEVANCE
+        for idx, class_idx in enumerate(rearranged_indices):
+            probs[:, idx] = model_outputs[f"prob_class_{class_idx+1}"]
+            targets[:, idx] = model_outputs[f"target_class_{class_idx+1}"]
+
+
+        ## Calculate metrics from raw corresponding targets and probs 
+        roc_auc_per_class, _ = calculate_roc_auc(targets=targets, probs=probs)
+        pr_auc_per_class, _ = calculate_pr_auc(targets=targets, probs=probs)
+        youden_max_per_class, youden_targetfpr_per_class = calculate_youden_index(targets=targets, probs=probs, target_fpr=TARGET_FPR)
+
+        metrics_data = {
+            "AUC-ROC": {"value": roc_auc_per_class, "tracked_metric": "auc_roc"},
+            "AUC-PR": {"value": pr_auc_per_class, "tracked_metric": "auc_pr"},
+            "Maximum Youden\'s J Statistic": {"value": youden_max_per_class, "tracked_metric": "j_index_max"},
+            f"Youden\'s J Statistic at {int(TARGET_FPR*100)}% FPR": {"value": youden_targetfpr_per_class, "tracked_metric": "j_index_fpr"}
+        }
+
+        ## Iterate over each type of metric to populate results and tracking dataframes.   
+        for metric, data in metrics_data.items():
+            # Populate results and tracking dataframes for each class.
+            for idx, value in enumerate(data["value"]):
+                results_df.loc[(metric, CLASSES[idx]), model_name] = value  # Record metric values for each class.
+            # Aggregate and record macro metric values across all classes.
+            results_df.loc[(metric, "Macro"), model_name] = np.mean(data["value"])
+        
+
+    # Add average and standard deviation across models for each metric-class for results_df
+    results_df[['Average', 'SD', '%SD', 'AverageSD Detailed', 'AverageSD Compact']] = results_df.apply(lambda row: calculate_stats(row, models_names), axis=1)
+    # Modify results dataframe to focus on most relevant classes
+    focused_results_df = modify_results_for_focus_labels(results_df=results_df, focus_classes=focus_classes, other_classes=other_classes, 
+                                                         metrics=METRICS, models_names=models_names, average_focus_class_name=AVERAGE_FOCUS_CLASS_NAME,
+                                                         others_class_name=OTHERS_CLASS_NAME)
+
+    ## Final structuring: resetting the index of the DataFrame to convert the multi-level index into columns
+    results_df.reset_index(inplace=True)
+    results_df.rename(columns={'level_0': 'Metric', 'level_1': 'Class'}, inplace=True)
+
+    ## Saving the detailed and focused results_df to CSV files
+    results_df_outpath = os.path.join(aggregated_seed_results_dir_path, f'aggregated_results_metrics_detailed--{args.main_model_name}--{dataset_name}.csv')
+    results_df.to_csv(results_df_outpath, index=False)
+    results_df_outpath_focused = os.path.join(aggregated_seed_results_dir_path, f'aggregated_results_metrics_focused--{args.main_model_name}--{dataset_name}.csv')
+    focused_results_df.to_csv(results_df_outpath_focused, index=False)
+
+
+def main(args):
     # Retrieve dataset name from configuration based on the provided dataset type
     dataset_name = get_dataset_name(args.config)
+    if args.inference:
+        dataset_name = args.inference + "_on_" + dataset_name
 
     # Determine the base output path based on the argument
     if args.save_in_current_dir:
@@ -420,7 +516,8 @@ def main():
             model_tracked_metrics=model_tracked_metrics, 
             tracked_metrics_dir=tracked_metrics_dir, 
             rearranged_indices=rearranged_indices, 
-            max_epoch_number=MAX_EPOCH_NUMBER)
+            max_epoch_number=MAX_EPOCH_NUMBER
+            )
 
         ## Calculate metrics from raw corresponding targets and probs 
         roc_auc_per_class, _ = calculate_roc_auc(targets=targets, probs=probs)
@@ -500,15 +597,22 @@ def main():
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Aggregate and compute performance metrics across multiple model runs.")
-    parser.add_argument('--models_gate_dir', required=True, help='Path to multiruns directory of a single model we want to aggregate the results from')
-    parser.add_argument('--main_model_name', required=True, help='Main model name identifier for output labeling')
-    parser.add_argument('--config', default='chexpert', choices=['chexpert', 'mimic'], help='Config dataset module to use')
+    parser.add_argument('--models_gate_dir', required=True, help='Path to multiruns directory of a single model we want to aggregate the results from.')
+    parser.add_argument('--main_model_name', required=True, help='Main model name identifier for output labeling.')
+    parser.add_argument('--config', default='chexpert', choices=['chexpert', 'mimic'], help='Config dataset module to use.')
     parser.add_argument('--focus_labels', nargs='+', default=["Pleural Effusion", "No Finding", "Cardiomegaly", "Pneumothorax",
-                                                              "Atelectasis", "Consolidation", "Edema"], help='List of most important labels')
-    parser.add_argument('--save_in_current_dir', action='store_true', help='Flag to save outputs in the current directory instead of the base model directory')
+                                                              "Atelectasis", "Consolidation", "Edema"], help='List of most important labels.')
+    parser.add_argument('--save_in_current_dir', action='store_true', help='Flag to save outputs in the current directory instead of the base model directory.')
+    parser.add_argument('--inference', default=False, choices=['ZSInfer', 'LPInfer', 'FFTInfer'], help='Specify the inference model to prefix dataset name for specialised output.')
     return parser.parse_args()
 
 
 
 if __name__ == "__main__":
-    main()
+    # Parse command-line arguments
+    args = parse_args()
+
+    if args.inference == 'ZSInfer':
+        main_for_zsinfer(args)
+    else: 
+        main(args)

@@ -700,13 +700,13 @@ if __name__ == "__main__":
     ci_level = CI_LEVEL
 
     # Directories to save analysis outputs
-    disease_detection_dir_path = os.path.join(base_output_path, 'bias_analysis', f'performance_for_bias--{dataset_name}')
-    performance_tables_dir_path = os.path.join(disease_detection_dir_path, 'performance_tables/')
-    absolute_plots_dir_path = os.path.join(disease_detection_dir_path, 'performance_plots_absolute/')
-    relative_plots_dir_path = os.path.join(disease_detection_dir_path, 'performance_plots_relative/')
-    aucroc_plots_dir_path = os.path.join(disease_detection_dir_path, 'aucroc_plots/')
-    aucroc_tables_dir_path = os.path.join(disease_detection_dir_path, 'aucroc_tables/')
-    os.makedirs(disease_detection_dir_path, exist_ok=True)
+    performance_for_bias_dir_path = os.path.join(base_output_path, f'performance_for_bias--{dataset_name}')
+    performance_tables_dir_path = os.path.join(performance_for_bias_dir_path, 'performance_tables/')
+    absolute_plots_dir_path = os.path.join(performance_for_bias_dir_path, 'performance_plots_absolute/')
+    relative_plots_dir_path = os.path.join(performance_for_bias_dir_path, 'performance_plots_relative/')
+    aucroc_plots_dir_path = os.path.join(performance_for_bias_dir_path, 'aucroc_plots/')
+    aucroc_tables_dir_path = os.path.join(performance_for_bias_dir_path, 'aucroc_tables/')
+    os.makedirs(performance_for_bias_dir_path, exist_ok=True)
     os.makedirs(performance_tables_dir_path, exist_ok=True)
     os.makedirs(absolute_plots_dir_path, exist_ok=True)
     os.makedirs(relative_plots_dir_path, exist_ok=True)

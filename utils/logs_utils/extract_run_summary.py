@@ -15,10 +15,17 @@ for file_name in sorted(os.listdir(log_dir)):
             content = file.readlines()
 
             # Reverse iterate to find the 'val_loss_step' as the end of the summary
+            end_index = None
             for i in range(len(content) - 1, -1, -1):
                 if 'val_loss_step' in content[i]:
                     end_index = i
                     break
+            # If 'val_loss_step' is not found, look for 'val_final_loss_step'
+            if end_index is None:
+                for i in range(len(content) - 1, -1, -1):
+                    if 'val_final_loss_step' in content[i]:
+                        end_index = i
+                        break
             
             # Find the 'Run summary:' as the start of the summary
             for i in range(end_index, -1, -1):

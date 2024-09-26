@@ -2,14 +2,17 @@ import os
 import argparse
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 import seaborn as sns
 from tqdm import tqdm
 from sklearn.manifold import TSNE
 from sklearn.decomposition import PCA
 from scipy.stats import ks_2samp
 from statsmodels.stats.multitest import multipletests
+
+import matplotlib.pyplot as plt
 from matplotlib import font_manager
+import matplotlib.gridspec as gridspec
+import matplotlib.image as mpimg
 
 # Check if Latin Modern Roman (~LaTeX) is available, and set it; otherwise, use the default font
 if 'Latin Modern Roman' in [f.name for f in font_manager.fontManager.ttflist]:
@@ -210,6 +213,45 @@ def plot_feature_modes(df, method, mode_indices, xdat, ydat, labels_dict, plots_
         print(f"Plots for {label} saved to: (Joint) {joint_filepath} and (Margina) {marginal_filepath}")
 
 
+def aggregate_jointplots_into_grid(output_dir, models, labels, grid_shape=(2, 2), figsize=(16, 8), font_size=12, 
+                                  title_font_delta=4, wspace=-0.15, hspace=0.05, dataset_name='CheXpert'):
+    """Aggregates the joint plots into a grid and displays them."""
+    for i, model in enumerate(models):
+        fig = plt.figure(figsize=figsize)
+        gs = gridspec.GridSpec(nrows=grid_shape[0], 
+                               ncols=grid_shape[1], 
+                               width_ratios=[1] * grid_shape[1], 
+                               height_ratios=[1] * grid_shape[0])
+
+        axes = [fig.add_subplot(gs[row, col]) for row in range(grid_shape[0]) for col in range(grid_shape[1])]
+
+        model_shortname = model['shortname'].replace(' ', '_')
+        model_aucroc_dir_path = os.path.join(output_dir, model_shortname)
+
+        # Add title
+        title = f"{model['shortname']}\nROC Curve | {dataset_name}"
+        fig.suptitle(title, fontsize=font_size+title_font_delta)
+
+        for j, label in enumerate(labels):
+            # Calculate the row and column of the subplot in the grid based on the index `j`
+            ax_subplot = axes[j]
+
+            # Construct the filename for the grid-ready plot
+            roccurve_filename_grid = f'{model_shortname}__roc_curve_gridready__({dataset_name}--{label.replace(" ", "_")}).png'
+            roccurve_filepath = os.path.join(model_aucroc_dir_path, roccurve_filename_grid)
+
+            # Load the image and display it in the subplot
+            img = mpimg.imread(roccurve_filepath)
+            ax_subplot.imshow(img)
+            ax_subplot.axis('off')
+        
+        grid_plot_filename = f'{model_shortname}__roc_curves_grid_combined__({dataset_name}--{label.replace(" ", "_")}).png'
+        plt.tight_layout()
+        plt.subplots_adjust(wspace=wspace, hspace=hspace)
+        plt.savefig(os.path.join(output_dir, grid_plot_filename), dpi=OUT_DPI)
+        plt.close()
+
+
 def perform_statistical_tests(df, bias_stats_dir_path, races, sexes, diseases, exp_var):
     # Define function to perform Two-sample Kolmogorov–Smirnov tests between each pair of subgroups
     def stats_tests(marginal, samples):
@@ -274,7 +316,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description="Model bias inspection.")
     parser.add_argument('--outputs_dir', type=str, required=True, help='Path to outputs directory')
     parser.add_argument('--config', default='chexpert', choices=['chexpert', 'mimic'], help='Config dataset module to use')
-    parser.add_argument('--labels', nargs='+', default=['Pleural Effusion', 'Other', 'No Finding'], 
+    parser.add_argument('--labels', nargs='+', default=['Pleural Effusion', 'Others', 'No Finding'], 
                         help='List of labels to process')
     parser.add_argument('--local_execution', type=bool, default=True, help='Boolean to check whether the code is run locally or remotely')
     return parser.parse_args()
@@ -314,7 +356,7 @@ if __name__ == "__main__":
 
 
     # Directories to save bias analysis outputs
-    bias_dir_path = os.path.join(args.outputs_dir, 'analysis', 'bias')
+    bias_dir_path = os.path.join(args.outputs_dir, 'bias_analysis')
     bias_stats_dir_path = os.path.join(bias_dir_path, 'bias_stats/')
     tsne_dir_path = os.path.join(bias_dir_path, 'tsne/')
     tsne_plots_joint_dir_path = os.path.join(tsne_dir_path, 'tsne_plots_joint/')
@@ -322,6 +364,9 @@ if __name__ == "__main__":
     pca_dir_path = os.path.join(bias_dir_path, 'pca/')
     pca_plots_joint_dir_path = os.path.join(pca_dir_path, 'pca_plots_joint/')
     pca_plots_marginal_dir_path = os.path.join(pca_dir_path, 'pca_plots_marginal/')
+    combined_plots_dir_path = os.path.join(bias_dir_path, 'combined_plots/')
+    combined_joint_plots_dir_path = os.path.join(combined_plots_dir_path, 'combined_joint_plots/')
+    combined_marginal_plots_dir_path = os.path.join(combined_plots_dir_path, 'combined_marginal_plots/')
     os.makedirs(bias_dir_path, exist_ok=True)
     os.makedirs(bias_stats_dir_path, exist_ok=True)
     os.makedirs(tsne_dir_path, exist_ok=True)
@@ -330,6 +375,9 @@ if __name__ == "__main__":
     os.makedirs(pca_dir_path, exist_ok=True)
     os.makedirs(pca_plots_joint_dir_path, exist_ok=True)
     os.makedirs(pca_plots_marginal_dir_path, exist_ok=True)
+    os.makedirs(combined_plots_dir_path, exist_ok=True)
+    os.makedirs(combined_joint_plots_dir_path, exist_ok=True)
+    os.makedirs(combined_marginal_plots_dir_path, exist_ok=True)
 
 
     # Get PCA embeddings
@@ -339,7 +387,7 @@ if __name__ == "__main__":
 
     # Create the sample to be used for analysis
     sample_test = sample_by_race(df=df, n_samples=N_SAMPLES, output_dir=bias_dir_path, races=RACES)
-    sample_test = sample_test.sample(frac=1) # shuffle data for unbiased visualisation
+    sample_test = sample_test.sample(frac=1) # shuffle data for proper visualisation due to overlappping following z order of data points
     # Replicate entries for having capital letters in plots
     sample_test['Disease'] = sample_test['disease']
     sample_test['Sex'] = sample_test['sex']
@@ -360,7 +408,7 @@ if __name__ == "__main__":
         'Age': {'hue_order': list(AGE_BINS.keys())}
     }
 
-    ## Plots
+    ## Individual Plots
     # PCA Modes 1-2
     method = 'PCA-1+2' 
     mode_indices = [1, 2]
@@ -392,6 +440,13 @@ if __name__ == "__main__":
                    font_scale=FONT_SCALE, alpha=ALPHA, marker=MARKER, markersize=MARKERSIZE, kind=KIND, rasterized=RASTERIZED_SCATTER)
 
 
+    ## Combined Plots
+    # Combine joint PCA and t-SNE plots together
+    
+
+    # Combine marginal PCA and t-SNE plots together
+    
+        
     ## Stats
     # Perform Two-sample Kolmogorov–Smirnov tests between each pair of subgroups
     # the function is currently defined to only perform stat. testing on 2 diseases

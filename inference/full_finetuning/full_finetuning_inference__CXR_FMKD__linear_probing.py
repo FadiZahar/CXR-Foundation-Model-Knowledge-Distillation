@@ -27,13 +27,13 @@ from config.config_shared import IMAGE_SIZE, CXRFM_EMBEDS_SIZE, NUM_CLASSES, EPO
 from config.loader_config import load_config, get_dataset_name
 
 # Model import
-from models.disease_prediction__CXR_FMKD_1664to14__full_finetuning import CXR_FMKD_FullFineTuning
+from models.disease_prediction__CXR_FMKD__linear_probing import CXR_FMKD_LinearProbing
 
-pre_OUT_DIR_NAME = 'CXR-FMKD-1664to14_full-finetuning/'
+pre_OUT_DIR_NAME = 'CXR-FMKD_linear-probing/'
 
 
 
-class InferCXR_FMKD_FullFineTuning(LightningModule):
+class InferCXR_FMKD_LinearProbing(LightningModule):
     def __init__(self, num_classes: int, learning_rate: float, embedding_size: int, 
                  pretrained_lightning_module: LightningModule, out_dir_path:str, target_fpr: float):
         super().__init__()
@@ -172,15 +172,15 @@ def main(hparams):
     kd_mapping = {
         'MSE': {
             'original_kd_type_dir_name': model_config.ORIGINAL_MSE_KD_TYPE_DIR_NAME,
-            'checkpoint_filepath': model_config.BEST_CHECKPOINT__CXR_FMKD_1664to14_full_finetuning__MSE__FILEPATH
+            'checkpoint_filepath': model_config.BEST_CHECKPOINT__CXR_FMKD_linear_probing__MSE__FILEPATH
         },
         'CS': {
             'original_kd_type_dir_name': model_config.ORIGINAL_CS_KD_TYPE_DIR_NAME,
-            'checkpoint_filepath': model_config.BEST_CHECKPOINT__CXR_FMKD_1664to14_full_finetuning__CS__FILEPATH
+            'checkpoint_filepath': model_config.BEST_CHECKPOINT__CXR_FMKD_linear_probing__CS__FILEPATH
         },
         'MSEandCS': {
             'original_kd_type_dir_name': model_config.ORIGINAL_MSEandCS_KD_TYPE_DIR_NAME,
-            'checkpoint_filepath': model_config.BEST_CHECKPOINT__CXR_FMKD_1664to14_full_finetuning__MSEandCS__FILEPATH
+            'checkpoint_filepath': model_config.BEST_CHECKPOINT__CXR_FMKD_linear_probing__MSEandCS__FILEPATH
         }
     }
     kd_info = kd_mapping[hparams.kd_type]
@@ -249,8 +249,8 @@ def main(hparams):
         imsave(os.path.join(temp_dir_path, f'sample_{idx}.jpg'), sample['cxr'].astype(np.uint8))
 
     # Model
-    model_type = InferCXR_FMKD_FullFineTuning
-    pretrained_lightning_module = CXR_FMKD_FullFineTuning.load_from_checkpoint(
+    model_type = InferCXR_FMKD_LinearProbing
+    pretrained_lightning_module = CXR_FMKD_LinearProbing.load_from_checkpoint(
         BEST_CHECKPOINT_FULLPATH, num_classes=NUM_CLASSES, learning_rate=LEARNING_RATE, 
         embedding_size=CXRFM_EMBEDS_SIZE, out_dir_path=out_dir_path, target_fpr=TARGET_FPR
         )
@@ -278,7 +278,7 @@ def main(hparams):
         default_root_dir=ckpt_dir_path,
         callbacks=[ModelCheckpoint(monitor='val_loss', 
                                    mode='min', 
-                                   filename='best-checkpoint_fftinfer_CXR-FMKD-1664to14_fft_{epoch}-{val_loss:.4f}',
+                                   filename='best-checkpoint_fftinfer_CXR-FMKD_lp_{epoch}-{val_loss:.4f}',
                                    dirpath=ckpt_dir_path), 
                    TQDMProgressBar(refresh_rate=10),
                    train_logger],

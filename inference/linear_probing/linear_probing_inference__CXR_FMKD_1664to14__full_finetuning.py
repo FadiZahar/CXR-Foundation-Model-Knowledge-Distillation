@@ -53,7 +53,7 @@ class InferCXR_FMKD_FullFineTuning(LightningModule):
         # Ensure the pretrained model is frozen for linear probing
         freeze_model(self.pretrained_model)
          
-        # CXR-FMKD: full finetuning
+        # Replace classifier with unfreezed one
         self.num_features = self.pretrained_model.classifier.in_features   # in_features: 1664
         self.classifier = nn.Linear(self.num_features, self.num_classes)
         self.pretrained_model.classifier = self.classifier
@@ -171,7 +171,7 @@ def main(hparams):
         model_dataset_name = get_dataset_name('mimic')
 
 
-    # Mapping of KD types to their checkpoint filenames
+    # Mapping of KD types to their checkpoint filenames and original kd-type dir names
     kd_mapping = {
         'MSE': {
             'original_kd_type_dir_name': model_config.ORIGINAL_MSE_KD_TYPE_DIR_NAME,
