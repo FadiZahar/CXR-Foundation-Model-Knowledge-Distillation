@@ -1,0 +1,30 @@
+Metric,fftinfer_on_mimic--cxrfmkd_fft_mse_multirun-seed41.loki.76456.log,fftinfer_on_mimic--cxrfmkd_fft_mse_multirun-seed42.loki.76457.log,fftinfer_on_mimic--cxrfmkd_fft_mse_multirun-seed43.loki.76458.log,fftinfer_on_mimic--cxrfmkd_fft_mse_multirun-seed44.luna.76459.log,fftinfer_on_mimic--cxrfmkd_fft_mse_multirun-seed45.luna.76460.log
+AUC-PR | 'No Finding' (Testing),0.72525,0.72811,0.72916,0.72794,0.72616
+AUC-PR | 'Others' (Testing),0.31163,0.3124,0.31472,0.31021,0.3
+AUC-PR | 'Pleural Effusion' (Testing),0.73133,0.73318,0.72892,0.73266,0.72961
+AUC-ROC | 'No Finding' (Testing),0.85465,0.85567,0.85613,0.85423,0.85445
+AUC-ROC | 'Others' (Testing),0.78949,0.78917,0.78951,0.78819,0.78306
+AUC-ROC | 'Pleural Effusion' (Testing),0.89573,0.89725,0.89677,0.89518,0.89567
+J Index Max | 'No Finding' (Testing),0.56932,0.56898,0.5691,0.56643,0.5675
+J Index Max | 'Others' (Testing),0.453,0.45102,0.45215,0.44998,0.44526
+J Index Max | 'Pleural Effusion' (Testing),0.63908,0.63448,0.63637,0.63545,0.63309
+J Index at 20% FPR | 'No Finding' (Testing),0.56315,0.56729,0.56635,0.56057,0.56422
+J Index at 20% FPR | 'Others' (Testing),0.41706,0.41365,0.41186,0.41071,0.40789
+J Index at 20% FPR | 'Pleural Effusion' (Testing),0.63385,0.63362,0.62747,0.63276,0.63077
+Macro AUC-PR (Testing),0.37115,0.37215,0.3739,0.37022,0.36113
+Macro AUC-PR (Validation - During Training),0.30512,0.31301,0.31329,0.31366,0.31348
+Macro AUC-PR (Validation - Final),0.36504,0.3667,0.36825,0.36555,0.35695
+Macro AUC-ROC (Testing),0.80173,0.80164,0.80193,0.80055,0.7962
+Macro AUC-ROC (Validation - During Training),0.74821,0.75193,0.75242,0.74895,0.75496
+Macro AUC-ROC (Validation - Final),0.80122,0.79978,0.80169,0.79992,0.79378
+epoch,20,20,20,20,20
+learning_rate,0.001,0.001,0.001,0.001,0.001
+test_loss_epoch,0.26001,0.26125,0.26234,0.26075,0.26116
+test_loss_step,0.2993,0.30577,0.31564,0.29761,0.30109
+train_loss_epoch,0.14056,0.13976,0.14049,0.14021,0.14048
+train_loss_step,0.14403,0.16604,0.14156,0.17247,0.1523
+trainer/global_step,17240,17240,17240,17240,17240
+val_final_loss_epoch,0.26058,0.26129,0.26248,0.26096,0.2623
+val_final_loss_step,0.26841,0.27939,0.27335,0.31854,0.28748
+val_loss_epoch,0.3683,0.42618,0.44253,0.42133,0.41434
+val_loss_step,0.48352,0.38256,0.38644,0.34633,0.42336
