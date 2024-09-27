@@ -181,7 +181,7 @@ def main(hparams):
 
     # Updated OUT_DIR_NAME to include dataset name
     test_prev_OUT_DIR_NAME = test_dataset_name + '_' + pre_OUT_DIR_NAME
-    OUT_DIR_NAME = 'LPInfer_on_' + test_prev_OUT_DIR_NAME
+    OUT_DIR_NAME = 'FFTInfer_on_' + test_prev_OUT_DIR_NAME
 
     # Get model checkpiont full path
     model_prev_OUT_DIR_NAME = model_dataset_name + '_' + pre_OUT_DIR_NAME
@@ -191,9 +191,9 @@ def main(hparams):
     # Create output directory
     if hparams.multirun_seed:
         inner_out_dir_name = f"{OUT_DIR_NAME.strip('/')}_multirun-seed{hparams.multirun_seed}"
-        out_dir_path = os.path.join(INFER_DIR_PATH, 'LPInfer', OUT_DIR_NAME, 'multiruns', inner_out_dir_name)
+        out_dir_path = os.path.join(INFER_DIR_PATH, 'FFTInfer', OUT_DIR_NAME, 'multiruns', inner_out_dir_name)
     else:
-        out_dir_path = os.path.join(INFER_DIR_PATH, 'LPInfer', OUT_DIR_NAME)
+        out_dir_path = os.path.join(INFER_DIR_PATH, 'FFTInfer', OUT_DIR_NAME)
     os.makedirs(out_dir_path, exist_ok=True)
     # Create TensorBoard logs directory
     logs_dir_path = os.path.join(out_dir_path, 'lightning_logs/')

@@ -16,6 +16,7 @@ import matplotlib.image as mpimg
 
 # Check if Latin Modern Roman (~LaTeX) is available, and set it; otherwise, use the default font
 if 'Latin Modern Roman' in [f.name for f in font_manager.fontManager.ttflist]:
+    plt.style.use('default')
     plt.rcParams['font.family'] = 'Latin Modern Roman'
 
 np.random.seed(42)
@@ -35,7 +36,7 @@ N_SAMPLES = 1000
 ALPHA = 0.6
 MARKER = 'o'
 MARKERSIZE = 40
-FONT_SCALE = 1.2
+FONT_SCALE = 1.3
 COLOR_PALETTE1 = ['deepskyblue', 'darkorange', 'forestgreen', 'darkorchid', 'red']
 COLOR_PALETTE2 = 'plasma_r'
 KIND = 'scatter'
@@ -95,11 +96,19 @@ def apply_pca(embeds, df, pca_dir_path, n_components=0.99):
 
     # Plotting the explained variance
     plt.figure()
-    plt.plot(range(1, len(exp_var) + 1), cumul_exp_var)
+    plt.plot(range(1, len(exp_var) + 1), cumul_exp_var, color='mediumblue')
     plt.xlabel('Mode', fontsize=12)
     plt.ylabel('Retained Variance', fontsize=12)
     plt.title('PCA Cumulative Explained Variance')
-    plt.xticks([1] + list(range(20, len(cumul_exp_var) + 1, 20)))
+    
+    # Dynamic tick marks: Calculate the interval to achieve 10 ticks including 1
+    tick_interval = max(1, len(cumul_exp_var) // 10)
+    tick_interval = int(round(tick_interval / 10) * 10)  # Adjusted to the nearest multiple of 10
+    tick_interval = max(10, tick_interval)  # Ensure it's at least 10 or the calculated value
+    ticks = [1] + list(range(tick_interval, len(cumul_exp_var) + 1, tick_interval))
+    if ticks[-1] != len(cumul_exp_var):  # Ensure the last tick marks the last mode
+        ticks.append(len(cumul_exp_var))
+    plt.xticks(ticks)
     
     # Save plot
     plot_path = os.path.join(pca_dir_path, 'pca_cumulative_explained_variance.png')
@@ -158,6 +167,8 @@ def sample_by_race(df, n_samples, output_dir, races):
     
     # Concatenate the sampled dataframes
     sample_test = pd.concat(sampled_dfs.values())
+    # Replace 'Other' with 'Others' in the 'disease' column
+    sample_test['disease'] = sample_test['disease'].replace('Other', 'Others')
     
     # Save the concatenated DataFrame to a CSV
     csv_filename = 'inspection_sample.csv'
@@ -170,7 +181,7 @@ def sample_by_race(df, n_samples, output_dir, races):
 
 def plot_feature_modes(df, method, mode_indices, xdat, ydat, labels_dict, plots_joint_dir_path, plots_marginal_dir_path, 
                    out_format, out_dpi, color_palette1, color_palette2, font_scale, alpha, marker, markersize, kind, rasterized):
-    sns.set_theme(style="white", palette=color_palette1, font_scale=font_scale)
+    sns.set_theme(style="white", palette=color_palette1, font_scale=font_scale, font='Latin Modern Roman')
     xlim = None
     ylim = None
     
@@ -336,7 +347,6 @@ if __name__ == "__main__":
         local_dataset_path = os.path.join(local_base_path, dataset_name)
         local_filename = os.path.basename(config.TEST_RECORDS_CSV)  # Extracts filename from the config path
         TEST_RECORDS_CSV = os.path.join(local_dataset_path, local_filename)
-        # TEST_RECORDS_CSV = "/Users/macuser/Desktop/Imperial/70078_MSc_AI_Individual_Project/code/external/biomedia/biodata-data-chext_xray/meta/algorithmic_encoding/chexpert.sample.test.csv"
     else:
         TEST_RECORDS_CSV = config.TEST_RECORDS_CSV
 
