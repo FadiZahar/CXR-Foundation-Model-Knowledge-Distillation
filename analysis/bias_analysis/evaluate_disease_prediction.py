@@ -79,14 +79,14 @@ def set_plot_labels(ax, label, metric, plot_type, font_size, title_pad, label_pa
 def get_plot_title(metric, plot_type, dataset_name):
     if plot_type == 'absolute':
         if "AUC-ROC" in metric:
-            title = f"AUC-ROC (Absolute) | {dataset_name}"
+            title = f"AUC-ROC (Absolute) | {dataset_name}\n"
         elif "Youden's Index" in metric:
-            title = f"Youden's J Statistic (Absolute) | {dataset_name}"
+            title = f"Youden's J Statistic (Absolute) | {dataset_name}\n"
     else:
         if "AUC-ROC" in metric:
-            title = f"AUC-ROC (Relative) | {dataset_name}"
+            title = f"AUC-ROC (Relative) | {dataset_name}\n"
         elif "Youden's Index" in metric:
-            title = f"Youden's J Statistic (Relative) | {dataset_name}"
+            title = f"Youden's J Statistic (Relative) | {dataset_name}\n"
     return title  
 
 
@@ -699,7 +699,7 @@ if __name__ == "__main__":
     n_bootstrap = N_BOOTSTRAP
     ci_level = CI_LEVEL
 
-    # Directories to save analysis outputs
+    # Directories to save performance for bias outputs
     performance_for_bias_dir_path = os.path.join(base_output_path, f'performance_for_bias--{dataset_name}')
     performance_tables_dir_path = os.path.join(performance_for_bias_dir_path, 'performance_tables/')
     absolute_plots_dir_path = os.path.join(performance_for_bias_dir_path, 'performance_plots_absolute/')

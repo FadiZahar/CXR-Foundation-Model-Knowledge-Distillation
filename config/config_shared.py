@@ -51,5 +51,5 @@ N_BOOTSTRAP = 2000
 CI_LEVEL = 0.95
 
 # Plotting
-OUT_DPI = 300
+OUT_DPI = 500
 
