@@ -359,6 +359,8 @@ def aggregate_metrics_with_ci(metrics, ci_level=0.95, compact=False):
                 original_estimate = values[0]
                 ci_lower = np.quantile(values[1:], alpha)
                 ci_upper = np.quantile(values[1:], 1 - alpha)
+                # ci_lower = min(ci_lower, original_estimate)
+                # ci_upper = max(ci_upper, original_estimate)
                 if compact:
                     summary[metric][group] = f"{original_estimate:.2f} ({ci_lower:.2f}-{ci_upper:.2f})"
                 else:
@@ -867,14 +869,14 @@ if __name__ == "__main__":
     # Absolute Performance Grid
     aggregate_plots_into_grid(
         output_dir=absolute_plots_dir_path, metrics_to_plot=metrics_to_plot_abs, labels=args.labels, plot_type='absolute', grid_shape=(2, 2), 
-        font_size=font_size_plotforgrid, figsize=(fig_size_plotforgrid[0]*2, fig_size_plotforgrid[1]*2), title_font_delta=title_font_delta+2, 
-        legend_image_path=legend_image_path_abs, legend_height_fraction=0.2, wspace=-0.15, hspace=0, dataset_name=dataset_name
+        font_size=font_size_plotforgrid, figsize=(fig_size_plotforgrid[0]*2, fig_size_plotforgrid[1]*2+1), title_font_delta=title_font_delta, 
+        legend_image_path=legend_image_path_abs, legend_height_fraction=0.2, wspace=-0.15, hspace=0.05, dataset_name=dataset_name
         )
     # Relative Performance Grid
     aggregate_plots_into_grid(
         output_dir=relative_plots_dir_path, metrics_to_plot=metrics_to_plot_rel, labels=args.labels, plot_type='relative', grid_shape=(2, 2), 
-        font_size=font_size_plotforgrid, figsize=(fig_size_plotforgrid[0]*2, fig_size_plotforgrid[1]*2), title_font_delta=title_font_delta+2, 
-        legend_image_path=legend_image_path_rel, legend_height_fraction=0.2, wspace=-0.15, hspace=0, dataset_name=dataset_name
+        font_size=font_size_plotforgrid, figsize=(fig_size_plotforgrid[0]*2, fig_size_plotforgrid[1]*2+1), title_font_delta=title_font_delta, 
+        legend_image_path=legend_image_path_rel, legend_height_fraction=0.2, wspace=-0.15, hspace=0.05, dataset_name=dataset_name
         )
     # ROC Curves Grid
     aggregate_roccurves_into_grid(

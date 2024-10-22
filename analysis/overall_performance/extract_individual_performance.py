@@ -11,7 +11,7 @@ from config.loader_config import load_config, get_dataset_name
 # Import performace metrics calculation functions
 from utils.output_utils.generate_and_save_metrics import calculate_roc_auc, calculate_pr_auc, calculate_youden_index
 # Import other utils functions
-from analysis.bias_analysis.evaluate_disease_prediction import read_csv_file
+from analysis.bias_analysis.evaluate_models_disease_prediction import read_csv_file
 
 
 # Defining global variables

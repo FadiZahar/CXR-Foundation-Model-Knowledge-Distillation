@@ -96,7 +96,7 @@ def apply_pca(embeds, df, pca_dir_path, n_components=0.99):
     cumul_exp_var = np.cumsum(exp_var)
 
     # Plotting the explained variance
-    plt.figure()
+    plt.figure(figsize=(8, 5))
     plt.plot(range(1, len(exp_var) + 1), cumul_exp_var, color='mediumblue')
     plt.xlabel('Mode', fontsize=12)
     plt.ylabel('Retained Variance', fontsize=12)
@@ -108,7 +108,9 @@ def apply_pca(embeds, df, pca_dir_path, n_components=0.99):
     tick_interval = max(10, tick_interval)  # Ensure it's at least 10 or the calculated value
     ticks = [1] + list(range(tick_interval, len(cumul_exp_var) + 1, tick_interval))
     if ticks[-1] != len(cumul_exp_var):  # Ensure the last tick marks the last mode
-        ticks.append(len(cumul_exp_var))
+        if len(cumul_exp_var) - ticks[-1] < 0.5 * tick_interval:  # Check if the last two ticks are too close
+            ticks.pop()  # Remove the second last tick if too close
+        ticks.append(len(cumul_exp_var))  # Append the last tick
     plt.xticks(ticks)
     
     # Save plot
@@ -162,7 +164,7 @@ def bin_age(age):
 def sample_by_race(df, n_samples, output_dir, races):
     sampled_dfs = {}
     for race in tqdm(races, desc="Sampling by race"):
-        sampled_df = df[df['race'] == race].sample(n=n_samples)
+        sampled_df = df[df['race'] == race].sample(n=n_samples, random_state=RANDOM_SEED)
         sampled_df['binned_age'] = sampled_df['age'].apply(bin_age)
         sampled_dfs[race] = sampled_df
     
@@ -700,7 +702,7 @@ if __name__ == "__main__":
 
         # Create the sample to be used for analysis
         sample_test = sample_by_race(df=data_characteristics, n_samples=N_SAMPLES, output_dir=bias_dir_path, races=RACES)
-        sample_test = sample_test.sample(frac=1) # shuffle data for proper visualisation due to overlappping following z order of data points
+        sample_test = sample_test.sample(frac=1, random_state=RANDOM_SEED) # shuffle data for proper visualisation due to overlappping following z order of data points
         # Replicate entries for having capital letters in plots
         sample_test['Disease'] = sample_test['disease']
         sample_test['Sex'] = sample_test['sex']
