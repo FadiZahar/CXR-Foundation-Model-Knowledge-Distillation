@@ -42,6 +42,7 @@ FONT_SCALE = 1.25
 COLOR_PALETTE1 = ['deepskyblue', 'darkorange', 'forestgreen', 'darkorchid', 'red']
 COLOR_PALETTE2 = 'plasma_r'
 KIND = 'scatter'
+STD_SCALE = 3
 
 AGE_BINS = {
     '0-20': (0, 20),
@@ -330,7 +331,7 @@ def apply_tsne(embeds_pca, df, tsne_dir_path, n_components=2):
 
 
 def perform_bias_inspection(sample_df, labels, pca_plots_joint_dir_path, pca_plots_marginal_dir_path, tsne_plots_joint_dir_path, tsne_plots_marginal_dir_path, 
-                            bias_dir_path, analysis_subdir_name, model, combined_joint_plots_dir_path, global_combined_joint_plots_dir_path,
+                            std_centred, bias_dir_path, analysis_subdir_name, model, combined_joint_plots_dir_path, global_combined_joint_plots_dir_path,
                             combined_marginal_plots_dir_path, global_combined_marginal_plots_dir_path, dataset_name):
     """
     Perform bias analysis including plotting and statistical tests for a given sample of data.
@@ -353,7 +354,8 @@ def perform_bias_inspection(sample_df, labels, pca_plots_joint_dir_path, pca_plo
         plot_feature_modes(df=sample_df, method=method, mode_indices=mode_indices, xdat=xdat, ydat=ydat, labels_dict=labels_dict, 
                            plots_joint_dir_path=plots_joint_dir_path, plots_marginal_dir_path=plots_marginal_dir_path, 
                            out_format=OUT_FORMAT, out_dpi=OUT_DPI, color_palette1=COLOR_PALETTE1, color_palette2=COLOR_PALETTE2,  
-                           font_scale=FONT_SCALE, alpha=ALPHA, marker=MARKER, markersize=MARKERSIZE, kind=KIND, rasterized=RASTERIZED_SCATTER)
+                           font_scale=FONT_SCALE, alpha=ALPHA, marker=MARKER, markersize=MARKERSIZE, kind=KIND, rasterized=RASTERIZED_SCATTER,
+                           std_scale=STD_SCALE, std_centred=std_centred)
 
     ## Combined plots
     # Combine joint PCA and t-SNE plots together
@@ -379,7 +381,8 @@ def perform_bias_inspection(sample_df, labels, pca_plots_joint_dir_path, pca_plo
 # =======================================================
 
 def plot_feature_modes(df, method, mode_indices, xdat, ydat, labels_dict, plots_joint_dir_path, plots_marginal_dir_path, 
-                   out_format, out_dpi, color_palette1, color_palette2, font_scale, alpha, marker, markersize, kind, rasterized):
+                       out_format, out_dpi, color_palette1, color_palette2, font_scale, alpha, marker, markersize, kind, rasterized, 
+                       std_scale, std_centred=False):
     sns.set_theme(style="white", palette=color_palette1, font_scale=font_scale, font='Latin Modern Roman')
     xlim = None
     ylim = None
@@ -390,11 +393,22 @@ def plot_feature_modes(df, method, mode_indices, xdat, ydat, labels_dict, plots_
         current_palette = color_palette2 if label == 'Age' else color_palette1
         # Jointplot for each label
         if i == 0:
-            fig = sns.jointplot(x=xdat, y=ydat, hue=label, kind=kind, alpha=alpha, marker=marker, s=markersize,
-                                palette=current_palette, hue_order=settings['hue_order'], data=df, 
-                                joint_kws={'rasterized': rasterized}, marginal_kws={'common_norm': False})
-            xlim = fig.ax_joint.get_xlim()
-            ylim = fig.ax_joint.get_ylim()
+            if std_centred:
+                # Calculate dynamic limits for the plots based on the data standard deviation
+                xlim = [-std_scale * np.std(df[xdat]), std_scale * np.std(df[xdat])]
+                ylim = [-std_scale * np.std(df[ydat]), std_scale * np.std(df[ydat])]
+                # Apply xlim and ylim
+                fig = sns.jointplot(x=xdat, y=ydat, hue=label, kind=kind, alpha=alpha, marker=marker, s=markersize,
+                                    palette=current_palette, hue_order=settings['hue_order'], data=df, 
+                                    joint_kws={'rasterized': rasterized}, marginal_kws={'common_norm': False}, 
+                                    xlim=xlim, ylim=ylim)
+            else:    
+                fig = sns.jointplot(x=xdat, y=ydat, hue=label, kind=kind, alpha=alpha, marker=marker, s=markersize,
+                                    palette=current_palette, hue_order=settings['hue_order'], data=df, 
+                                    joint_kws={'rasterized': rasterized}, marginal_kws={'common_norm': False})
+                # For the first plot, fetch axis limits to use in subsequent plots (if std_centred has not been set to True)
+                xlim = fig.ax_joint.get_xlim()
+                ylim = fig.ax_joint.get_ylim()
         else:
             # Apply previously determined xlim and ylim
             fig = sns.jointplot(x=xdat, y=ydat, hue=label, kind=kind, alpha=alpha, marker=marker, s=markersize,
@@ -1047,6 +1061,8 @@ def parse_args():
     parser.add_argument('--local_execution', type=bool, default=True, help='Boolean to check whether the code is run locally or remotely')
     parser.add_argument('--kd_type_subdir_name', default='', 
                         help='Optional subdir name denoting the type of knowledge distillation applied to the model in question, to extend global directory paths with')
+    parser.add_argument('--std_centred', action='store_true', 
+                        help='When provided, is set to true to center plot axes around the standard deviation of the data')
     return parser.parse_args()
 
 
@@ -1205,6 +1221,7 @@ if __name__ == "__main__":
         pca_plots_marginal_dir_path=pca_plots_marginal_dir_path__main_sample, 
         tsne_plots_joint_dir_path=tsne_plots_joint_dir_path__main_sample, 
         tsne_plots_marginal_dir_path=tsne_plots_marginal_dir_path__main_sample, 
+        std_centred=args.std_centred,
         bias_dir_path=bias_dir_path, 
         analysis_subdir_name=MAIN_SAMPLE_SUBDIR_NAME,
         model=model, 
@@ -1231,6 +1248,7 @@ if __name__ == "__main__":
         pca_plots_marginal_dir_path=pca_plots_marginal_dir_path__all_data_points, 
         tsne_plots_joint_dir_path=tsne_plots_joint_dir_path__all_data_points, 
         tsne_plots_marginal_dir_path=tsne_plots_marginal_dir_path__all_data_points, 
+        std_centred=args.std_centred,
         bias_dir_path=bias_dir_path, 
         analysis_subdir_name=ALL_DATA_SUBDIR_NAME,
         model=model, 
