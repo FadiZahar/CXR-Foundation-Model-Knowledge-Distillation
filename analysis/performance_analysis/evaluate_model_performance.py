@@ -1,6 +1,7 @@
 import os
 import argparse
 import numpy as np
+import pandas as pd
 from PIL import Image
 
 from matplotlib import font_manager, gridspec
@@ -90,7 +91,7 @@ def rewrap_long_line(text, max_length):
     return '\n'.join(new_lines)
 
 
-def save_legend_image(legend_handles, legend_labels, output_dir, num_columns=3, filename="legend.png"):
+def save_legend_image(legend_handles, legend_labels, output_dir, sd_alpha, num_columns=3, filename="legend.png"):
     fig, ax = plt.subplots()  # Dummy figure for legend
     ax.axis('off')
     
@@ -111,10 +112,11 @@ def save_legend_image(legend_handles, legend_labels, output_dir, num_columns=3, 
     # fig.transFigure coordinates are from (0,0) in bottom left to (1,1) in top right
     note_y_position = legend.get_window_extent().ymax / fig.dpi / fig.get_figheight()
     
-    # Adding an explanatory note inside the legend figure
-    note_text='Note: Lines indicate averages; shaded areas indicate SD'
-    fig.text(1.4, note_y_position, note_text, horizontalalignment='right', verticalalignment='bottom', 
-             color='dimgrey', fontstyle='italic', fontsize=12, transform=fig.transFigure)
+    # Adding an explanatory note inside the legend figure for SD if shown in the plot (i.e., sd_alpha > 0)
+    if sd_alpha > 0:
+        note_text='Note: Lines indicate averages; shaded areas indicate SD'
+        fig.text(1.4, note_y_position, note_text, horizontalalignment='right', verticalalignment='bottom', 
+                color='dimgrey', fontstyle='italic', fontsize=12, transform=fig.transFigure)
 
     fig.canvas.draw()
     
@@ -170,17 +172,14 @@ def crop_plots(plot_dir, metrics, models, dataset_name, result_type, keep_xticks
             print(f"Cropped image saved to: {cropped_path}")
 
 
-def add_legend_to_plot(output_dir, models, results_df_key, metric, figsize_width=20, font_size=12, title_font_delta=4, legend_image_path=None, 
-                       dataset_name='CheXpert'):
+def add_legend_to_plot(filename, output_dir, metric, figsize_width=20, legend_image_path=None):
     """Aggregates the figures into a grid and displays them."""
-    result_type = results_df_key.split('_')[0]
-
     # Gather all the image heights to compute height ratios
     heights = []
     widths = []
     total_height = 0
 
-    plot_filepath = os.path.join(output_dir, f"{len(models)}-Models__{metric.replace(' ', '_')}--performance_plot--{result_type}__({dataset_name}).png")
+    plot_filepath = os.path.join(output_dir, filename)
     with Image.open(plot_filepath) as img:
         width, height = img.size
         heights.append(height)
@@ -190,14 +189,12 @@ def add_legend_to_plot(output_dir, models, results_df_key, metric, figsize_width
     if legend_image_path:
         with Image.open(os.path.join(output_dir, legend_image_path)) as img:
             legend_width, legend_height = img.size
-            heights.append(legend_height)
+            heights.append(legend_height * 1.5)  # Scale height by 1.5 times
             widths.append(legend_width)
             total_height += legend_height
 
     # Calculate height ratios
     height_ratios = [h / total_height for h in heights]
-    if legend_image_path:
-        height_ratios[-1] = height_ratios[0]*0.75  # Adjust the height ratio for the legend 
 
     # Calculate the dynamic total figure height based on the width and height ratio.
     reference_width = widths[0]  # Use the first plot width as a reference for scaling.
@@ -221,13 +218,14 @@ def add_legend_to_plot(output_dir, models, results_df_key, metric, figsize_width
         img_legend = mpimg.imread(os.path.join(legend_image_path))
         ax_legend.imshow(img_legend)
 
-    grid_plot_filename = f"{len(models)}-Models__{metric.replace(' ', '_')}--performance_plot_w_legend--{result_type}__({dataset_name}).png"
+    plot_w_legend_filename = filename.replace('performance_plot', 'performance_plot_w_legend')
+    plot_w_legend_filepath = os.path.join(output_dir, plot_w_legend_filename)
     plt.tight_layout()
     plt.subplots_adjust(hspace=0)
-    plt.savefig(os.path.join(output_dir, grid_plot_filename), dpi=OUT_DPI)
+    plt.savefig(plot_w_legend_filepath, dpi=OUT_DPI)
     plt.close()
 
-    print(f"{metric} Plot with legend saved as: {grid_plot_filename}")
+    print(f"({metric}) Plot with legend saved as: {plot_w_legend_filepath}")
 
 
 def aggregate_plots_into_grid(output_dir, models, results_df_key, figsize_width=20, font_size=12, title_font_delta=4, legend_image_path=None, 
@@ -299,7 +297,8 @@ def aggregate_plots_into_grid(output_dir, models, results_df_key, figsize_width=
 
 
 def plot_standard(models, save_dir, results_df_key='detailed_df', show_seeds=False, font_size=20, fig_size=(10,6), title_font_delta=4,
-                  axis_font_delta=1.5, line_width=0.8, label_pad=12.5, title_pad=12.5, crop_margin=35, metrics_ordered=["AUC-PR", "AUC-ROC"]):
+                  axis_font_delta=1.5, line_width=0.8, label_pad=12.5, title_pad=12.5, crop_margin=35, metrics_ordered=["AUC-PR", "AUC-ROC"],
+                  sd_alpha=0.1, combine_metric_plots=True):
     result_type = results_df_key.split('_')[0]
     metrics = models[0][results_df_key]['Metric'].unique()
     classes = models[0][results_df_key]['Class'].unique()
@@ -334,8 +333,18 @@ def plot_standard(models, save_dir, results_df_key='detailed_df', show_seeds=Fal
             average = metric_data['Average']
             sd = metric_data['SD']
             average_label = None if show_seeds else f"{shortname}"
-            plt.plot(x_ticks, average, label=average_label, color=color, linestyle=linestyle, linewidth=line_width*1.5, marker=marker)
-            plt.fill_between(x_ticks, average - sd, average + sd, color=color, alpha=0.15)
+            plt.plot(x_ticks, 
+                     average, 
+                     label=average_label, 
+                     color=color, 
+                     linestyle=linestyle, 
+                     linewidth=line_width*1.5, 
+                     marker=marker)
+            plt.fill_between(x_ticks, 
+                             average - sd, 
+                             average + sd, 
+                             color=color, 
+                             alpha=sd_alpha)
 
         label_pad_adjusted = label_pad+16 if 'AUC' in metric else label_pad
         plt.ylabel(metric, fontsize=font_size+axis_font_delta, labelpad=label_pad_adjusted)
@@ -360,33 +369,35 @@ def plot_standard(models, save_dir, results_df_key='detailed_df', show_seeds=Fal
         if not legend_info:
             legend_info = plt.gca().get_legend_handles_labels()
             h, l = legend_info
-            legend_image_path = save_legend_image(legend_handles=h, legend_labels=l, output_dir=save_dir, filename=f"{len(models)}-Models__legend.png")
+            legend_image_path = save_legend_image(legend_handles=h, legend_labels=l, output_dir=save_dir, sd_alpha=sd_alpha, 
+                                                  filename=f"{len(models)}-Models__legend.png")
 
         plt.tight_layout()
 
         # Save the plot to the specified directory
-        filename = os.path.join(save_dir, f"{len(models)}-Models__{metric.replace(' ', '_')}--performance_plot--{result_type}__({dataset_name}).png")
-        plt.savefig(filename, dpi=OUT_DPI)
+        filename = f"{len(models)}-Models__{metric.replace(' ', '_')}--performance_plot--{result_type}__({dataset_name}).png"
+        filepath = os.path.join(save_dir, filename)
+        plt.savefig(filepath, dpi=OUT_DPI)
         plt.close()
 
-        print(f"{metric} Plot saved as: {filename}")
+        print(f"({metric}) Plot saved as: {filepath}")
 
-        add_legend_to_plot(output_dir=save_dir, models=models, results_df_key=results_df_key, metric=metric, figsize_width=fig_size[0], font_size=font_size, 
-                           title_font_delta=title_font_delta, legend_image_path=legend_image_path, dataset_name=dataset_name)
+        add_legend_to_plot(filename=filename, output_dir=save_dir, metric=metric, figsize_width=fig_size[0], legend_image_path=legend_image_path)
 
-    # Once all plots are saved, call the cropping function
-    crop_plots(save_dir, metrics, models, dataset_name, result_type, "Youden's J Statistic at 20% FPR", crop_margin=crop_margin)
+    if combine_metric_plots:
+        # Once all plots are saved, call the cropping function to prepare the plots for the grid combination
+        crop_plots(save_dir, metrics, models, dataset_name, result_type, "Youden's J Statistic at 20% FPR", crop_margin=crop_margin)
 
-    aggregate_plots_into_grid(output_dir=save_dir, models=models, results_df_key=results_df_key, figsize_width=fig_size[0], font_size=font_size, 
-                              title_font_delta=title_font_delta, legend_image_path=legend_image_path, dataset_name=dataset_name, 
-                              metrics_ordered=metrics_ordered)
+        aggregate_plots_into_grid(output_dir=save_dir, models=models, results_df_key=results_df_key, figsize_width=fig_size[0], font_size=font_size, 
+                                title_font_delta=title_font_delta, legend_image_path=legend_image_path, dataset_name=dataset_name, 
+                                metrics_ordered=metrics_ordered)
     
     return legend_image_path
     
 
 def plot_parallel_coordinates(models, save_dir, results_df_key='detailed_df', font_size=20, fig_size=(10,6), show_seeds=False, title_font_delta=4, 
                               padding_percent=0.05, axis_font_delta=1.5, line_width=0.8, label_pad=30, title_pad=12.5, crop_margin=35, rounding=False, 
-                              sd_alpha=0.1, legend_image_path=None, metrics_ordered=["AUC-PR", "AUC-ROC"]):
+                              sd_alpha=0.1, legend_image_path=None, metrics_ordered=["AUC-PR", "AUC-ROC"], combine_metric_plots=True):
     result_type = results_df_key.split('_')[0]
     metrics = models[0][results_df_key]['Metric'].unique()
     classes = models[0][results_df_key]['Class'].unique()
@@ -474,7 +485,7 @@ def plot_parallel_coordinates(models, save_dir, results_df_key='detailed_df', fo
         for i, label in enumerate(main_axis.get_xticklabels()):
             if 'Macro' in label.get_text() or 'Average' in label.get_text():
                 label.set_fontweight('bold')
-                axes[i].spines["right"].set_linewidth(1.5)  # Thicken the spine
+                axes[i].spines["right"].set_linewidth(2)  # Thicken the spine
 
         main_axis.set_ylabel(metric, fontsize=font_size+axis_font_delta, labelpad=label_pad)
 
@@ -486,10 +497,10 @@ def plot_parallel_coordinates(models, save_dir, results_df_key='detailed_df', fo
                            linewidth=line_width*1.5, 
                            marker=plotting_data[j]['marker'])
             main_axis.fill_between(range(len(avg_data[0])), 
-                           transformed_lowerb_data[j],
-                           transformed_upperb_data[j],
-                           color=plotting_data[j]['color'],
-                           alpha=sd_alpha)
+                                   transformed_lowerb_data[j],
+                                   transformed_upperb_data[j],
+                                   color=plotting_data[j]['color'],
+                                   alpha=sd_alpha)
             
         # Formatting the plot with conditional title
         title_suffix = "Across All Classes" if results_df_key == 'detailed_df' else "Across Most Significant Classes"
@@ -498,24 +509,149 @@ def plot_parallel_coordinates(models, save_dir, results_df_key='detailed_df', fo
         plt.tight_layout()
 
         # Save the plot to the specified directory
-        filename = os.path.join(save_dir, f"{len(models)}-Models__{metric.replace(' ', '_')}--performance_plot--{result_type}__({dataset_name}).png")
-        plt.savefig(filename, dpi=OUT_DPI)
+        filename = f"{len(models)}-Models__{metric.replace(' ', '_')}--performance_plot--{result_type}__({dataset_name}).png"
+        filepath = os.path.join(save_dir, filename)
+        plt.savefig(filepath, dpi=OUT_DPI)
         plt.close()
 
-        print(f"{metric} Plot saved as: {filename}")
+        print(f"({metric}) Plot saved as: {filepath}")
 
-        add_legend_to_plot(output_dir=save_dir, models=models, results_df_key=results_df_key, metric=metric, figsize_width=fig_size[0], font_size=font_size, 
-                           title_font_delta=title_font_delta, legend_image_path=legend_image_path, dataset_name=dataset_name)
+        add_legend_to_plot(filename=filename, output_dir=save_dir, metric=metric, figsize_width=fig_size[0], legend_image_path=legend_image_path)
 
-    # Once all plots are saved, call the cropping function
-    crop_plots(save_dir, metrics, models, dataset_name, result_type, "Youden's J Statistic at 20% FPR", crop_margin=crop_margin)
+    if combine_metric_plots:
+        # Once all plots are saved, call the cropping function to prepare the plots for the grid combination
+        crop_plots(save_dir, metrics, models, dataset_name, result_type, "Youden's J Statistic at 20% FPR", crop_margin=crop_margin)
 
-    aggregate_plots_into_grid(output_dir=save_dir, models=models, results_df_key=results_df_key, figsize_width=fig_size[0], font_size=font_size, 
-                              title_font_delta=title_font_delta, legend_image_path=legend_image_path, dataset_name=dataset_name,
-                              metrics_ordered=metrics_ordered)
+        aggregate_plots_into_grid(output_dir=save_dir, models=models, results_df_key=results_df_key, figsize_width=fig_size[0], font_size=font_size, 
+                                title_font_delta=title_font_delta, legend_image_path=legend_image_path, dataset_name=dataset_name,
+                                metrics_ordered=metrics_ordered)
+        
+
+def plot_focused_parallel_coordinates(models, save_dir, results_df_key='focused_df', font_size=20, fig_size=(10,6), title_font_delta=4, padding_percent=0.05, 
+                                      axis_font_delta=1.5, line_width=0.8, label_pad=30, title_pad=12.5, rounding=False, sd_alpha=0.1, legend_image_path=None, 
+                                      metrics_ordered=["AUC-PR", "AUC-ROC"], wrapped_metrics_ordered=["AUC-PR", "AUC-ROC"]):
+    classes = models[0][results_df_key]['Class'].unique()
+    dataset_name = models[0]['dataset_name']  # The dataset of the first model in the list is expected to be the primary dataset being analysed"
+
+    # Check if the key "Average Classes 1 to 7" exists in the classes
+    if "Average Classes 1 to 7" not in classes:
+        raise ValueError(
+            "'Average Classes 1 to 7' is missing from the classes. "
+            "Ensure that 'focused_df' is passed instead of 'detailed_df'."
+        )
+
+    fig, main_axis = plt.subplots(figsize=fig_size)
+
+    avg_data = []
+    upperb_data = []
+    lowerb_data = []
+    plotting_data = []
+
+    for model in models:
+        avg_pdseries = pd.Series()
+        upperb_pdseries = pd.Series()
+        lowerb_pdseries = pd.Series()
+
+        for metric in metrics_ordered:
+            # Filter data for the specific metric
+            results_df = model[results_df_key]
+            metric_data = results_df[results_df['Metric'] == metric]
+            focused_metric_data = metric_data[metric_data['Class'] == "Average Classes 1 to 7"]
+
+            avg = focused_metric_data['Average']
+            sd = focused_metric_data['SD']
+            upperb = avg + sd
+            lowerb = avg - sd
+
+            avg_pdseries = pd.concat([avg_pdseries, avg], ignore_index=True)
+            upperb_pdseries = pd.concat([upperb_pdseries, upperb], ignore_index=True)
+            lowerb_pdseries = pd.concat([lowerb_pdseries, lowerb], ignore_index=True)
+
+        avg_data.append(avg_pdseries)
+        upperb_data.append(upperb_pdseries)
+        lowerb_data.append(lowerb_pdseries)
+
+        color = model['color']
+        linestyle = model['linestyle']
+        marker = model['marker']
+        shortname = model['shortname']
+        plotting_data.append({'color': color, 'linestyle': linestyle, 'marker': marker, 'shortname': shortname})
+
+    min_vals = np.min(lowerb_data, axis=0)
+    max_vals = np.max(upperb_data, axis=0)
+    delta_vals = max_vals - min_vals
+    padding = delta_vals * padding_percent
+    ymins = min_vals - padding
+    ymaxs = max_vals + padding
+    if rounding:
+        # Rounding to the nearest multiple of 0.05
+        base=0.05
+        ymins = base * np.floor(ymins / base)
+        ymaxs = base * np.ceil(ymaxs / base)
+    ydelta = ymaxs - ymins
+
+    normalised_avg_data = (avg_data - ymins) / ydelta
+    transformed_avg_data = normalised_avg_data * ydelta[0] + ymins[0]
+
+    normalised_lowerb_data = (lowerb_data - ymins) / ydelta
+    transformed_lowerb_data = normalised_lowerb_data * ydelta[0] + ymins[0]
+
+    normalised_upperb_data = (upperb_data - ymins) / ydelta
+    transformed_upperb_data = normalised_upperb_data * ydelta[0] + ymins[0]
+
+    axes = [main_axis] + [main_axis.twinx() for i in range(len(avg_data[0]) - 1)]
+    for i, ax in enumerate(axes):
+        ax.set_ylim(ymins[i], ymaxs[i])
+        ax.spines['top'].set_visible(False)
+        ax.spines['bottom'].set_visible(False)
+        if ax != main_axis:
+            ax.spines['left'].set_visible(False)
+            ax.yaxis.set_ticks_position('right')
+            ax.spines["right"].set_position(("axes", i / (len(avg_data[0]) - 1)))
+
+        # Explicitly set y-ticks at evenly spaced intervals to cover the full range
+        num_ticks = round(fig_size[1]/1.6)  # 1.6 is taken for 5 ticks for a fig of height 8
+        tick_values = np.linspace(ymins[i], ymaxs[i], num_ticks)
+        ax.set_yticks(tick_values)
+        ax.set_yticklabels([f'{tick:.2f}' for tick in tick_values], fontsize=font_size*0.9)
+
+    main_axis.set_xlim(0, len(avg_data[0]) - 1)
+    main_axis.set_xticks(range(len(avg_data[0])))
+    main_axis.set_xticklabels(wrapped_metrics_ordered, rotation=45, ha="right", fontsize=font_size)
+    main_axis.tick_params(axis='x', which='major', pad=20, length=0)  # remove x-axis tick marks with length=0
+    main_axis.spines['right'].set_visible(False)
+
+    main_axis.set_ylabel("Average Classes 1 to 7", fontsize=font_size+axis_font_delta, labelpad=label_pad)
+
+    for j in range(len(models)):
+        main_axis.plot(range(len(avg_data[0])), 
+                        transformed_avg_data[j,:], 
+                        color=plotting_data[j]['color'], 
+                        linestyle=plotting_data[j]['linestyle'],
+                        linewidth=line_width*1.5, 
+                        marker=plotting_data[j]['marker'])
+        main_axis.fill_between(range(len(avg_data[0])), 
+                                transformed_lowerb_data[j],
+                                transformed_upperb_data[j],
+                                color=plotting_data[j]['color'],
+                                alpha=sd_alpha)
+        
+    # Formatting the plot with conditional title
+    main_axis.set_title(f"Performance Metrics | {dataset_name}\nfor Average of Classes 1 to 7", fontsize=font_size+title_font_delta, pad=title_pad*3)
+    
+    plt.tight_layout()
+
+    # Save the plot to the specified directory
+    filename = f"{len(models)}-Models__All_Metrics--focused_performance_plot__({dataset_name}).png"
+    filepath = os.path.join(save_dir, filename)
+    plt.savefig(filepath, dpi=OUT_DPI)
+    plt.close()
+
+    print(f"({metric}) Plot saved as: {filepath}")
+
+    add_legend_to_plot(filename=filename, output_dir=save_dir, metric=metric, figsize_width=fig_size[0], legend_image_path=legend_image_path)
 
     
-
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Plot performance metrics from aggregated results.")
@@ -588,15 +724,27 @@ if __name__ == "__main__":
 
 
     font_size = 19
-    fig_size_detailed_standard = (20,8)
-    fig_size_focused_standard = (20,7.5)
-    # fig_size_detailed_standard = (20,25)
-    # fig_size_focused_standard = (20,25)
-    fig_size_detailed_parallelcoord = (20,8)
-    fig_size_focused_parallelcoord = (20,7.5)
-    title_font_delta = 5
+    fig_size_detailed_standard = (20,8) if len(models) <= 40 else (20,20)
+    fig_size_focused_standard = (20,7.5) if len(models) <= 40 else (20,19.5)
+    fig_size_detailed_parallelcoord = (20,8) if len(models) <= 40 else (20,20)
+    fig_size_focused_parallelcoord = (20,7.5) if len(models) <= 40 else (20,19.5)
+    line_width = 0.8*2
+    sd_alpha = 0.2 if len(models) <= 40 else 0.05
+    title_font_delta = 5 if len(models) <= 40 else 7.5
     axis_font_delta = 2
-    metrics_ordered = ["AUC-PR", "AUC-ROC", "Maximum Youden's J Statistic", "Youden's J Statistic at 20% FPR"]
+    metrics_ordered = [
+        "AUC-PR", 
+        "AUC-ROC", 
+        "Maximum Youden's J Statistic", 
+        "Youden's J Statistic at 20% FPR"
+        ]
+    wrapped_metrics_ordered = [
+        "AUC-PR", 
+        "AUC-ROC", 
+        "Maximum\nYouden's\nJ Statistic", 
+        "Youden's\nJ Statistic\nat 20% FPR"
+        ]
+    combine_metric_plots = True if len(models) <= 40 else False
 
     legend_image_path = plot_standard(
         models=models, 
@@ -607,9 +755,11 @@ if __name__ == "__main__":
         font_size=font_size, 
         title_font_delta=title_font_delta, 
         axis_font_delta=axis_font_delta, 
-        line_width=0.8, 
+        line_width=line_width, 
         crop_margin=35,
-        metrics_ordered=metrics_ordered
+        sd_alpha=sd_alpha,
+        metrics_ordered=metrics_ordered,
+        combine_metric_plots=combine_metric_plots
         )
     plot_parallel_coordinates(
         models=models, 
@@ -620,11 +770,12 @@ if __name__ == "__main__":
         show_seeds=False, 
         title_font_delta=title_font_delta, 
         axis_font_delta=axis_font_delta, 
-        line_width=0.8, 
+        line_width=line_width, 
         crop_margin=135,
-        sd_alpha=0.1,
+        sd_alpha=sd_alpha,
         legend_image_path=legend_image_path,
-        metrics_ordered=metrics_ordered
+        metrics_ordered=metrics_ordered,
+        combine_metric_plots=combine_metric_plots
         )
     
     legend_image_path = plot_standard(
@@ -636,9 +787,11 @@ if __name__ == "__main__":
         font_size=font_size, 
         title_font_delta=title_font_delta, 
         axis_font_delta=axis_font_delta, 
-        line_width=0.8, 
+        line_width=line_width, 
         crop_margin=35,
-        metrics_ordered=metrics_ordered
+        sd_alpha=sd_alpha,
+        metrics_ordered=metrics_ordered,
+        combine_metric_plots=combine_metric_plots
         )
     plot_parallel_coordinates(
         models=models, 
@@ -649,11 +802,27 @@ if __name__ == "__main__":
         show_seeds=False, 
         title_font_delta=title_font_delta, 
         axis_font_delta=axis_font_delta, 
-        line_width=0.8, 
+        line_width=line_width, 
         crop_margin=135,
-        sd_alpha=0.1,
+        sd_alpha=sd_alpha,
         legend_image_path=legend_image_path,
-        metrics_ordered=metrics_ordered
+        metrics_ordered=metrics_ordered,
+        combine_metric_plots=combine_metric_plots
+        )
+    
+    plot_focused_parallel_coordinates(
+        models=models, 
+        save_dir=focused_parallelcoordplot_dir_path, 
+        results_df_key='focused_df', 
+        font_size=font_size, 
+        fig_size=fig_size_focused_parallelcoord, 
+        title_font_delta=title_font_delta, 
+        axis_font_delta=axis_font_delta, 
+        line_width=line_width, 
+        sd_alpha=sd_alpha, 
+        legend_image_path=legend_image_path,
+        metrics_ordered=metrics_ordered,
+        wrapped_metrics_ordered=wrapped_metrics_ordered
         )
 
 

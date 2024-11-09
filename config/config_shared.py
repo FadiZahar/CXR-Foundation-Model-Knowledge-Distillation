@@ -122,3 +122,4 @@ MODEL_STYLES = {
     'CXR-FMKD-Direct-LP (MSE-CS | 0.9-0.1)': {'color': tab20c[0], 'marker': marker_type, 'linestyle': '-.'},
     'CXR-FMKD-Direct-FFT (MSE-CS | 0.9-0.1)': {'color': tab20c[0], 'marker': marker_type, 'linestyle': '-'}
 }
+
