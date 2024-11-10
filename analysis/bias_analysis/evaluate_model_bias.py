@@ -815,12 +815,8 @@ def perform_statistical_tests(sample_df, bias_stats_dir_path, races, sexes, dise
     return adjusted_pvalues_df, rejection_df
 
 
-def perform_bias_statistical_analysis(sample_df, bias_stats_dir_path, exp_var, model, dataset_name):
-    ## Statistical Analysis
-    # Perform Two-sample Independent tests between each pair of subgroups
-    # Define the list of test types for statistical analysis
-    stat_test_types = ['ks', 'mannwhitney', 'anderson', 'median', 'mood', 'kruskal', 'cramervonmises'] 
-
+def perform_bias_statistical_analysis(sample_df, bias_stats_dir_path, exp_var, model, dataset_name, stat_test_types):
+    """Statistical Analysis: Perform Two-sample Independent tests between each pair of subgroups"""
     # Lists to store adjusted_pvalues and rejection DataFrames for the model for each test_type applied
     combined_pvalues_dfs = []
     combined_rejections_dfs = [] 
@@ -866,12 +862,7 @@ def perform_bias_statistical_analysis(sample_df, bias_stats_dir_path, exp_var, m
 # ====== BIAS - STATS SIMULATION FUNCTIONS - START ======
 # =======================================================
 
-def simulate_bias_statistical_analysis(samples_dfs, bias_stats_dir_path, exp_var, model, dataset_name):
-    ## Statistical Analysis
-    # Perform Two-sample Independent tests between each pair of subgroups
-    # Define the list of test types for statistical analysis
-    stat_test_types = ['ks', 'mannwhitney', 'anderson', 'median', 'mood', 'kruskal', 'cramervonmises'] 
-
+def simulate_bias_statistical_analysis(samples_dfs, bias_stats_dir_path, exp_var, model, dataset_name, stat_test_types):
     # Initialise storage lists for results across all test types
     combined_pvalues_dfs__detailed = []
     combined_pvalues_dfs__compact = []
@@ -1212,6 +1203,9 @@ if __name__ == "__main__":
     # ==== BIAS ANALYSIS - GENERATE PLOTS & STATS ====
     # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
+    # Define the list of test types for statistical analysis
+    stat_test_types = ['ks', 'mannwhitney', 'anderson', 'median', 'mood', 'kruskal', 'cramervonmises'] 
+
     # Analysis with sampled data
     print("Starting bias analysis with main sampled data...")
     perform_bias_inspection(
@@ -1236,7 +1230,8 @@ if __name__ == "__main__":
         bias_stats_dir_path=bias_stats_dir_path__main_sample, 
         exp_var=exp_var, 
         model=model, 
-        dataset_name=dataset_name
+        dataset_name=dataset_name,
+        stat_test_types=stat_test_types
         )
 
     # Analysis with all data points
@@ -1263,7 +1258,8 @@ if __name__ == "__main__":
         bias_stats_dir_path=bias_stats_dir_path__all_data_points, 
         exp_var=exp_var, 
         model=model, 
-        dataset_name=dataset_name
+        dataset_name=dataset_name,
+        stat_test_types=stat_test_types
         )
     
     # Analysis through simulation with multiple samples
@@ -1281,7 +1277,8 @@ if __name__ == "__main__":
         bias_stats_dir_path=bias_stats_dir_path__simulation, 
         exp_var=exp_var, 
         model=model, 
-        dataset_name=dataset_name
+        dataset_name=dataset_name,
+        stat_test_types=stat_test_types
         )
     
     # <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<

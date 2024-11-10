@@ -20,7 +20,7 @@ import matplotlib.gridspec as gridspec
 
 
 # Import global shared variables
-from config.config_shared import TARGET_FPR, N_BOOTSTRAP, CI_LEVEL, OUT_DPI, LABELS, RACES, SEXES
+from config.config_shared import TARGET_FPR, N_BOOTSTRAP, CI_LEVEL, OUT_DPI, LABELS, RACES, SEXES, MODEL_STYLES
 # Import the configuration loader
 from config.loader_config import load_config, get_dataset_name
 
@@ -390,9 +390,11 @@ def plot_metrics(results_df, label, focus_metrics, y_limits, plot_type='absolute
                  y_xaxis_annotation=-28, title_pad = 12.5, label_pad=12.5, bars_cluster_width=0.7, output_dir=None, dataset_name='CheXpert'):
     """Generates and saves plots based on the provided data."""
     # Concatenate tab20b and tab20c color maps
-    cmap_b = plt.get_cmap('tab20').colors
-    cmap_c = plt.get_cmap('tab20c').colors
-    full_cmap = list(cmap_b) + list(cmap_c)  # Concatenated colormap
+    cmap_b = list(plt.get_cmap('tab20').colors)
+    cmap_c = list(plt.get_cmap('tab20c').colors)
+    if dataset_name != 'CheXpert':
+        cmap_b[-2:] = cmap_b[:2]
+    full_cmap = cmap_b + cmap_c
     # Lighten every odd-numbered color in full_cmap
     for i in range(0, len(full_cmap), 2):
         full_cmap[i] = lighten_color(full_cmap[i], amount=0.2)  # Lighten by 20%
@@ -736,7 +738,7 @@ if __name__ == "__main__":
         models.append({
             "directory": model_dir,
             "fullname" : model_fullname,
-            "shortname": model_shortname
+            "shortname": model_shortname,
         })
     
 
