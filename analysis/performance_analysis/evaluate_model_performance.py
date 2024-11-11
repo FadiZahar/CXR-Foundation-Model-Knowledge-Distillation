@@ -847,14 +847,15 @@ if __name__ == "__main__":
     os.makedirs(focused_parallelcoordplot_dir_path, exist_ok=True)
 
 
+    num_models_cutoff = 20
     font_size = 19
-    fig_size_detailed_standard = (20,8) if len(models) <= 40 else (20,20)
-    fig_size_focused_standard = (20,7.5) if len(models) <= 40 else (20,19.5)
-    fig_size_detailed_parallelcoord = (20,8) if len(models) <= 40 else (20,20)
-    fig_size_focused_parallelcoord = (20,7.5) if len(models) <= 40 else (20,19.5)
+    fig_size_detailed_standard = (20,8) if len(models) <= num_models_cutoff else (20,20)
+    fig_size_focused_standard = (20,7.5) if len(models) <= num_models_cutoff else (20,19.5)
+    fig_size_detailed_parallelcoord = (20,8) if len(models) <= num_models_cutoff else (20,20)
+    fig_size_focused_parallelcoord = (20,7.5) if len(models) <= num_models_cutoff else (20,19.5)
     line_width = 0.8*2
-    sd_alpha = 0.15 if len(models) <= 40 else 0.05
-    title_font_delta = 6 if len(models) <= 40 else 7.5
+    sd_alpha = 0.15 if len(models) <= num_models_cutoff else 0.05
+    title_font_delta = 6 if len(models) <= num_models_cutoff else 7.5
     axis_font_delta = 2
     legend_num_columns = 2 if len(datasets) == 2 else 3
     legend_width_ratio = 0.8 if len(datasets) == 2 else 0.9
@@ -870,7 +871,7 @@ if __name__ == "__main__":
         "Maximum\nYouden's J Statistic", 
         "Youden's J Statistic\nat 20% FPR"
         ]
-    combine_metric_plots = True if len(models) <= 40 else False
+    combine_metric_plots = True if len(models) <= num_models_cutoff else False
 
 
     legend_image_path = plot_standard(
