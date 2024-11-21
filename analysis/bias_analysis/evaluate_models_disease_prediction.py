@@ -687,7 +687,7 @@ if __name__ == "__main__":
 
     if args.local_execution:
         # Construct local file path dynamically based on the dataset name
-        local_base_path = '/Users/macuser/Desktop/Imperial/70078_MSc_AI_Individual_Project/code/Test_Resample_Records'
+        local_base_path = '/Users/macuser/Desktop/Imperial/70078_MSc_AI_Individual_Project/code/Test_Records/Test_Resample'
         local_dataset_path = os.path.join(local_base_path, dataset_name)
         local_filename = os.path.basename(config.TEST_RECORDS_CSV)  # Extracts filename from the config path
         TEST_RECORDS_CSV = os.path.join(local_dataset_path, local_filename)

@@ -2,6 +2,7 @@ import os
 import argparse
 import numpy as np
 import pandas as pd
+import torch
 import seaborn as sns
 from sklearn.manifold import TSNE
 from sklearn.decomposition import PCA
@@ -34,6 +35,8 @@ OUT_FORMAT = 'png'
 RASTERIZED_SCATTER = True
 N_SAMPLES = 1000
 N_SIMULATION_ITERATIONS = 5000
+N_PERMUTATIONS = 10000
+STRATA_COLUMNS = ["sex", "disease", "age_bin"]
 
 ALPHA = 0.6
 MARKER = 'o'
@@ -56,7 +59,7 @@ AGE_BINS = {
 }
 
 MAIN_SAMPLE_SUBDIR_NAME='main_sample/'
-ALL_DATA_SUBDIR_NAME='all_data_points/'
+ALL_UNIQUE_DATA_SUBDIR_NAME='all_unique_data_points/'
 SIMULATION_SUBDIR_NAME='simulation/'
 
 RANDOM_SEED = 42
@@ -84,30 +87,75 @@ def get_num_features(data):
     return max_embed_num
 
 
-def sample_by_race(df, n_samples, races, random_seed=42, output_dir=None, csv_filename=None, save_sample=False):
-    sampled_dfs = {}
-    for race in races:
-        sampled_df = df[df['race'] == race].sample(n=n_samples, random_state=random_seed)
-        sampled_dfs[race] = sampled_df
+def stratified_sample_by_race(
+    df, 
+    n_samples=1000, 
+    random_seed=42, 
+    strata_columns=["sex", "disease", "age_bin"], 
+    race_column="race", 
+    output_dir=None, 
+    csv_filename=None, 
+    save_sample=False
+):
+    # Set random seed
+    torch.manual_seed(random_seed)
 
-    # Concatenate the sampled dataframes
-    sample_test = pd.concat(sampled_dfs.values())
-    
-    # Optionally save the concatenated DataFrame to a CSV
+    ## Step 1: Create composite strata
+    df = df.copy()
+    df["composite_strata"] = df[strata_columns].astype(str).agg("-".join, axis=1)
+
+    ## Step 2: Calculate average proportions for composite strata across all races
+    # Get proportions for each race
+    race_groups = [df[df[race_column] == race] for race in df[race_column].unique()]
+    all_labels = set(df["composite_strata"].unique())
+    race_proportions = [
+        group["composite_strata"].value_counts(normalize=True).reindex(all_labels, fill_value=0)
+        for group in race_groups
+    ]
+    # Compute average proportions across races
+    average_proportions = sum(race_proportions) / len(race_proportions)
+    average_proportions_dict = average_proportions.to_dict()
+
+    ## Step 3: Sample from each race while preserving average proportions
+    balanced_race_groups = []
+    for race in df[race_column].unique():
+        race_group = df[df[race_column] == race]
+
+        # Calculate weights for sampling
+        observed_proportions = race_group["composite_strata"].value_counts(normalize=True).reindex(all_labels, fill_value=0)
+        weights = {
+            stratum: (average_proportions_dict.get(stratum, 0) / observed_proportions.get(stratum, 1))
+            if observed_proportions.get(stratum, 1) > 0 else 0
+            for stratum in all_labels
+        }
+
+        # Perform sampling
+        ids = list(torch.utils.data.WeightedRandomSampler(
+            race_group["composite_strata"].apply(lambda x: weights.get(x, 0)).values,
+            n_samples,
+            replacement=False  # Avoid duplicates
+        ))
+        balanced_race_groups.append(race_group.iloc[ids])
+
+    ## Step 4: Combine sampled groups
+    sampled_df = pd.concat(balanced_race_groups)
+
+    ## Optionally save the sampled DataFrame
     if output_dir and csv_filename and save_sample:
+        os.makedirs(output_dir, exist_ok=True)
         output_filepath = os.path.join(output_dir, csv_filename)
-        sample_test.to_csv(output_filepath)
-        print(f"Sampled data saved to: {output_filepath}")
-    
-    return sample_test
+        sampled_df.to_csv(output_filepath)
+        print(f"Stratified sampled data saved to: {output_filepath}")
+
+    return sampled_df
 
 
-def generate_multiple_samples(df, n_samples, races, n_iterations):
+def generate_multiple_samples(df, n_samples, n_iterations, strata_columns, race_column):
     samples_dfs = []
     print(f"Generating {n_iterations} samples, each sampled by race...")
     for i in range(1, n_iterations+1):
         # Using a different seed for each iteration to ensure variability in the samples
-        sample_df = sample_by_race(df=df, n_samples=n_samples, races=races, random_seed=i)
+        sample_df = stratified_sample_by_race(df=df, n_samples=n_samples, random_seed=i, strata_columns=strata_columns, race_column=race_column)
         samples_dfs.append(sample_df)
     return samples_dfs
 
@@ -145,43 +193,43 @@ def save_bias_dataframe_to_csv(data_df, bias_stats_dir_path, test_type, filename
 
 
 def setup_model_bias_analysis_directories(model_directory, mainsample_subdirectory_name='main_sample/',
-                                          alldata_subdirectory_name='all_data_points/', simulation_subdirectory_name='simulation/'):
+                                          alluniquedata_subdirectory_name='all_unique_data_points/', simulation_subdirectory_name='simulation/'):
     """
     Creates directories within a single model's directory for storing different types of bias analysis outputs, 
     including specific subdirectories for detailed experiments.
     """
     # Base directory for bias analysis
-    bias_dir_path = os.path.join(model_directory, 'bias_analysis')
+    bias_dir_path = os.path.join(model_directory, 'bias_analysis2')
 
     # Define paths for various analysis aspects within the model's directory
     bias_stats_dir_path = os.path.join(bias_dir_path, 'bias_stats/')
     bias_stats_dir_path__main_sample = os.path.join(bias_stats_dir_path, mainsample_subdirectory_name)
-    bias_stats_dir_path__all_data_points = os.path.join(bias_stats_dir_path, alldata_subdirectory_name)
+    bias_stats_dir_path__all_unique_data_points = os.path.join(bias_stats_dir_path, alluniquedata_subdirectory_name)
     bias_stats_dir_path__simulation = os.path.join(bias_stats_dir_path, simulation_subdirectory_name)
 
     pca_dir_path = os.path.join(bias_dir_path, 'pca/')
     pca_plots_joint_dir_path = os.path.join(pca_dir_path, 'pca_plots_joint/')
     pca_plots_joint_dir_path__main_sample = os.path.join(pca_plots_joint_dir_path, mainsample_subdirectory_name)
-    pca_plots_joint_dir_path__all_data_points = os.path.join(pca_plots_joint_dir_path, alldata_subdirectory_name)
+    pca_plots_joint_dir_path__all_unique_data_points = os.path.join(pca_plots_joint_dir_path, alluniquedata_subdirectory_name)
     pca_plots_marginal_dir_path = os.path.join(pca_dir_path, 'pca_plots_marginal/')
     pca_plots_marginal_dir_path__main_sample = os.path.join(pca_plots_marginal_dir_path, mainsample_subdirectory_name)
-    pca_plots_marginal_dir_path__all_data_points = os.path.join(pca_plots_marginal_dir_path, alldata_subdirectory_name)
+    pca_plots_marginal_dir_path__all_unique_data_points = os.path.join(pca_plots_marginal_dir_path, alluniquedata_subdirectory_name)
 
     tsne_dir_path = os.path.join(bias_dir_path, 'tsne/')
     tsne_plots_joint_dir_path = os.path.join(tsne_dir_path, 'tsne_plots_joint/')
     tsne_plots_joint_dir_path__main_sample = os.path.join(tsne_plots_joint_dir_path, mainsample_subdirectory_name)
-    tsne_plots_joint_dir_path__all_data_points = os.path.join(tsne_plots_joint_dir_path, alldata_subdirectory_name)
+    tsne_plots_joint_dir_path__all_unique_data_points = os.path.join(tsne_plots_joint_dir_path, alluniquedata_subdirectory_name)
     tsne_plots_marginal_dir_path = os.path.join(tsne_dir_path, 'tsne_plots_marginal/')
     tsne_plots_marginal_dir_path__main_sample = os.path.join(tsne_plots_marginal_dir_path, mainsample_subdirectory_name)
-    tsne_plots_marginal_dir_path__all_data_points = os.path.join(tsne_plots_marginal_dir_path, alldata_subdirectory_name)
+    tsne_plots_marginal_dir_path__all_unique_data_points = os.path.join(tsne_plots_marginal_dir_path, alluniquedata_subdirectory_name)
 
     combined_plots_dir_path = os.path.join(bias_dir_path, 'combined_plots/')
     combined_joint_plots_dir_path = os.path.join(combined_plots_dir_path, 'combined_joint_plots/')
     combined_joint_plots_dir_path__main_sample = os.path.join(combined_joint_plots_dir_path, mainsample_subdirectory_name)
-    combined_joint_plots_dir_path__all_data_points = os.path.join(combined_joint_plots_dir_path, alldata_subdirectory_name)
+    combined_joint_plots_dir_path__all_unique_data_points = os.path.join(combined_joint_plots_dir_path, alluniquedata_subdirectory_name)
     combined_marginal_plots_dir_path = os.path.join(combined_plots_dir_path, 'combined_marginal_plots/')
     combined_marginal_plots_dir_path__main_sample = os.path.join(combined_marginal_plots_dir_path, mainsample_subdirectory_name)
-    combined_marginal_plots_dir_path__all_data_points = os.path.join(combined_marginal_plots_dir_path, alldata_subdirectory_name)
+    combined_marginal_plots_dir_path__all_unique_data_points = os.path.join(combined_marginal_plots_dir_path, alluniquedata_subdirectory_name)
 
 
     # Ensure the creation of these directories
@@ -189,61 +237,61 @@ def setup_model_bias_analysis_directories(model_directory, mainsample_subdirecto
 
     os.makedirs(bias_stats_dir_path, exist_ok=True)
     os.makedirs(bias_stats_dir_path__main_sample, exist_ok=True)
-    os.makedirs(bias_stats_dir_path__all_data_points, exist_ok=True)
+    os.makedirs(bias_stats_dir_path__all_unique_data_points, exist_ok=True)
     os.makedirs(bias_stats_dir_path__simulation, exist_ok=True)
 
     os.makedirs(pca_dir_path, exist_ok=True)
     os.makedirs(pca_plots_joint_dir_path, exist_ok=True)
     os.makedirs(pca_plots_joint_dir_path__main_sample, exist_ok=True)
-    os.makedirs(pca_plots_joint_dir_path__all_data_points, exist_ok=True)
+    os.makedirs(pca_plots_joint_dir_path__all_unique_data_points, exist_ok=True)
     os.makedirs(pca_plots_marginal_dir_path, exist_ok=True)
     os.makedirs(pca_plots_marginal_dir_path__main_sample, exist_ok=True)
-    os.makedirs(pca_plots_marginal_dir_path__all_data_points, exist_ok=True)
+    os.makedirs(pca_plots_marginal_dir_path__all_unique_data_points, exist_ok=True)
 
     os.makedirs(tsne_dir_path, exist_ok=True)
     os.makedirs(tsne_plots_joint_dir_path, exist_ok=True)
     os.makedirs(tsne_plots_joint_dir_path__main_sample, exist_ok=True)
-    os.makedirs(tsne_plots_joint_dir_path__all_data_points, exist_ok=True)
+    os.makedirs(tsne_plots_joint_dir_path__all_unique_data_points, exist_ok=True)
     os.makedirs(tsne_plots_marginal_dir_path, exist_ok=True)
     os.makedirs(tsne_plots_marginal_dir_path__main_sample, exist_ok=True)
-    os.makedirs(tsne_plots_marginal_dir_path__all_data_points, exist_ok=True)
+    os.makedirs(tsne_plots_marginal_dir_path__all_unique_data_points, exist_ok=True)
 
     os.makedirs(combined_plots_dir_path, exist_ok=True)
     os.makedirs(combined_joint_plots_dir_path, exist_ok=True)
     os.makedirs(combined_joint_plots_dir_path__main_sample, exist_ok=True)
-    os.makedirs(combined_joint_plots_dir_path__all_data_points, exist_ok=True)
+    os.makedirs(combined_joint_plots_dir_path__all_unique_data_points, exist_ok=True)
     os.makedirs(combined_marginal_plots_dir_path, exist_ok=True)
     os.makedirs(combined_marginal_plots_dir_path__main_sample, exist_ok=True)
-    os.makedirs(combined_marginal_plots_dir_path__all_data_points, exist_ok=True)
+    os.makedirs(combined_marginal_plots_dir_path__all_unique_data_points, exist_ok=True)
 
 
     return {
         'bias_dir_path': bias_dir_path,
         'bias_stats_dir_path': bias_stats_dir_path,
         'bias_stats_dir_path__main_sample': bias_stats_dir_path__main_sample,
-        'bias_stats_dir_path__all_data_points': bias_stats_dir_path__all_data_points,
+        'bias_stats_dir_path__all_unique_data_points': bias_stats_dir_path__all_unique_data_points,
         'bias_stats_dir_path__simulation': bias_stats_dir_path__simulation,
         'pca_dir_path': pca_dir_path,
         'pca_plots_joint_dir_path': pca_plots_joint_dir_path,
         'pca_plots_joint_dir_path__main_sample': pca_plots_joint_dir_path__main_sample,
-        'pca_plots_joint_dir_path__all_data_points': pca_plots_joint_dir_path__all_data_points,
+        'pca_plots_joint_dir_path__all_unique_data_points': pca_plots_joint_dir_path__all_unique_data_points,
         'pca_plots_marginal_dir_path': pca_plots_marginal_dir_path,
         'pca_plots_marginal_dir_path__main_sample': pca_plots_marginal_dir_path__main_sample,
-        'pca_plots_marginal_dir_path__all_data_points': pca_plots_marginal_dir_path__all_data_points,
+        'pca_plots_marginal_dir_path__all_unique_data_points': pca_plots_marginal_dir_path__all_unique_data_points,
         'tsne_dir_path': tsne_dir_path,
         'tsne_plots_joint_dir_path': tsne_plots_joint_dir_path,
         'tsne_plots_joint_dir_path__main_sample': tsne_plots_joint_dir_path__main_sample,
-        'tsne_plots_joint_dir_path__all_data_points': tsne_plots_joint_dir_path__all_data_points,
+        'tsne_plots_joint_dir_path__all_unique_data_points': tsne_plots_joint_dir_path__all_unique_data_points,
         'tsne_plots_marginal_dir_path': tsne_plots_marginal_dir_path,
         'tsne_plots_marginal_dir_path__main_sample': tsne_plots_marginal_dir_path__main_sample,
-        'tsne_plots_marginal_dir_path__all_data_points': tsne_plots_marginal_dir_path__all_data_points,
+        'tsne_plots_marginal_dir_path__all_unique_data_points': tsne_plots_marginal_dir_path__all_unique_data_points,
         'combined_plots_dir_path': combined_plots_dir_path,
         'combined_joint_plots_dir_path': combined_joint_plots_dir_path,
         'combined_joint_plots_dir_path__main_sample': combined_joint_plots_dir_path__main_sample,
-        'combined_joint_plots_dir_path__all_data_points': combined_joint_plots_dir_path__all_data_points,
+        'combined_joint_plots_dir_path__all_unique_data_points': combined_joint_plots_dir_path__all_unique_data_points,
         'combined_marginal_plots_dir_path': combined_marginal_plots_dir_path,
         'combined_marginal_plots_dir_path__main_sample': combined_marginal_plots_dir_path__main_sample,
-        'combined_marginal_plots_dir_path__all_data_points': combined_marginal_plots_dir_path__all_data_points
+        'combined_marginal_plots_dir_path__all_unique_data_points': combined_marginal_plots_dir_path__all_unique_data_points
     }
 
 # =======================================================
@@ -765,23 +813,25 @@ def perform_statistical_tests(sample_df, bias_stats_dir_path, races, sexes, dise
             data2 = groups[group2][marginal]
 
             if test_type == 'ks':
-                result = ks_2samp(data1, data2)
+                result = ks_2samp(data1, data2).pvalue
+            elif test_type == 'ks_permutation':
+                result = run_ks_permutation_test(data1, data2, n_permutations=N_PERMUTATIONS)
             elif test_type == 'mannwhitney':
-                result = mannwhitneyu(data1, data2)
+                result = mannwhitneyu(data1, data2).pvalue
             elif test_type == 'anderson':
-                result = anderson_ksamp([data1, data2])
+                result = anderson_ksamp([data1, data2]).pvalue
             elif test_type == 'median':
-                result = median_test(data1, data2)
+                result = median_test(data1, data2).pvalue
             elif test_type == 'mood':
-                result = mood(data1, data2)
+                result = mood(data1, data2).pvalue
             elif test_type == 'kruskal':
-                result = kruskal(data1, data2)
+                result = kruskal(data1, data2).pvalue
             elif test_type == 'cramervonmises':
-                result = cramervonmises_2samp(data1, data2)
+                result = cramervonmises_2samp(data1, data2).pvalue
             else:
                 raise ValueError("Unsupported test type provided")
             
-            results.append(result.pvalue)
+            results.append(result)
         return results
 
     # Get p-values for each PCA mode
@@ -815,18 +865,61 @@ def perform_statistical_tests(sample_df, bias_stats_dir_path, races, sexes, dise
     return adjusted_pvalues_df, rejection_df
 
 
-def perform_bias_statistical_analysis(sample_df, bias_stats_dir_path, exp_var, model, dataset_name, stat_test_types):
-    """Statistical Analysis: Perform Two-sample Independent tests between each pair of subgroups"""
-    # Lists to store adjusted_pvalues and rejection DataFrames for the model for each test_type applied
-    combined_pvalues_dfs = []
-    combined_rejections_dfs = [] 
+def run_ks_permutation_test(source, target, n_permutations=1000, random_seed=42):
+    """
+    Runs a permutation-based Kolmogorov-Smirnov test to compare two samples.
+    
+    Args:
+        source (1D array-like): e.g., list, NumPy array, or pandas Series of feature values from the source set.
+        target (1D array-like): e.g., list, NumPy array, or pandas Series of feature values from the target set.
+        n_permutations (int): Number of permutations to perform.
+    
+    Returns:
+        float: p-value from the permutation KS test.
+    
+    Description:
+        This function computes the KS statistic for the actual data and then
+        compares this to the distribution of KS statistics generated by randomly
+        permuting the combined dataset. The p-value represents the proportion
+        of the permuted datasets that resulted in a KS statistic as extreme
+        or more extreme than the observed statistic.
+    """
+    if random_seed is not None:
+        np.random.seed(random_seed)
 
-    # Diseases to compare, currently set to compare 'Pleural Effusion' and 'No Finding' only
-    diseases = ['Pleural Effusion', 'No Finding']  
+    n1, n2 = len(source), len(target)
+    observed_ks_statistic = ks_2samp(source, target, method="exact").statistic
+    
+    # Combine and permute data
+    combined_set = np.concatenate([source, target], axis=0)
+    
+    # Generate permuted statistics
+    permuted_stats = []
+    for _ in range(n_permutations):
+        permuted_indices = np.random.permutation(n1 + n2)
+        permuted_statistic = ks_2samp(combined_set[permuted_indices[:n1]], combined_set[permuted_indices[n1:]], method="exact").statistic
+        permuted_stats.append(permuted_statistic)
+    
+    # Calculate p-value as the proportion of permuted stats greater than or equal to the observed
+    p_value = (np.sum(np.array(permuted_stats) >= observed_ks_statistic) + 1) / (n_permutations + 1)  # +1 added to avoid strictly zero p-values and ensure continuity
+
+    return p_value
+
+
+def perform_bias_statistical_analysis(sample_df, bias_stats_dir_path, exp_var, model, dataset_name, stat_test_types, diseases=['Pleural Effusion', 'No Finding']):
+    """Statistical Analysis: Perform Two-sample Independent tests between each pair of subgroups"""
+    # Lists to store adjusted_pvalues and rejection DataFrames as well as corresponding expanded representations for the model for each test_type applied
+    combined_pvalues_dfs = []
+    combined_binary_rejections_dfs = [] 
+    combined_categorised_rejections_dfs__detailed = []
+    combined_categorised_rejections_dfs__compact = []
+    combined_categorised2_rejections_dfs__detailed = []
+    combined_categorised2_rejections_dfs__compact = []
 
     # Loop over each test type and perform statistical analysis
     for test_type in stat_test_types:
-        print(f"Performing {test_type} test")
+        print(f"Performing {test_type} test...")
+
         adjusted_pvalues_df, rejection_df = perform_statistical_tests(
             sample_df=sample_df,
             bias_stats_dir_path=bias_stats_dir_path,
@@ -838,18 +931,50 @@ def perform_bias_statistical_analysis(sample_df, bias_stats_dir_path, exp_var, m
             dataset_name=dataset_name,
             test_type=test_type
         )
-        combined_pvalues_dfs.append(adjusted_pvalues_df)
-        combined_rejections_dfs.append(rejection_df)
 
-    # Combine all DataFrames for adjusted p-values and rejections into one
+        # Combine results for this test type
+        combined_categorised_rejections_df__detailed, combined_categorised_rejections_df__compact = combine_simulation_results([adjusted_pvalues_df], method='categorised_rejections')
+        combined_categorised2_rejections_df__detailed, combined_categorised2_rejections_df__compact = combine_simulation_results([adjusted_pvalues_df], method='categorised2_rejections')
+
+        # Save the combined results into csv files
+        save_bias_dataframe_to_csv(data_df=combined_categorised_rejections_df__detailed, bias_stats_dir_path=bias_stats_dir_path, test_type=test_type,
+                                   filename=f"{model['shortname']}__{test_type}--combined_statistical_tests_categorised_rejections--detailed__({dataset_name}).csv")
+        save_bias_dataframe_to_csv(data_df=combined_categorised_rejections_df__compact, bias_stats_dir_path=bias_stats_dir_path, test_type=test_type,
+                                   filename=f"{model['shortname']}__{test_type}--combined_statistical_tests_categorised_rejections--compact__({dataset_name}).csv")
+        save_bias_dataframe_to_csv(data_df=combined_categorised2_rejections_df__detailed, bias_stats_dir_path=bias_stats_dir_path, test_type=test_type,
+                                   filename=f"{model['shortname']}__{test_type}--combined_statistical_tests_categorised2_rejections--detailed__({dataset_name}).csv")
+        save_bias_dataframe_to_csv(data_df=combined_categorised2_rejections_df__compact, bias_stats_dir_path=bias_stats_dir_path, test_type=test_type,
+                                   filename=f"{model['shortname']}__{test_type}--combined_statistical_tests_categorised2_rejections--compact__({dataset_name}).csv")
+        
+        # Store combined results to list
+        combined_pvalues_dfs.append(adjusted_pvalues_df)
+        combined_binary_rejections_dfs.append(rejection_df)
+        combined_categorised_rejections_dfs__detailed.append(combined_categorised_rejections_df__detailed)
+        combined_categorised_rejections_dfs__compact.append(combined_categorised_rejections_df__compact)
+        combined_categorised2_rejections_dfs__detailed.append(combined_categorised2_rejections_df__detailed)
+        combined_categorised2_rejections_dfs__compact.append(combined_categorised2_rejections_df__compact)
+
+    # Concatenate all combined DataFrames for p-values and rejections
     final_pvalues_df = pd.concat(combined_pvalues_dfs, ignore_index=True)
-    final_rejections_df = pd.concat(combined_rejections_dfs, ignore_index=True)
+    final_binary_rejections_df = pd.concat(combined_binary_rejections_dfs, ignore_index=True)
+    final_categorised_rejections_df__detailed = pd.concat(combined_categorised_rejections_dfs__detailed, ignore_index=True)
+    final_categorised_rejections_df__compact = pd.concat(combined_categorised_rejections_dfs__compact, ignore_index=True)
+    final_categorised2_rejections_df__detailed = pd.concat(combined_categorised2_rejections_dfs__detailed, ignore_index=True)
+    final_categorised2_rejections_df__compact = pd.concat(combined_categorised2_rejections_dfs__compact, ignore_index=True)
 
     # Save these concatenated DataFrames to CSV
     final_pvalues_path = os.path.join(bias_stats_dir_path, f"{model['shortname']}__all_tests--statistical_tests_adjusted_pvalues__({dataset_name}).csv")
     final_pvalues_df.to_csv(final_pvalues_path, index=False)
-    final_rejections_path = os.path.join(bias_stats_dir_path, f"{model['shortname']}__all_tests--statistical_tests_rejections__({dataset_name}).csv")
-    final_rejections_df.to_csv(final_rejections_path, index=False)
+    final_binary_rejections_path = os.path.join(bias_stats_dir_path, f"{model['shortname']}__all_tests--statistical_tests_binary_rejections__({dataset_name}).csv")
+    final_binary_rejections_df.to_csv(final_binary_rejections_path, index=False)
+    final_categorised_rejections_path__detailed = os.path.join(bias_stats_dir_path, f"{model['shortname']}__all_tests--statistical_tests_categorised_rejections--detailed__({dataset_name}).csv")
+    final_categorised_rejections_df__detailed.to_csv(final_categorised_rejections_path__detailed, index=False)
+    final_categorised_rejections_path__compact = os.path.join(bias_stats_dir_path, f"{model['shortname']}__all_tests--statistical_tests_categorised_rejections--compact__({dataset_name}).csv")
+    final_categorised_rejections_df__compact.to_csv(final_categorised_rejections_path__compact, index=False)
+    final_categorised2_rejections_path__detailed = os.path.join(bias_stats_dir_path, f"{model['shortname']}__all_tests--statistical_tests_categorised2_rejections--detailed__({dataset_name}).csv")
+    final_categorised2_rejections_df__detailed.to_csv(final_categorised2_rejections_path__detailed, index=False)
+    final_categorised2_rejections_path__compact = os.path.join(bias_stats_dir_path, f"{model['shortname']}__all_tests--statistical_tests_categorised2_rejections--compact__({dataset_name}).csv")
+    final_categorised2_rejections_df__compact.to_csv(final_categorised2_rejections_path__compact, index=False)
 
 # =======================================================
 # ========== BIAS - STATISTICAL ANALYSIS - END ==========
@@ -862,7 +987,7 @@ def perform_bias_statistical_analysis(sample_df, bias_stats_dir_path, exp_var, m
 # ====== BIAS - STATS SIMULATION FUNCTIONS - START ======
 # =======================================================
 
-def simulate_bias_statistical_analysis(samples_dfs, bias_stats_dir_path, exp_var, model, dataset_name, stat_test_types):
+def simulate_bias_statistical_analysis(samples_dfs, bias_stats_dir_path, exp_var, model, dataset_name, stat_test_types, diseases=['Pleural Effusion', 'No Finding']):
     # Initialise storage lists for results across all test types
     combined_pvalues_dfs__detailed = []
     combined_pvalues_dfs__compact = []
@@ -872,9 +997,6 @@ def simulate_bias_statistical_analysis(samples_dfs, bias_stats_dir_path, exp_var
     combined_categorised_rejections_dfs__compact = []
     combined_categorised2_rejections_dfs__detailed = []
     combined_categorised2_rejections_dfs__compact = []
-
-    # Diseases to compare, currently set to compare 'Pleural Effusion' and 'No Finding' only
-    diseases = ['Pleural Effusion', 'No Finding']  
 
     # Loop over each test type and perform statistical analysis
     for test_type in stat_test_types:
@@ -971,7 +1093,7 @@ def combine_simulation_results(dfs, method='mean_std'):
     for all other methods, expects p-values in these columns.
     """
     if method not in ['mean_std', 'binary_rejections', 'categorised_rejections', 'categorised2_rejections', 'fisher', 'stouffer']:
-        raise ValueError("Invalid method specified. Choose from 'mean_std', 'majority_vote', 'fisher', 'stouffer'.")
+        raise ValueError("Invalid method specified. Choose from 'mean_std', 'binary_rejections', 'categorised_rejections', 'categorised2_rejections', 'fisher', 'stouffer'.")
     
     # Determine the expected data type for the check based on the method
     expected_type = 'binary' if method == 'binary_rejections' else 'p-value'
@@ -1054,8 +1176,8 @@ def parse_args():
                         help='Optional subdir name denoting the type of knowledge distillation applied to the model in question, to extend global directory paths with')
     parser.add_argument('--std_centred', action='store_true', 
                         help='When provided, is set to true to center plot axes around the standard deviation of the data')
-    parser.add_argument('--stat_test_types', nargs='+', default=['ks', 'mannwhitney', 'anderson', 'median', 'mood', 'kruskal', 'cramervonmises'], 
-                        choices=['ks', 'mannwhitney', 'anderson', 'median', 'mood', 'kruskal', 'cramervonmises'],
+    parser.add_argument('--stat_test_types', nargs='+', default=['ks'], 
+                        choices=['ks', 'ks_permutation', 'mannwhitney', 'anderson', 'median', 'mood', 'kruskal', 'cramervonmises'],
                         help='List of statistical tests to perform')
     return parser.parse_args()
 
@@ -1082,23 +1204,23 @@ if __name__ == "__main__":
 
     # Path to base output directory
     base_output_path = os.getcwd()  # Use the current working directory for outputs
-    global_bias_inspection_dir_path = os.path.join(base_output_path, f'bias_inspection--{dataset_name}')
+    global_bias_inspection_dir_path = os.path.join(base_output_path, f'bias_inspection2--{dataset_name}')
 
     # 'Global' directories to save bias inspection outputs
     global_combined_joint_plots_dir_path = os.path.join(global_bias_inspection_dir_path, 'models_combined_joint_plots/')
     global_combined_joint_plots_dir_path__main_samples = os.path.join(global_combined_joint_plots_dir_path, 'main_samples/', args.kd_type_subdir_name)
-    global_combined_joint_plots_dir_path__all_data_points = os.path.join(global_combined_joint_plots_dir_path, 'all_data_points/', args.kd_type_subdir_name)
+    global_combined_joint_plots_dir_path__all_unique_data_points = os.path.join(global_combined_joint_plots_dir_path, 'all_unique_data_points/', args.kd_type_subdir_name)
     global_combined_marginal_plots_dir_path = os.path.join(global_bias_inspection_dir_path, 'models_combined_marginal_plots/')
     global_combined_marginal_plots_dir_path__main_samples = os.path.join(global_combined_marginal_plots_dir_path, 'main_samples/', args.kd_type_subdir_name)
-    global_combined_marginal_plots_dir_path__all_data_points = os.path.join(global_combined_marginal_plots_dir_path, 'all_data_points/', args.kd_type_subdir_name)
+    global_combined_marginal_plots_dir_path__all_unique_data_points = os.path.join(global_combined_marginal_plots_dir_path, 'all_unique_data_points/', args.kd_type_subdir_name)
     # Ensure these directories exist
     os.makedirs(global_bias_inspection_dir_path, exist_ok=True)
     os.makedirs(global_combined_joint_plots_dir_path, exist_ok=True)
     os.makedirs(global_combined_joint_plots_dir_path__main_samples, exist_ok=True)
-    os.makedirs(global_combined_joint_plots_dir_path__all_data_points, exist_ok=True)
+    os.makedirs(global_combined_joint_plots_dir_path__all_unique_data_points, exist_ok=True)
     os.makedirs(global_combined_marginal_plots_dir_path, exist_ok=True)
     os.makedirs(global_combined_marginal_plots_dir_path__main_samples, exist_ok=True)
-    os.makedirs(global_combined_marginal_plots_dir_path__all_data_points, exist_ok=True)
+    os.makedirs(global_combined_marginal_plots_dir_path__all_unique_data_points, exist_ok=True)
 
 
 
@@ -1116,90 +1238,119 @@ if __name__ == "__main__":
     embeddings_csv_filepath = os.path.join(model["directory"], 'embeddings_test.csv')
     model_embeddings = read_csv_file(embeddings_csv_filepath)
 
+    print(f"data_characteristics shape (BEFORE clean up for duplicates): {data_characteristics.shape}")
+    print(f"model_embeddings shape (BEFORE clean up for duplicates): {model_embeddings.shape}")
+
+    # The rows in data_characteristics directly correspond to rows in model_embeddings; Resetting indices for both in case they are misaligned
+    data_characteristics.reset_index(drop=True, inplace=True)
+    model_embeddings.reset_index(drop=True, inplace=True)
+
+    # Drop duplicates from data_characteristics and keep the indices of the remaining rows
+    data_characteristics_clean = data_characteristics.drop_duplicates(keep='first').copy()
+    indices_to_keep = data_characteristics_clean.index
+
+    # Filter model_embeddings to only keep rows that match the indices from data_characteristics
+    model_embeddings_clean = model_embeddings.iloc[indices_to_keep].copy()
+
+    print(f"data_characteristics shape (AFTER clean up for duplicates): {data_characteristics_clean.shape}")
+    print(f"model_embeddings shape (AFTER clean up for duplicates): {model_embeddings_clean.shape}")
+
+    # Verify the shapes are still matching
+    assert len(data_characteristics_clean) == len(model_embeddings_clean), "The dataframes should have the same length after filtering for duplicates."
+
     # Get embeddings size
-    num_features = get_num_features(model_embeddings)
+    num_features = get_num_features(model_embeddings_clean)
 
     # Get embeddings columns
     embed_cols_names = [f'embed_{i}' for i in range(1, num_features+1)]
-    embeds = model_embeddings[embed_cols_names].to_numpy()
+    embeds = model_embeddings_clean[embed_cols_names].to_numpy()
     n, m = embeds.shape
     print(f"Embeddings shape: {embeds.shape}")
 
 
+
     ## Directories to save bias analysis outputs, directly inside the model's main directory
     model_bias_directories = setup_model_bias_analysis_directories(model_directory=model["directory"],
-                                                                    mainsample_subdirectory_name=MAIN_SAMPLE_SUBDIR_NAME,
-                                                                    alldata_subdirectory_name=ALL_DATA_SUBDIR_NAME,
-                                                                    simulation_subdirectory_name=SIMULATION_SUBDIR_NAME)
+                                                                   mainsample_subdirectory_name=MAIN_SAMPLE_SUBDIR_NAME,
+                                                                   alluniquedata_subdirectory_name=ALL_UNIQUE_DATA_SUBDIR_NAME,
+                                                                   simulation_subdirectory_name=SIMULATION_SUBDIR_NAME)
     # Main Bias Analysis Directory
     bias_dir_path = model_bias_directories['bias_dir_path']
     # Statistics Directories
     bias_stats_dir_path = model_bias_directories['bias_stats_dir_path']
     bias_stats_dir_path__main_sample = model_bias_directories['bias_stats_dir_path__main_sample']
-    bias_stats_dir_path__all_data_points = model_bias_directories['bias_stats_dir_path__all_data_points']
+    bias_stats_dir_path__all_unique_data_points = model_bias_directories['bias_stats_dir_path__all_unique_data_points']
     bias_stats_dir_path__simulation = model_bias_directories['bias_stats_dir_path__simulation']
     # PCA Analysis Directories
     pca_dir_path = model_bias_directories['pca_dir_path']
     pca_plots_joint_dir_path = model_bias_directories['pca_plots_joint_dir_path']
     pca_plots_joint_dir_path__main_sample = model_bias_directories['pca_plots_joint_dir_path__main_sample']
-    pca_plots_joint_dir_path__all_data_points = model_bias_directories['pca_plots_joint_dir_path__all_data_points']
+    pca_plots_joint_dir_path__all_unique_data_points = model_bias_directories['pca_plots_joint_dir_path__all_unique_data_points']
     pca_plots_marginal_dir_path = model_bias_directories['pca_plots_marginal_dir_path']
     pca_plots_marginal_dir_path__main_sample = model_bias_directories['pca_plots_marginal_dir_path__main_sample']
-    pca_plots_marginal_dir_path__all_data_points = model_bias_directories['pca_plots_marginal_dir_path__all_data_points']
+    pca_plots_marginal_dir_path__all_unique_data_points = model_bias_directories['pca_plots_marginal_dir_path__all_unique_data_points']
     # t-SNE Analysis Directories
     tsne_dir_path = model_bias_directories['tsne_dir_path']
     tsne_plots_joint_dir_path = model_bias_directories['tsne_plots_joint_dir_path']
     tsne_plots_joint_dir_path__main_sample = model_bias_directories['tsne_plots_joint_dir_path__main_sample']
-    tsne_plots_joint_dir_path__all_data_points = model_bias_directories['tsne_plots_joint_dir_path__all_data_points']
+    tsne_plots_joint_dir_path__all_unique_data_points = model_bias_directories['tsne_plots_joint_dir_path__all_unique_data_points']
     tsne_plots_marginal_dir_path = model_bias_directories['tsne_plots_marginal_dir_path']
     tsne_plots_marginal_dir_path__main_sample = model_bias_directories['tsne_plots_marginal_dir_path__main_sample']
-    tsne_plots_marginal_dir_path__all_data_points = model_bias_directories['tsne_plots_marginal_dir_path__all_data_points']
+    tsne_plots_marginal_dir_path__all_unique_data_points = model_bias_directories['tsne_plots_marginal_dir_path__all_unique_data_points']
     # Combined Plots Directories
     combined_plots_dir_path = model_bias_directories['combined_plots_dir_path']
     combined_joint_plots_dir_path = model_bias_directories['combined_joint_plots_dir_path']
     combined_joint_plots_dir_path__main_sample = model_bias_directories['combined_joint_plots_dir_path__main_sample']
-    combined_joint_plots_dir_path__all_data_points = model_bias_directories['combined_joint_plots_dir_path__all_data_points']
+    combined_joint_plots_dir_path__all_unique_data_points = model_bias_directories['combined_joint_plots_dir_path__all_unique_data_points']
     combined_marginal_plots_dir_path = model_bias_directories['combined_marginal_plots_dir_path']
     combined_marginal_plots_dir_path__main_sample = model_bias_directories['combined_marginal_plots_dir_path__main_sample']
-    combined_marginal_plots_dir_path__all_data_points = model_bias_directories['combined_marginal_plots_dir_path__all_data_points']
+    combined_marginal_plots_dir_path__all_unique_data_points = model_bias_directories['combined_marginal_plots_dir_path__all_unique_data_points']
+
 
 
     # Get PCA embeddings
-    embeds_pca, exp_var = apply_pca(embeds=embeds, df=data_characteristics, pca_dir_path=pca_dir_path)
+    embeds_pca, exp_var = apply_pca(embeds=embeds, df=data_characteristics_clean, pca_dir_path=pca_dir_path)
     # Get TSNE embeddings from the PCA-reduced embeddings
-    embeds_tsne = apply_tsne(embeds_pca=embeds_pca, df=data_characteristics, tsne_dir_path=tsne_dir_path)
+    embeds_tsne = apply_tsne(embeds_pca=embeds_pca, df=data_characteristics_clean, tsne_dir_path=tsne_dir_path)
 
 
-    ## Some pre-processing of the newly updated (from PCA and t-SNE above) data_characteristics DataFrame, to also be saved
+    ## Some pre-processing of the newly updated (from PCA and t-SNE above) data_characteristics_clean DataFrame, to also be saved
     # Categorise age into bins for better demographic analysis and visualisation
-    data_characteristics['binned_age'] = data_characteristics['age'].apply(bin_age)
+    data_characteristics_clean['binned_age'] = data_characteristics_clean['age'].apply(bin_age)
 
     # Replace 'Other' with 'Others' in the 'disease' column
-    data_characteristics['disease'] = data_characteristics['disease'].replace('Other', 'Others')
+    data_characteristics_clean['disease'] = data_characteristics_clean['disease'].replace('Other', 'Others')
 
     # Replicate entries for having capital letters in plots (duplicate columns)
-    data_characteristics['Disease'] = data_characteristics['disease']
-    data_characteristics['Sex'] = data_characteristics['sex']
-    data_characteristics['Age'] = data_characteristics['binned_age']
-    data_characteristics['Race'] = data_characteristics['race']
+    data_characteristics_clean['Disease'] = data_characteristics_clean['disease']
+    data_characteristics_clean['Sex'] = data_characteristics_clean['sex']
+    data_characteristics_clean['Age'] = data_characteristics_clean['binned_age']
+    data_characteristics_clean['Race'] = data_characteristics_clean['race']
 
     # Save the updated DataFrame to a CSV file for potential further analysis
-    csv_filename_all_data = f"{model['shortname']}__inspection_all_data__({dataset_name}).csv"
+    csv_filename_all_data = f"{model['shortname']}__inspection_all_unique_data__({dataset_name}).csv"
     output_csv_path = os.path.join(bias_dir_path, csv_filename_all_data)
-    data_characteristics.to_csv(output_csv_path)
-    print(f"Updated data characteristics saved to: {output_csv_path}")
+    data_characteristics_clean.to_csv(output_csv_path)
+    print(f"Updated unique (cleaned) data characteristics saved to: {output_csv_path}")
 
 
     # Prepare a sample of data for bias analysis, drawing N_SAMPLES from each racial subgroup
     csv_filename_sample = f"{model['shortname']}__inspection_sample__({dataset_name}).csv"
-    sample_test = sample_by_race(df=data_characteristics, n_samples=N_SAMPLES, races=RACES, random_seed=RANDOM_SEED, 
-                                 output_dir=bias_dir_path, csv_filename=csv_filename_sample, save_sample=True)
-    sample_test = sample_test.sample(frac=1, random_state=RANDOM_SEED) # shuffle data for proper visualisation due to overlapping following z order of data points in plot
+    sample_df = stratified_sample_by_race(
+        df=data_characteristics_clean, 
+        n_samples=N_SAMPLES, 
+        random_seed=RANDOM_SEED, 
+        strata_columns=STRATA_COLUMNS,
+        race_column="race",
+        output_dir=bias_dir_path, 
+        csv_filename=csv_filename_sample, 
+        save_sample=True)
+    sample_df = sample_df.sample(frac=1, random_state=RANDOM_SEED) # shuffle data for proper visualisation due to overlapping following z order of data points in plot
     
-    # Create a comprehensive sample using all available data points for a more exhaustive analysis 
-    # Note: The DataFrame 'data_characteristics' already contains a balanced number of occurrences for each racial group,
-    # ensuring each race is equally represented.
-    all_data_points_sample_test = data_characteristics.sample(frac=1, random_state=RANDOM_SEED)
+    # Create a comprehensive sample using all available unique data points for further analysis 
+    # (note: prevalences across subgroups—race, disease, sex, age—are not preserved in this sample).
+    all_unique_data_points_df = data_characteristics_clean.sample(frac=1, random_state=RANDOM_SEED)
+
 
 
     # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -1209,7 +1360,7 @@ if __name__ == "__main__":
     # Analysis with sampled data
     print("Starting bias analysis with main sampled data...")
     perform_bias_inspection(
-        sample_df=sample_test, 
+        sample_df=sample_df, 
         labels=args.labels, 
         pca_plots_joint_dir_path=pca_plots_joint_dir_path__main_sample, 
         pca_plots_marginal_dir_path=pca_plots_marginal_dir_path__main_sample, 
@@ -1226,50 +1377,53 @@ if __name__ == "__main__":
         dataset_name=dataset_name
         )
     perform_bias_statistical_analysis(
-        sample_df=sample_test, 
+        sample_df=sample_df, 
         bias_stats_dir_path=bias_stats_dir_path__main_sample, 
         exp_var=exp_var, 
         model=model, 
         dataset_name=dataset_name,
-        stat_test_types=args.stat_test_types
+        stat_test_types=args.stat_test_types,
+        diseases=['Pleural Effusion', 'No Finding']
         )
 
-    # Analysis with all data points
+    # Analysis with all unique data points
     print("Starting bias analysis with all data points...")
     perform_bias_inspection(
-        sample_df=all_data_points_sample_test, 
+        sample_df=all_unique_data_points_df, 
         labels=args.labels, 
-        pca_plots_joint_dir_path=pca_plots_joint_dir_path__all_data_points, 
-        pca_plots_marginal_dir_path=pca_plots_marginal_dir_path__all_data_points, 
-        tsne_plots_joint_dir_path=tsne_plots_joint_dir_path__all_data_points, 
-        tsne_plots_marginal_dir_path=tsne_plots_marginal_dir_path__all_data_points, 
+        pca_plots_joint_dir_path=pca_plots_joint_dir_path__all_unique_data_points, 
+        pca_plots_marginal_dir_path=pca_plots_marginal_dir_path__all_unique_data_points, 
+        tsne_plots_joint_dir_path=tsne_plots_joint_dir_path__all_unique_data_points, 
+        tsne_plots_marginal_dir_path=tsne_plots_marginal_dir_path__all_unique_data_points, 
         std_centred=args.std_centred,
         bias_dir_path=bias_dir_path, 
-        analysis_subdir_name=ALL_DATA_SUBDIR_NAME,
+        analysis_subdir_name=ALL_UNIQUE_DATA_SUBDIR_NAME,
         model=model, 
-        combined_joint_plots_dir_path=combined_joint_plots_dir_path__all_data_points, 
-        global_combined_joint_plots_dir_path=global_combined_joint_plots_dir_path__all_data_points,
-        combined_marginal_plots_dir_path=combined_marginal_plots_dir_path__all_data_points, 
-        global_combined_marginal_plots_dir_path=global_combined_marginal_plots_dir_path__all_data_points, 
+        combined_joint_plots_dir_path=combined_joint_plots_dir_path__all_unique_data_points, 
+        global_combined_joint_plots_dir_path=global_combined_joint_plots_dir_path__all_unique_data_points,
+        combined_marginal_plots_dir_path=combined_marginal_plots_dir_path__all_unique_data_points, 
+        global_combined_marginal_plots_dir_path=global_combined_marginal_plots_dir_path__all_unique_data_points, 
         dataset_name=dataset_name
         )
     perform_bias_statistical_analysis(
-        sample_df=all_data_points_sample_test, 
-        bias_stats_dir_path=bias_stats_dir_path__all_data_points, 
-        exp_var=exp_var, 
-        model=model, 
+        sample_df=all_unique_data_points_df,
+        bias_stats_dir_path=bias_stats_dir_path__all_unique_data_points,
+        exp_var=exp_var,
+        model=model,
         dataset_name=dataset_name,
-        stat_test_types=args.stat_test_types
+        stat_test_types=args.stat_test_types,
+        diseases=['Pleural Effusion', 'No Finding']
         )
     
     # Analysis through simulation with multiple samples
     print("Starting bias analysis simulation with multiple samples...")
     # Generate N_SIMULATION_ITERATIONS samples with varying seeds
     samples_dfs = generate_multiple_samples(
-        df=data_characteristics, 
+        df=data_characteristics_clean, 
         n_samples=N_SAMPLES, 
-        races=RACES, 
-        n_iterations=N_SIMULATION_ITERATIONS
+        n_iterations=N_SIMULATION_ITERATIONS,
+        strata_columns=STRATA_COLUMNS,
+        race_column="race"
         )
     # Perform statistical analysis simulation: calculate mean/std of p-values and majority vote for rejections.
     simulate_bias_statistical_analysis(
@@ -1278,7 +1432,8 @@ if __name__ == "__main__":
         exp_var=exp_var, 
         model=model, 
         dataset_name=dataset_name,
-        stat_test_types=args.stat_test_types
+        stat_test_types=args.stat_test_types,
+        diseases=['Pleural Effusion', 'No Finding']  # Diseases to compare, currently set to compare 'Pleural Effusion' and 'No Finding' only
         )
     
     # <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<

@@ -241,7 +241,7 @@ def add_legend_to_plot(filename, output_dir, metric, figsize_width=20, legend_im
         total_plots += 1
     
     if legend_image_path:
-        with Image.open(os.path.join(output_dir, legend_image_path)) as img:
+        with Image.open(legend_image_path) as img:
             legend_width, legend_height = img.size
             # Adjust legend dimensions to maintain uniform width with the main plot
             legend_aspect_ratio = legend_height / legend_width
@@ -271,7 +271,7 @@ def add_legend_to_plot(filename, output_dir, metric, figsize_width=20, legend_im
     if legend_image_path:
         ax_legend = fig.add_subplot(gs[-1, 0])
         ax_legend.axis('off')
-        img_legend = mpimg.imread(os.path.join(legend_image_path))
+        img_legend = mpimg.imread(legend_image_path)
         ax_legend.imshow(img_legend)
 
     plot_w_legend_filename = filename.replace('performance_plot', 'performance_plot_w_legend')
@@ -304,7 +304,7 @@ def aggregate_plots_into_grid(output_dir, models, results_df_key, figsize_width=
             total_plots += 1
 
     if legend_image_path:
-        with Image.open(os.path.join(output_dir, legend_image_path)) as img:
+        with Image.open(legend_image_path) as img:
             legend_width, legend_height = img.size
             # Adjust legend dimensions to maintain uniform width with the main plots
             legend_aspect_ratio = legend_height / legend_width
@@ -343,7 +343,7 @@ def aggregate_plots_into_grid(output_dir, models, results_df_key, figsize_width=
     if legend_image_path:
         ax_legend = fig.add_subplot(gs[-1, 0])
         ax_legend.axis('off')
-        img_legend = mpimg.imread(os.path.join(legend_image_path))
+        img_legend = mpimg.imread(legend_image_path)
         ax_legend.imshow(img_legend)
 
     grid_plot_filename = f"{len(models)}-Models__All_Metrics--combined_performance_plots--{result_type}__({dataset_name}).png"

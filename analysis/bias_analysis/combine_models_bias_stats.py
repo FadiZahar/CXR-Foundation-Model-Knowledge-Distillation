@@ -39,6 +39,8 @@ def parse_args():
     parser.add_argument('--config', default='chexpert', choices=['chexpert', 'mimic'], help='Config dataset module to use')
     parser.add_argument('--models_bias_stats_dirpath', nargs='+', default=None, 
                         help="Provide one or more models' bias_stats directory paths containing the bias statistics CSV files.")
+    parser.add_argument('--bias2', action='store_true', 
+                        help='Enable additional bias analysis mode.')
     return parser.parse_args()
 
 
@@ -54,8 +56,12 @@ if __name__ == "__main__":
     # Path to base output directory
     base_output_path = os.getcwd()  # Use the current working directory for outputs
 
+    # Determine the directory name based on whether --bias2 is specified
+    # i.e., change to f'bias_inspection--{dataset_name}' to correspond with evaluate_model_bias.py rather than evaluate_model_bias2.py
+    directory_name_suffix = f'bias_inspection2--{dataset_name}' if args.bias2 else f'bias_inspection--{dataset_name}'
+
     # 'Global' directories to save bias stats outputs
-    global_bias_inspection_dir_path = os.path.join(base_output_path, f'bias_inspection--{dataset_name}')
+    global_bias_inspection_dir_path = os.path.join(base_output_path, directory_name_suffix)
     global_bias_stats_dir_path = os.path.join(global_bias_inspection_dir_path, 'models_bias_stats/')
     os.makedirs(global_bias_stats_dir_path, exist_ok=True)
 
