@@ -86,8 +86,8 @@ To ensure the proper execution of the code, setting up a dedicated Python enviro
 
 1. **Create and Activate a Python 3 Virtual Environment:**
     ```bash
-    python3 -m venv <path_to_envs>/cxrfmkd_venv
-    source <path_to_envs>/cxrfmkd_venv/bin/activate
+    python3 -m venv <path_to_envs>/fmkd_venv
+    source <path_to_envs>/fmkd_venv/bin/activate
     ```
 
 2. **Install Required Python Libraries:**

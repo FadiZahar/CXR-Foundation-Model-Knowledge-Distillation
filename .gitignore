@@ -2,7 +2,12 @@
 **/__pycache__
 **/*.pyc
 
+# Ignore virtual envs
 venv
 fmkd_venv
 
+# Ignore notebooks exploration directory
 notebooks/
+
+# Ignore logs directories
+*_logs/
