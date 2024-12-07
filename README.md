@@ -22,7 +22,7 @@ Welcome to the GitHub repository of my postgraduate research thesis for the *MSc
 ## Project Overview
 
 ### Motivation
-This project was initiated through an examination of Google’s Chest X-Ray (CXR) Foundation Model (FM) [[1]](#references), hereafter referred to as **CXR-FM**. The investigation focused on leveraging Knowledge Distillation (KD) to mitigate the biases identified by [[2]](#references) in this FM and to enhance its overall performance.
+This project was initiated through an examination of Google’s Chest X-Ray (CXR) Foundation Model (FM) [**[1]**](#references), hereafter referred to as **CXR-FM**. The investigation focused on leveraging Knowledge Distillation (KD) to mitigate the biases identified by [**[2]**](#references) in this FM and to enhance its overall performance.
 
 Historically, CXR-FM, like many foundation models, was constrained by a lack of publicly accessible weights, providing only vector embedding outputs from input images. This limited access impedes efforts towards bias mitigation, as full access to the model's architecture is essential for comprehensive adjustments. 
 
@@ -37,27 +37,27 @@ This research was centered on developing the **CXR-FMKD** model using Knowledge 
 
 Key contributions include:
 
-1. $\textbf{\color{crimson}{KD Exploration:}}$
+$\textbf{\color{crimson}{1. KD Exploration:}}$
 
-    Various loss functions—$\color{darkblue}{MSE}$, $\color{darkblue}{MAE}$, $\color{darkblue}{HuberLoss}$, $\color{darkblue}{Cosine\ Similarity}$—and their combinations were investigated in this KD process. The best-performing CXR-FMKD models were obtained using a combination of *MSE* and *Cosine Similarity*.
+- Various loss functions—$\color{darkblue}{MSE}$, $\color{darkblue}{MAE}$, $\color{darkblue}{HuberLoss}$, $\color{darkblue}{Cosine\ Similarity}$—and their combinations were investigated in this KD process. The best-performing CXR-FMKD models were obtained using a combination of *MSE* and *Cosine Similarity*.
 
-2. $\textbf{\color{crimson}{Performance\ Analysis:}}$
+$\textbf{\color{crimson}{2. Performance\ Analysis:}}$
 
-    The performance of the CXR-FMKD model was evaluated using the CheXpert and MIMIC datasets, which both encompass the same 14 disease classes in a multilabel classification setting. Performance metrics included $\color{darkcyan}{AUC–PR}$, $\color{darkcyan}{AUC–ROC}$, $\color{darkcyan}{Maximum\ Youden's\ J\ Statistic}$, and $\color{darkcyan}{Youden's\ J\ Statistic\ at\ 20\%\ FPR\ (False\ Positive\ Rate)}$.
+- The performance of the CXR-FMKD model was evaluated using the CheXpert and MIMIC datasets, which both encompass the same 14 disease classes in a multilabel classification setting. Performance metrics included $\color{darkcyan}{AUC–PR}$, $\color{darkcyan}{AUC–ROC}$, $\color{darkcyan}{Maximum\ Youden's\ J\ Statistic}$, and $\color{darkcyan}{Youden's\ J\ Statistic\ at\ 20\%\ FPR\ (False\ Positive\ Rate)}$.
 
-    The CXR-FMKD consistently outperformed both the original CXR-FM and a benchmark DenseNet169 model trained from scratch.
+- The CXR-FMKD consistently outperformed both the original CXR-FM and a benchmark DenseNet169 model trained from scratch.
 
-3. $\textbf{\color{crimson}{Generalisability\ Analysis\ (Inference):}}$
+$\textbf{\color{crimson}{3. Generalisability\ Analysis\ (Inference):}}$
 
-    Models initially trained on CheXpert were subsequently tested on MIMIC to assess generalisability, leveraging the shared 14 disease classes. Various testing strategies were employed, including $\color{saddlebrown}{Direct\ Transfer}$ without adaptation, $\color{saddlebrown}{Linear\ Probing}$ by fine-tuning only the final classifier layer, and $\color{saddlebrown}{Full\ Fine–Tuning}$ across all layers. These tests confirmed the robustness of CXR-FMKD and further demonstrated its enhanced performance compared to CXR-FM.
+- Models initially trained on CheXpert were subsequently tested on MIMIC to assess generalisability, leveraging the shared 14 disease classes. Various testing strategies were employed, including $\color{saddlebrown}{Direct\ Transfer}$ without adaptation, $\color{saddlebrown}{Linear\ Probing}$ by fine-tuning only the final classifier layer, and $\color{saddlebrown}{Full\ Fine–Tuning}$ across all layers. These tests confirmed the robustness of CXR-FMKD and further demonstrated its enhanced performance compared to CXR-FM.
 
-4. $\textbf{\color{crimson}{Bias\ Analysis:}}$
+$\textbf{\color{crimson}{4. Bias\ Analysis:}}$
 
-    $\color{green}{PCA}$ and $\color{green}{t–SNE}$ dimensionality reduction techniques were used to analyse variations in subgroup marginal distributions in the penultimate layer embeddings for biases related to age and sex. To quantify these variations, a novel $\color{olivedrab}{bias\ score}$ was developed using outputs from $\color{green}{Kolmogorov–Smirnov}$ $\color{green}{statistical\ tests}$, which were categorised by p-value significance levels and assigned predefined scores. This bias analysis highlighted a notable reduction in bias in CXR-FMKD compared to CXR-FM.
+- $\color{green}{PCA}$ and $\color{green}{t–SNE}$ dimensionality reduction techniques were used to analyse variations in subgroup marginal distributions in the penultimate layer embeddings for biases related to age and sex. To quantify these variations, a novel $\color{olivedrab}{bias\ score}$ was developed using outputs from $\color{green}{Kolmogorov–Smirnov}$ $\color{green}{statistical\ tests}$, which were categorised by p-value significance levels and assigned predefined scores. This bias analysis highlighted a notable reduction in bias in CXR-FMKD compared to CXR-FM.
 
-5. $\textbf{\color{crimson}{Performance\ vs.\ Bias\ Analysis:}}$
+$\textbf{\color{crimson}{5. Performance\ vs.\ Bias\ Analysis:}}$
 
-    A general trend was observed where $\color{purple}{increased\ performance}$ **correlated with** $\color{purple}{reduced\ bias}$, suggesting that the models were utilising more relevant features in the chest X-rays for disease classification, rather than inappropriate reliance on features like race or sex.
+- A general trend was observed where $\color{purple}{increased\ performance}$ **correlated with** $\color{purple}{reduced\ bias}$, suggesting that the models were utilising more relevant features in the chest X-rays for disease classification, rather than inappropriate reliance on features like race or sex.
 
 These findings underscore the potential of KD not only to effectively mitigate bias but also to enhance performance for specific data tasks. Importantly, this work further highlights the crucial need for transparency in foundation models, where restricted access to model weights through API-dependent platforms often obscures vital details necessary for deeper understanding and bias mitigation.
 
