@@ -46,7 +46,7 @@ $\textbf{\color{crimson}{1. KD Exploration:}}$
 
 $\textbf{\color{crimson}{2. Performance\ Analysis:}}$
 
-- The performance of the CXR-FMKD model was evaluated using the CheXpert and MIMIC datasets, which both encompass the same 14 disease classes in a multilabel classification setting. Performance metrics included $\color{darkcyan}{AUC–PR}$, $\color{darkcyan}{AUC–ROC}$, $\color{darkcyan}{Maximum\ Youden's\ J\ Statistic}$, and $\color{darkcyan}{Youden's\ J\ Statistic\ at\ 20\%\ FPR\ (False\ Positive\ Rate)}$.
+- The performance of the CXR-FMKD model was evaluated using the CheXpert and MIMIC datasets, which both encompass the same 14 disease classes in a multilabel classification setting. Performance metrics included $\color{darkcyan}{AUC–PR}$, $\color{darkcyan}{AUC–ROC}$, $\color{darkcyan}{Maximum\ Youden's\ J\ Statistic}$, and $\color{darkcyan}{Youden's\ J\ Statistic\ at\ {20}\%\ FPR\ (False\ Positive\ Rate)}$.
 
 - The CXR-FMKD consistently outperformed both the original CXR-FM and a benchmark DenseNet169 model trained from scratch.
 
@@ -103,22 +103,22 @@ To ensure the proper execution of the code, setting up a dedicated Python enviro
 
 1. ***gpus24 Partition:***
 
-- *GPUs*: Workstation-grade RTX 3090 / 4090 cards.
-- *GPU Memory*: Each GPU has 24 GiB of VRAM.
-- *System Specs*: Accompanied by 62 GiB RAM and 12 CPU cores.
-- *Usage*: Used for various tasks in the project, predominantly when lesser memory was sufficient.
+- <font color="grey"> *GPUs*: </font> Workstation-grade RTX 3090 / 4090 cards.
+- <font color="grey"> *GPU Memory*: </font> Each GPU has 24 GiB of VRAM.
+- <font color="grey"> *System Specs*: </font> Accompanied by 62 GiB RAM and 12 CPU cores.
+- <font color="grey"> *Usage*: </font> Used for various tasks in the project, predominantly when lesser memory was sufficient.
 
 2. ***gpus48 Partition:***
 
-- *GPUs*: Server-grade Ada A6000 / L40 cards.
-- *GPU Memory*: Each GPU has 48 GiB of VRAM.
-- *System Specs*: Accompanied by 125 GiB RAM and 16 CPU cores.
-- *Usage*: Used for running the Knowledge Distillation (KD) codes and other demanding high-memory tasks.
+- <font color="grey"> *GPUs*: </font> Server-grade Ada A6000 / L40 cards.
+- <font color="grey"> *GPU Memory*: </font> Each GPU has 48 GiB of VRAM.
+- <font color="grey"> *System Specs*: </font> Accompanied by 125 GiB RAM and 16 CPU cores.
+- <font color="grey"> *Usage*: </font> Used for running the Knowledge Distillation (KD) codes and other demanding high-memory tasks.
 
 *Model output analysis and plotting* can be performed on standard laptop computers. Specifically, for our experiments, a MacBook Pro with the following specifications was used:
 
-- *Processor*: Apple M2 Pro with a 12-core CPU and a 19-core GPU
-- *Memory*: 16GB of unified RAM
+- <font color="grey"> *Processor*: </font> Apple M2 Pro with a 12-core CPU and a 19-core GPU
+- <font color="grey"> *Memory*: </font> 16GB of unified RAM
 
 
 ### CXR-FM: Generate Feature Embeddings
@@ -176,11 +176,11 @@ cxr-fmkd/
 
 Refering back to the [Key Contributions](#key-contributions):
 
-1. *Contribution 1*: $\textbf{\color{crimson}{KD Exploration}}$
-2. *Contribution 2*: $\textbf{\color{crimson}{Performance\ Analysis}}$
-3. *Contribution 3*: $\textbf{\color{crimson}{Generalisability\ Analysis\ (Inference)}}$
-4. *Contribution 4*: $\textbf{\color{crimson}{Bias\ Analysis}}$
-5. *Contribution 5*: $\textbf{\color{crimson}{Performance\ vs.\ Bias\ Analysis}}$
+- *Contribution 1*: $\textbf{\color{crimson}{KD Exploration}}$
+- *Contribution 2*: $\textbf{\color{crimson}{Performance\ Analysis}}$
+- *Contribution 3*: $\textbf{\color{crimson}{Generalisability\ Analysis\ (Inference)}}$
+- *Contribution 4*: $\textbf{\color{crimson}{Bias\ Analysis}}$
+- *Contribution 5*: $\textbf{\color{crimson}{Performance\ vs.\ Bias\ Analysis}}$
 
 
 ## Get in Touch
