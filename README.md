@@ -2,7 +2,7 @@
 
 ![Alt text](<assets/CXRFMKD - Diagram.png>)
 
-Welcome to the GitHub repository of my postgraduate research thesis for the *MSc in Artificial Intelligence* at Imperial College London. This project was carried out under the supervision of Dr. Ben Glocker in the [Biomedical Image Analysis (BioMedIA) Lab](https://biomedia.doc.ic.ac.uk/).
+Welcome to the GitHub repository of my postgraduate research thesis for the *MSc in Artificial Intelligence* at Imperial College London. This project was carried out under the supervision of [Dr Ben Glocker](https://wp.doc.ic.ac.uk/bglocker/) in the [Biomedical Image Analysis (BioMedIA) Lab](https://biomedia.doc.ic.ac.uk/).
 
 
 ## Table of Contents
@@ -103,22 +103,22 @@ To ensure the proper execution of the code, setting up a dedicated Python enviro
 
 1. ***gpus24 Partition:***
 
-- <font color="grey"> *GPUs*: </font> Workstation-grade RTX 3090 / 4090 cards.
-- <font color="grey"> *GPU Memory*: </font> Each GPU has 24 GiB of VRAM.
-- <font color="grey"> *System Specs*: </font> Accompanied by 62 GiB RAM and 12 CPU cores.
-- <font color="grey"> *Usage*: </font> Used for various tasks in the project, predominantly when lesser memory was sufficient.
+- <font color="darkgoldenrod"> *GPUs*: </font> Workstation-grade RTX 3090 / 4090 cards.
+- <font color="darkgoldenrod"> *GPU Memory*: </font> Each GPU has 24 GiB of VRAM.
+- <font color="darkgoldenrod"> *System Specs*: </font> Accompanied by 62 GiB RAM and 12 CPU cores.
+- <font color="darkgoldenrod"> *Usage*: </font> Used for various tasks in the project, predominantly when lesser memory was sufficient.
 
 2. ***gpus48 Partition:***
 
-- <font color="grey"> *GPUs*: </font> Server-grade Ada A6000 / L40 cards.
-- <font color="grey"> *GPU Memory*: </font> Each GPU has 48 GiB of VRAM.
-- <font color="grey"> *System Specs*: </font> Accompanied by 125 GiB RAM and 16 CPU cores.
-- <font color="grey"> *Usage*: </font> Used for running the Knowledge Distillation (KD) codes and other demanding high-memory tasks.
+- <font color="darkgoldenrod"> *GPUs*: </font> Server-grade Ada A6000 / L40 cards.
+- <font color="darkgoldenrod"> *GPU Memory*: </font> Each GPU has 48 GiB of VRAM.
+- <font color="darkgoldenrod"> *System Specs*: </font> Accompanied by 125 GiB RAM and 16 CPU cores.
+- <font color="darkgoldenrod"> *Usage*: </font> Used for running the Knowledge Distillation (KD) codes and other demanding high-memory tasks.
 
 *Model output analysis and plotting* can be performed on standard laptop computers. Specifically, for our experiments, a MacBook Pro with the following specifications was used:
 
-- <font color="grey"> *Processor*: </font> Apple M2 Pro with a 12-core CPU and a 19-core GPU
-- <font color="grey"> *Memory*: </font> 16GB of unified RAM
+- <font color="darkgoldenrod"> *Processor*: </font> Apple M2 Pro with a 12-core CPU and a 19-core GPU
+- <font color="darkgoldenrod"> *Memory*: </font> 16GB of unified RAM
 
 
 ### CXR-FM: Generate Feature Embeddings
