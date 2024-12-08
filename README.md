@@ -92,11 +92,18 @@ To ensure the proper execution of the code, setting up a dedicated Python enviro
 
 2. **Install Required Python Libraries:**
 
-    Ensure your virtual environment is activated, then install the libraries specified in the `requirements.txt` file:
+    Make sure your virtual environment is activated. You can install the necessary libraries either by using the provided `requirements.txt` file:
 
     ```bash
     pip install -r requirements.txt
     ```
+
+    Alternatively, you can install each library individually with the following command:
+
+    ```bash
+    pip install matplotlib numpy pandas Pillow pytorch-lightning scikit-image scikit-learn scipy seaborn statsmodels tabulate tensorflow torch torchvision tqdm wandb
+    ```
+
 
 ### System Requirements
 *Model training and testing* require high-end GPU workstations. For our experiments, two main GPU partitions were used:

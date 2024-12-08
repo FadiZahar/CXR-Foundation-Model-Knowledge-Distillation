@@ -11,3 +11,6 @@ notebooks/
 
 # Ignore logs directories
 *_logs/
+
+# Ignore full dependencies list
+full_dependencies.txt
