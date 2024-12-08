@@ -46,7 +46,7 @@ $\textbf{\color{crimson}{1. KD Exploration:}}$
 
 $\textbf{\color{crimson}{2. Performance\ Analysis:}}$
 
-- The performance of the CXR-FMKD model was evaluated using the CheXpert and MIMIC datasets, which both encompass the same 14 disease classes in a multilabel classification setting. Performance metrics included $\color{darkcyan}{AUC–PR}$, $\color{darkcyan}{AUC–ROC}$, $\color{darkcyan}{Maximum\ Youden's\ J\ Statistic}$, and $\color{darkcyan}{Youden's\ J\ Statistic}$ $\color{darkcyan}{\textit{at 20}}$ <span style="color: darkcyan"> % </span> $\color{darkcyan}{FPR\ (False\ Positive\ Rate)}$.
+- The performance of the CXR-FMKD model was evaluated using the CheXpert and MIMIC datasets, which both encompass the same 14 disease classes in a multilabel classification setting. Performance metrics included $\color{darkcyan}{AUC–PR}$, $\color{darkcyan}{AUC–ROC}$, $\color{darkcyan}{Maximum\ Youden's\ J\ Statistic}$, and $\color{darkcyan}{Youden's\ J\ Statistic}$ $\color{darkcyan}{\textit{at 20}}$ <span style="color: darkcyan"> \% </span> $\color{darkcyan}{FPR\ (False\ Positive\ Rate)}$.
 
 - The CXR-FMKD consistently outperformed both the original CXR-FM and a benchmark DenseNet169 model trained from scratch.
 
