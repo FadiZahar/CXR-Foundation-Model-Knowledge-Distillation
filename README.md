@@ -42,21 +42,21 @@ Key contributions include:
 
 $\textbf{\color{crimson}{1. KD Exploration:}}$
 
-- Various loss functions—$\color{darkblue}{MSE}$, $\color{darkblue}{MAE}$, $\color{darkblue}{HuberLoss}$, $\color{darkblue}{Cosine\ Similarity}$—and their combinations were investigated in this KD process. The best-performing CXR-FMKD models were obtained using a combination of *MSE* and *Cosine Similarity*.
+- Various loss functions— $\color{darkblue}{MSE}$, $\color{darkblue}{MAE}$, $\color{darkblue}{HuberLoss}$, $\color{darkblue}{Cosine\ Similarity}$ —and their combinations were investigated in this KD process. The best-performing CXR-FMKD models were obtained using a combination of *MSE* and *Cosine Similarity*.
 
 $\textbf{\color{crimson}{2. Performance\ Analysis:}}$
 
-- The performance of the CXR-FMKD model was evaluated using the CheXpert and MIMIC datasets, which both encompass the same 14 disease classes in a multilabel classification setting. Performance metrics included $\color{darkcyan}{AUC–PR}$, $\color{darkcyan}{AUC–ROC}$, $\color{darkcyan}{Maximum\ Youden's\ J\ Statistic}$, and $\color{darkcyan}{Youden's\ J\ Statistic}$ $\color{darkcyan}{\textit{at 20}}$ <span style="color: darkcyan"> \% </span> $\color{darkcyan}{FPR\ (False\ Positive\ Rate)}$.
+- The performance of the CXR-FMKD model was evaluated using the CheXpert and MIMIC datasets, which both encompass the same 14 disease classes in a multilabel classification setting. Performance metrics included $\color{darkcyan}{AUC-PR}$, $\color{darkcyan}{AUC-ROC}$, $\color{darkcyan}{Maximum\ Youden's\ J\ Statistic}$, and $\color{darkcyan}{Youden's\ J\ Statistic}$ $\color{darkcyan}{\textit{at 20}}$ $\color{darkcyan}{percent}$ $\color{darkcyan}{FPR\ (False\ Positive\ Rate)}$.
 
 - The CXR-FMKD consistently outperformed both the original CXR-FM and a benchmark DenseNet169 model trained from scratch.
 
 $\textbf{\color{crimson}{3. Generalisability\ Analysis\ (Inference):}}$
 
-- Models initially trained on CheXpert were subsequently tested on MIMIC to assess generalisability, leveraging the shared 14 disease classes. Various testing strategies were employed, including $\color{saddlebrown}{Direct\ Transfer}$ without adaptation, $\color{saddlebrown}{Linear\ Probing}$ by fine-tuning only the final classifier layer, and $\color{saddlebrown}{Full\ Fine–Tuning}$ across all layers. These tests confirmed the robustness of CXR-FMKD and further demonstrated its enhanced performance compared to CXR-FM.
+- Models initially trained on CheXpert were subsequently tested on MIMIC to assess generalisability, leveraging the shared 14 disease classes. Various testing strategies were employed, including $\color{saddlebrown}{Direct\ Transfer}$ without adaptation, $\color{saddlebrown}{Linear\ Probing}$ by fine-tuning only the final classifier layer, and $\color{saddlebrown}{Full\ Fine-Tuning}$ across all layers. These tests confirmed the robustness of CXR-FMKD and further demonstrated its enhanced performance compared to CXR-FM.
 
 $\textbf{\color{crimson}{4. Bias\ Analysis:}}$
 
-- $\color{green}{PCA}$ and $\color{green}{t–SNE}$ dimensionality reduction techniques were used to analyse variations in subgroup marginal distributions in the penultimate layer embeddings for biases related to age and sex. To quantify these variations, a novel $\color{olivedrab}{bias\ score}$ was developed using outputs from $\color{green}{Kolmogorov–Smirnov}$ $\color{green}{statistical\ tests}$, which were categorised by p-value significance levels and assigned predefined scores. This bias analysis highlighted a notable reduction in bias in CXR-FMKD compared to CXR-FM.
+- $\color{green}{PCA}$ and $\color{green}{t–SNE}$ dimensionality reduction techniques were used to analyse variations in subgroup marginal distributions in the penultimate layer embeddings for biases related to age and sex. To quantify these variations, a novel $\color{olivedrab}{bias\ score}$ was developed using outputs from $\color{green}{Kolmogorov-Smirnov}$ $\color{green}{statistical\ tests}$, which were categorised by p-value significance levels and assigned predefined scores. This bias analysis highlighted a notable reduction in bias in CXR-FMKD compared to CXR-FM.
 
 $\textbf{\color{crimson}{5. Performance\ vs.\ Bias\ Analysis:}}$
 
