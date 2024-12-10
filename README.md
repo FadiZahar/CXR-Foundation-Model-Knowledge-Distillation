@@ -56,7 +56,7 @@ $\textbf{\color{crimson}{3. Generalisability\ Analysis\ (Inference):}}$
 
 $\textbf{\color{crimson}{4. Bias\ Analysis:}}$
 
-- $\color{green}{PCA}$ and $\color{green}{t–SNE}$ dimensionality reduction techniques were used to analyse variations in subgroup marginal distributions in the penultimate layer embeddings for biases related to age and sex. To quantify these variations, a novel $\color{olivedrab}{bias\ score}$ was developed using outputs from $\color{green}{Kolmogorov-Smirnov}$ $\color{green}{statistical\ tests}$, which were categorised by p-value significance levels and assigned predefined scores. This bias analysis highlighted a notable reduction in bias in CXR-FMKD compared to CXR-FM.
+- $\color{green}{PCA}$ and $\color{green}{t–SNE}$ dimensionality reduction techniques were used to analyse variations in subgroup marginal distributions in the penultimate layer embeddings for biases related to age and sex. To quantify these variations, a novel $\color{olivedrab}{bias\ score}$ was developed using outputs from $\color{green}{Kolmogorov-Smirnov}$ $\color{green}{statistical\ tests}$, which were categorised by p-value significance levels, assigned predefined scores, and weighted by explained variance from PCA results. This bias analysis highlighted a notable reduction in bias in CXR-FMKD compared to CXR-FM.
 
 $\textbf{\color{crimson}{5. Performance\ vs.\ Bias\ Analysis:}}$
 
