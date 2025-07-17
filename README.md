@@ -4,6 +4,8 @@
 
 Welcome to the GitHub repository of my postgraduate research thesis for the *MSc in Artificial Intelligence* at Imperial College London. This project was carried out under the supervision of [Dr Ben Glocker](https://wp.doc.ic.ac.uk/bglocker/) in the [Biomedical Image Analysis (BioMedIA) Lab](https://biomedia.doc.ic.ac.uk/).
 
+You can find my [final thesis report](<assets/Fadi Zahar - MSc AI Thesis - Final Report.pdf>) and [viva presentation slides](<assets/Fadi Zahar - MSc AI Thesis - Final Presentation.pdf>) in this repository.
+
 
 ## Table of Contents
 
@@ -32,7 +34,7 @@ To address these limitations, KD techniques were employed to extract and transfe
 
 >Recently, aligning with the themes of this research, the [weights for CXR-FM were made public](https://research.google/blog/helping-everyone-build-ai-for-healthcare-applications-with-open-foundation-models/), setting an important precedent in a competitive AI landscape where sharing insights from proprietary models is not typically incentivised. This shift further highlights the ongoing necessity for open access to medical foundation models and transparency in their development to drive innovation and improve safety across healthcare applications.
 
-> **Note:** For a Motivation overview, please refer to the accompanying [Motivation PowerPoint PDF](<assets/CXRFMKD - Motivation.pdf>)
+> **Note:** For an overview of the motivation, please refer to Section 1.1 of the accompanying [thesis report](<assets/Fadi Zahar - MSc AI Thesis - Final Report.pdf>).
 
 ### Key Contributions
 
@@ -66,7 +68,7 @@ $\textbf{\color{crimson}{5. Performance\ vs.\ Bias\ Analysis:}}$
 
 These findings underscore the potential of KD not only to effectively mitigate bias but also to enhance performance for specific data tasks. Importantly, this work further highlights the crucial need for transparency in foundation models, where restricted access to model weights through API-dependent platforms often obscures vital details necessary for deeper understanding and bias mitigation.
 
-> **Note:** For an overview of the experimental results, please refer to the accompanying [Results PowerPoint PDF](<assets/CXRFMKD - Results.pdf>)
+> **Note:** For a summary of the experimental results, please refer to the accompanying [viva presentation slides](<assets/Fadi Zahar - MSc AI Thesis - Final Presentation.pdf>).
 
 ## Datasets
 
