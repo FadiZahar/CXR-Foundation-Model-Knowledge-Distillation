@@ -4,7 +4,12 @@
 
 Welcome to the GitHub repository of my postgraduate research thesis for the *MSc in Artificial Intelligence* at Imperial College London. This project was carried out under the supervision of [Dr Ben Glocker](https://wp.doc.ic.ac.uk/bglocker/) in the [Biomedical Image Analysis (BioMedIA) Lab](https://biomedia.doc.ic.ac.uk/).
 
-You can find my [final thesis report](<assets/Fadi Zahar - MSc AI Thesis - Final Report.pdf>) and [viva presentation slides](<assets/Fadi Zahar - MSc AI Thesis - Final Presentation.pdf>) in this repository.
+
+## Files
+You can find my final thesis report and viva presentation slides in this repository:
+
+- [Final Thesis Report (PDF)](<assets/Fadi Zahar - MSc AI Thesis - Final Report.pdf>)
+- [Viva Presentation Slides (PDF)](<assets/Fadi Zahar - MSc AI Thesis - Final Presentation.pdf>)
 
 
 ## Table of Contents
