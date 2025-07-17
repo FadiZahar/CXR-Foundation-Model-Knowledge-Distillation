@@ -1,6 +1,6 @@
 # **Foundation Models for Chest Radiography:** Knowledge Distillation and Impacts on Performance and Bias Propagation
 
-![Alt text](<assets/CXRFMKD - Diagram.png>)
+![CXR-FMKD-Direct LP-FFT Diagram](<assets/CXRFMKD - Diagram.png>)
 
 Welcome to the GitHub repository of my postgraduate research thesis for the *MSc in Artificial Intelligence* at Imperial College London. This project was carried out under the supervision of [Dr Ben Glocker](https://wp.doc.ic.ac.uk/bglocker/) in the [Biomedical Image Analysis (BioMedIA) Lab](https://biomedia.doc.ic.ac.uk/).
 
