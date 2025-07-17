@@ -196,7 +196,7 @@ Refering back to the [Key Contributions](#key-contributions):
 
 ## Get in Touch
 
-For more information or to inquire about the research, please reach out directly at fadi.zahar23@imperial.ac.uk.
+For more information or to inquire about the research, please reach out directly at fadizahar33@gmail.com (or fadi.zahar23@imperial.ac.uk).
 
 ## References
 
